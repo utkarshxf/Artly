@@ -8,7 +8,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.orion.templete.presentation.common.Navigation
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.orion.templete.presentation.login.LoginScreen
+import com.orion.templete.presentation.login.RegisterScreen
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -23,9 +27,26 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Navigation()
+                    val navController = rememberNavController()
+                    NavHost(navController = navController, startDestination = "login_screen") {
+                        composable("login_screen") {
+                            LoginScreen(navigateToRegisterScreen = {
+                                navController.navigate("register_screen") {
+                                    popUpTo("login_screen") { inclusive = true }
+                                }
+                            })
+                        }
+                        composable("register_screen") {
+                            RegisterScreen(navigateToLoginScreen = {
+                                navController.navigate("login_screen") {
+                                    popUpTo("login_screen") { inclusive = true }
+                                }
+                            })
+                        }
+                    }
                 }
             }
         }
     }
 }
+
