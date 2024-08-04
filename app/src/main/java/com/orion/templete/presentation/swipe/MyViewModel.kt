@@ -1,4 +1,4 @@
-package com.orion.templete.presentation.swipartscreen
+package com.orion.templete.presentation.swipe
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -21,7 +21,6 @@ class MyViewModel @Inject constructor(
     }
     private fun getAllArtWork() {
         getArtworkUseCase()
-//            .flowOn(Dispatchers.IO)
             .onEach {
             when(it){
                 is Resource.Loading -> {

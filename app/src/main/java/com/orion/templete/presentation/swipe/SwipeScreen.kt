@@ -1,4 +1,4 @@
-package com.orion.templete.presentation.swipartscreen
+package com.orion.templete.presentation.swipe
 
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.shapes
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,14 +35,40 @@ import com.alexstyl.swipeablecard.swipableCard
 import com.orion.templete.ui.MatchProfile
 import com.orion.templete.ui.profiles
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeScreen() {
+    ArtCardRow(
+        header = {
+            TopAppBar(title = { Text(text = "Artwork") })
+        },
+        content = {
+            SwipeCard()
+        }
+    )
+}
+
+
+@Composable
+fun ArtCardRow(
+    modifier: Modifier = Modifier,
+    header: (@Composable () -> Unit)? = null,
+    content: (@Composable () -> Unit)? = null,
+) {
+    Column {
+        header?.invoke()
+        content?.invoke()
+    }
+}
+
 @OptIn(ExperimentalSwipeableCardApi::class)
 @Composable
-fun SwipeScreen(modifier: Modifier = Modifier , viewModel: MyViewModel = hiltViewModel()) {
+fun SwipeCard(viewModel: MyViewModel = hiltViewModel()) {
     Box {
         val states = profiles.reversed().map { it to rememberSwipeableCardState() }
         val scope = rememberCoroutineScope()
         var isSwipedLeft by remember { mutableStateOf(false) }
-
         Box(
             Modifier
                 .padding(24.dp)
@@ -54,8 +82,9 @@ fun SwipeScreen(modifier: Modifier = Modifier , viewModel: MyViewModel = hiltVie
                 val swipeOffset = state.offset
                 val backgroundColor = if (isSwipedLeft) Color.Red else Color.White
                 if (state.swipedDirection == null) {
+
                     ProfileCard(
-                        modifier = modifier
+                        modifier = Modifier
                             .fillMaxSize()
                             .swipableCard(state = state,
                                 blockedDirections = listOf(Down),
@@ -72,7 +101,6 @@ fun SwipeScreen(modifier: Modifier = Modifier , viewModel: MyViewModel = hiltVie
         }
     }
 }
-
 
 @Composable
 private fun ProfileCard(
