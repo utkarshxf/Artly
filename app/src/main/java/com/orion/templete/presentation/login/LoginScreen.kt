@@ -1,5 +1,7 @@
 package com.orion.templete.presentation.login
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,15 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -35,11 +36,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.orion.templete.data.model.User
 import com.orion.templete.presentation.ui.theme.TempleteTheme
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navigateToRegisterScreen: () -> Unit = {}) {
+fun LoginScreen(
+    navigateToRegisterScreen: () -> Unit = {},
+    navigateToHomeScreen: () -> Unit = {},
+    viewModel: LoginScreenViewModel = hiltViewModel()
+) {
+    val context = LocalContext.current
+    val userData by viewModel.userData
+    LaunchedEffect(userData.error) {
+        userData.error?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+        }
+    }
+    LaunchedEffect(userData.data) {
+        userData.data?.let {
+            navigateToHomeScreen()
+        }
+    }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     Surface(
@@ -90,11 +110,7 @@ fun LoginScreen(navigateToRegisterScreen: () -> Unit = {}) {
             )
             Spacer(modifier = Modifier.weight(0.1f))
             CommonLoginButton(text = "Login", modifier = Modifier.fillMaxWidth()) {
-                if (email == "adem" && password == "12345") {
-                    println("Login successful.")
-                } else {
-                    println("Login failed.")
-                }
+                viewModel.loginUser(User(email, password))
             }
             Spacer(modifier = Modifier.height(24.dp))
             CommonGoogleButton(text = "Connect with Google")
@@ -118,6 +134,7 @@ fun LoginScreen(navigateToRegisterScreen: () -> Unit = {}) {
         }
     }
 }
+
 
 @Composable
 fun CommonText(text: String, fontSize: Int, fontWeight: FontWeight, color: Color = MaterialTheme.colorScheme.onSurface, onClick: () -> Unit = {}) {

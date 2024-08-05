@@ -22,21 +22,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.orion.templete.presentation.swipe.SwipeScreen
-import com.orion.templete.presentation.ui.theme.TempleteTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Navigation() {
+fun BottomAppNev() {
     val navController = rememberNavController()
     var navigationSelectedItem by remember { mutableStateOf(0) }
-    NavHost(
+    NavHost (
         navController = navController,
         startDestination = Screens.Swipe.route,
         modifier = Modifier.padding(bottom = 82.dp)
