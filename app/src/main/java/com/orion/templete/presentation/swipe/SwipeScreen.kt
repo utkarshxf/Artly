@@ -38,14 +38,16 @@ import com.orion.templete.presentation.login.LoginScreenViewModel
 import com.orion.templete.ui.MatchProfile
 import com.orion.templete.ui.profiles
 import com.orion.templete.util.SecureStorage
-import dagger.hilt.android.lifecycle.HiltViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeScreen(viewModel: MyViewModel = hiltViewModel() , verificationModel:LoginScreenViewModel = hiltViewModel()) {
+fun SwipeScreen(
+    viewModel: MyViewModel = hiltViewModel(),
+    verificationModel: LoginScreenViewModel = hiltViewModel(),
+    myViewModel: MyViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
-    //put this logic in Navigation where bottom nav is present
     LaunchedEffect(Unit) {
         val token = SecureStorage(context).getToken()
         verificationModel.isValidToken(token?:"NoData")

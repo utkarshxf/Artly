@@ -16,6 +16,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
@@ -24,9 +26,32 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object  AppModule {
     @Provides
+    fun provideContext(@ApplicationContext context: Context): Context {
+        return context
+    }
+    @Provides
     @Singleton
-    fun provideApiService(): ApiService {
-        return Retrofit.Builder().baseUrl(baseurl)
+    fun provideOkHttpClient(context: Context): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val token = SecureStorage(context).getToken()
+                val originalRequest = chain.request()
+                val newRequestBuilder = originalRequest.newBuilder()
+                // Add the Authorization header only if the token is not null
+                token?.let {
+                    newRequestBuilder.header("Authorization", "Bearer $it")
+                }
+                val newRequest = newRequestBuilder.build()
+                chain.proceed(newRequest)
+            }
+            .build()
+    }
+    @Provides
+    @Singleton
+    fun provideApiService(okHttpClient: OkHttpClient): ApiService {
+        return Retrofit.Builder()
+            .client(okHttpClient)
+            .baseUrl(baseurl)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
@@ -43,11 +68,6 @@ object  AppModule {
         return UserRepositoryImplementation(
             apiService = apiService,
         )
-    }
-
-    @Provides
-    fun provideContext(@ApplicationContext context: Context): Context {
-        return context
     }
 
 }
