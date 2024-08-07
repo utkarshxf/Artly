@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.shapes
@@ -29,11 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
 import com.alexstyl.swipeablecard.Direction.Down
 import com.alexstyl.swipeablecard.Direction.Left
 import com.alexstyl.swipeablecard.ExperimentalSwipeableCardApi
 import com.alexstyl.swipeablecard.rememberSwipeableCardState
 import com.alexstyl.swipeablecard.swipableCard
+import com.orion.templete.data.model.ArtWrokDTOItem
 import com.orion.templete.presentation.login.LoginScreenViewModel
 import com.orion.templete.ui.MatchProfile
 import com.orion.templete.ui.profiles
@@ -43,30 +47,42 @@ import com.orion.templete.util.SecureStorage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeScreen(
-    viewModel: MyViewModel = hiltViewModel(),
     verificationModel: LoginScreenViewModel = hiltViewModel(),
-    myViewModel: MyViewModel = hiltViewModel()
+    swipeScreenViewModel: MyViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val stateOfCards = swipeScreenViewModel.artWorkData.value
     LaunchedEffect(Unit) {
         val token = SecureStorage(context).getToken()
-        verificationModel.isValidToken(token?:"NoData")
+        verificationModel.isValidToken(token ?: "NoData")
 
-        if(verificationModel.checkUser.value.data == false)
-        {
+        if (verificationModel.checkUser.value.data == false) {
             Toast.makeText(context, "Unverified", Toast.LENGTH_SHORT).show()
         }
     }
-    ArtCardRow(
-        header = {
-            TopAppBar(title = { Text(text = "Artwork") })
-        },
-        content = {
-            SwipeCard()
+    when {
+        stateOfCards.isLoading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         }
-    )
+        stateOfCards.error.isNotBlank() -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = stateOfCards.error)
+            }
+        }
+        stateOfCards.data != null -> {
+            ArtCardRow(
+                header = {
+                    TopAppBar(title = { Text(text = "Artwork") })
+                },
+                content = {
+                    SwipeCard(artworkList = stateOfCards.data)
+                }
+            )
+        }
+    }
 }
-
 
 @Composable
 fun ArtCardRow(
@@ -82,9 +98,9 @@ fun ArtCardRow(
 
 @OptIn(ExperimentalSwipeableCardApi::class)
 @Composable
-fun SwipeCard(viewModel: MyViewModel = hiltViewModel()) {
+fun SwipeCard(artworkList: List<ArtWrokDTOItem>) {
     Box {
-        val states = profiles.reversed().map { it to rememberSwipeableCardState() }
+        val states = artworkList.reversed().map { it to rememberSwipeableCardState() }
         val scope = rememberCoroutineScope()
         var isSwipedLeft by remember { mutableStateOf(false) }
         Box(
@@ -93,7 +109,7 @@ fun SwipeCard(viewModel: MyViewModel = hiltViewModel()) {
                 .fillMaxSize()
                 .align(Alignment.Center)
         ) {
-            states.forEach { (matchProfile, state) ->
+            states.forEach { (artwork, state) ->
                 LaunchedEffect(state.swipedDirection) {
                     isSwipedLeft = state.swipedDirection == Left
                 }
@@ -112,7 +128,7 @@ fun SwipeCard(viewModel: MyViewModel = hiltViewModel()) {
                                 },
                                 onSwipeCancel = {
                                     Log.d("Swipeable-Card", "Cancelled swipe")
-                                }), matchProfile = matchProfile
+                                }), artwork = artwork
                     )
                 }
             }
@@ -123,7 +139,7 @@ fun SwipeCard(viewModel: MyViewModel = hiltViewModel()) {
 @Composable
 private fun ProfileCard(
     modifier: Modifier,
-    matchProfile: MatchProfile,
+    artwork: ArtWrokDTOItem,
 ) {
     Card(
         modifier = modifier,
@@ -132,12 +148,12 @@ private fun ProfileCard(
         Box {
             Image(
                 modifier = Modifier.fillMaxSize(),
-                painter = painterResource(matchProfile.drawableResId),
+                painter = rememberAsyncImagePainter(artwork.imageUrl),
                 contentDescription = null
             )
             Column(Modifier.align(Alignment.BottomStart)) {
                 Text(
-                    text = matchProfile.name,
+                    text = artwork.name,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Medium,
