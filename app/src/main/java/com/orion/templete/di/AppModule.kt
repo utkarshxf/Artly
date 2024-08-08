@@ -8,9 +8,11 @@ import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
 import com.orion.templete.data.repository.GetArtworkRepositoryImplementation
 import com.orion.templete.data.repository.UserRepositoryImplementation
+import com.orion.templete.domain.paginator.DefaultPaginator
 import com.orion.templete.domain.repository.GetArtworkRepository
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.SecureStorage
+import com.plcoding.composepagingyt.Paginator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -60,7 +62,6 @@ object  AppModule {
     fun provideArtWorkRepository(apiService: ApiService): GetArtworkRepository {
         return GetArtworkRepositoryImplementation(apiService = apiService)
     }
-
     @Provides
     fun provideUserRepository(
         apiService: ApiService,
@@ -69,5 +70,4 @@ object  AppModule {
             apiService = apiService,
         )
     }
-
 }

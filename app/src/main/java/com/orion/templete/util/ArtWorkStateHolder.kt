@@ -1,9 +1,9 @@
 package com.orion.templete.util
 
-import com.orion.templete.data.model.ArtWorkDTO
+import com.orion.templete.data.model.ArtworkDTO
 
 data class ArtWorkStateHolder(
     val isLoading: Boolean = false,
-    val data: ArtWorkDTO? = null,
+    val data: ArtworkDTO? = null,
     val error: String = ""
 )

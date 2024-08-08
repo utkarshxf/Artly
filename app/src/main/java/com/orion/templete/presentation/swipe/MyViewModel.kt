@@ -1,40 +1,77 @@
 package com.orion.templete.presentation.swipe
 
+import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orion.templete.usecase.GetArtworkUseCase
-import com.orion.templete.util.ArtWorkStateHolder
-import com.orion.templete.util.Resource
+import com.orion.templete.data.model.ArtworkDTO
+import com.orion.templete.data.model.Content
+import com.orion.templete.domain.paginator.DefaultPaginator
+import com.orion.templete.domain.repository.GetArtworkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 
 @HiltViewModel
 class MyViewModel @Inject constructor(
-    private val getArtworkUseCase: GetArtworkUseCase
+    private val repository: GetArtworkRepository
 ) : ViewModel() {
-    val artWorkData = mutableStateOf(ArtWorkStateHolder())
+
+    var state by mutableStateOf(ScreenState())
+        private set
+
+    private val pagination: DefaultPaginator<Int, Content> = DefaultPaginator(
+        initialKey = state.page,
+        onLoadUpdated = { isLoading ->
+            state = state.copy(isLoading = isLoading)
+        },
+        onRequest = { nextPage ->
+            repository.paginationArtwork(nextPage, 5)
+        },
+        getNextKey = { artworkDTO ->
+            state.page + 1
+        },
+        onError = { throwable ->
+            state = state.copy(error = throwable?.localizedMessage)
+        },
+        onSuccess = { items, newKey ->
+            state = state.copy(
+                items = ArtworkDTO( items.content),
+                page = newKey,
+                endReached = items.content.isEmpty()
+            )
+        }
+    )
+
     init {
-        getAllArtWork()
+        loadNextItems()
     }
-    private fun getAllArtWork() {
-        getArtworkUseCase()
-            .onEach {
-            when(it){
-                is Resource.Loading -> {
-                    artWorkData.value = ArtWorkStateHolder(isLoading = true)
-                }
-                is Resource.Success ->{
-                    artWorkData.value = ArtWorkStateHolder(data = it.data)
-                }
-                is Resource.Error -> {
-                    artWorkData.value = ArtWorkStateHolder(error = it.message.toString())
-                }
+
+    fun loadNextItems() {
+        viewModelScope.launch {
+            try {
+                pagination.loadNextItems()
+            } catch (e: Exception) {
+                Log.e("MyViewModel", "Error loading items", e)
             }
-        }.launchIn(viewModelScope)
+        }
+    }
+
+    fun resetPagination() {
+        pagination.reset()
+        state = ScreenState()
+        loadNextItems()
     }
 }
 
 
+data class ScreenState(
+    val isLoading: Boolean = false,
+    val items: ArtworkDTO = ArtworkDTO(emptyList()),
+    val error: String? = null,
+    val endReached: Boolean = false,
+    val page: Int = 0
+)

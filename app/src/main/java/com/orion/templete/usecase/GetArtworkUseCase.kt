@@ -1,6 +1,7 @@
 package com.orion.templete.usecase
 
-import com.orion.templete.data.model.ArtWorkDTO
+
+import com.orion.templete.data.model.ArtworkDTO
 import com.orion.templete.domain.repository.GetArtworkRepository
 import com.orion.templete.util.Resource
 import kotlinx.coroutines.flow.Flow
@@ -10,7 +11,7 @@ import javax.inject.Inject
 class GetArtworkUseCase @Inject constructor(
     private val getArtworkRepository: GetArtworkRepository
 ) {
-    operator fun invoke(): Flow<Resource<ArtWorkDTO>> = flow {
+     fun getArtwork(): Flow<Resource<ArtworkDTO>> = flow {
         emit(Resource.Loading(null))
         try {
             emit(Resource.Success(getArtworkRepository.getArtwork()))
@@ -18,4 +19,6 @@ class GetArtworkUseCase @Inject constructor(
             emit(Resource.Error(e.message))
         }
     }
+
+
 }
