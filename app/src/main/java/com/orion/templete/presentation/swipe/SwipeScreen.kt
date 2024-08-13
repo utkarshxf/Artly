@@ -30,18 +30,17 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.data.model.Content
-import com.orion.templete.presentation.login.LoginScreenViewModel
+import com.orion.templete.presentation.registration.RegisterViewModel
 import com.orion.templete.presentation.swipe.components.Direction
 import com.orion.templete.presentation.swipe.components.rememberSwipeableCardState
 import com.orion.templete.presentation.swipe.components.swipableCard
 import com.orion.templete.util.SecureStorage
-import kotlinx.coroutines.coroutineScope
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeScreen(
-    verificationModel: LoginScreenViewModel = hiltViewModel(),
+    verificationModel: RegisterViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
 
@@ -49,7 +48,7 @@ fun SwipeScreen(
         val token = SecureStorage(context).getToken()
         verificationModel.isValidToken(token ?: "NoData")
 
-        if (verificationModel.checkUser.value.data == false) {
+        if (verificationModel.checkUser.data == false) {
             Toast.makeText(context, "Unverified", Toast.LENGTH_SHORT).show()
         }
     }

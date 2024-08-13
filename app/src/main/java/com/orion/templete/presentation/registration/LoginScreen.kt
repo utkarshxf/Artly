@@ -1,6 +1,5 @@
-package com.orion.templete.presentation.login
+package com.orion.templete.presentation.registration
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,17 +38,16 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.orion.templete.data.model.User
 import com.orion.templete.presentation.ui.theme.TempleteTheme
-import dagger.hilt.android.lifecycle.HiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     navigateToRegisterScreen: () -> Unit = {},
     navigateToHomeScreen: () -> Unit = {},
-    viewModel: LoginScreenViewModel = hiltViewModel()
+    viewModel: RegisterViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val userData by viewModel.userData
+    val userData  =  viewModel.signingData
     LaunchedEffect(userData.error) {
         userData.error?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_SHORT).show()

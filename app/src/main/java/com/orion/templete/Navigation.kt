@@ -1,13 +1,12 @@
 package com.orion.templete
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.Navigation
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.orion.templete.presentation.common.BottomAppNev
-import com.orion.templete.presentation.login.LoginScreen
-import com.orion.templete.presentation.login.RegisterScreen
+import com.orion.templete.presentation.registration.LoginScreen
+import com.orion.templete.presentation.registration.RegisterScreen
 
 @Composable
 fun Navigation(startDest :String) {
@@ -27,8 +26,13 @@ fun Navigation(startDest :String) {
         }
         composable("register_screen") {
             RegisterScreen(
-                navigateToLoginScreen = {
+                navigateToSignInScreen = {
                     navController.navigate("login_screen") {
+                        popUpTo("register_screen") { inclusive = true }
+                    }
+                },
+                navigateToHomeScreen = {
+                    navController.navigate("home_screen") {
                         popUpTo("login_screen") { inclusive = true }
                     }
                 })

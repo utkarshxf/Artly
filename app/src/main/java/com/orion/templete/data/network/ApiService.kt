@@ -21,6 +21,9 @@ interface ApiService {
     @POST("login")
     suspend fun loginUser(@Body user: User): retrofit2.Response<LoginResponseDTO>
 
+    @POST("signup")
+    suspend fun signup(@Body user: User): retrofit2.Response<User>
+
     @POST("check")
     suspend fun verifyUser(@Body token: TokenRequest): retrofit2.Response<Boolean>
 

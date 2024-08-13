@@ -1,5 +1,6 @@
-package com.orion.templete.presentation.login
+package com.orion.templete.presentation.registration
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,26 +13,53 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.orion.templete.data.model.User
 
 @Composable
-fun RegisterScreen(navigateToLoginScreen: () -> Unit = {}) {
+fun RegisterScreen( navigateToSignInScreen:() -> Unit = {},navigateToHomeScreen: () -> Unit = {} , viewModel: RegisterViewModel = hiltViewModel()) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val signingData  =  viewModel.signingData
+    val signupData = viewModel.signupData
+    val context = LocalContext.current
+    LaunchedEffect(signupData) {
+        signupData.error?.let { error ->
+            Toast.makeText(context, "Signup error :$error", Toast.LENGTH_SHORT).show()
+        }
+        signupData.data?.let {
+            viewModel.loginUser(User(email, password))
+        }
+    }
+    LaunchedEffect(signingData) {
+        signingData.error?.let { error ->
+            Toast.makeText(context, "signIn error :$error", Toast.LENGTH_SHORT).show()
+        }
+        signingData.data?.let {
+            navigateToHomeScreen()
+        }
+    }
     Surface(
         modifier = Modifier
             .fillMaxSize()
             .padding(start = 30.dp, end = 30.dp, top = 20.dp, bottom = 20.dp)
     ) {
+        LaunchedEffect(signingData) {
+            signingData.data?.let {
+                navigateToHomeScreen()
+            }
+        }
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -79,8 +107,7 @@ fun RegisterScreen(navigateToLoginScreen: () -> Unit = {}) {
             Spacer(modifier = Modifier.weight(0.2f))
             CommonLoginButton(text = "Register", modifier = Modifier.fillMaxWidth()) {
                 if (email.isNotBlank() && password.isNotBlank() && fullName.isNotBlank()) {
-                    println("Kayit Basarili")
-                    navigateToLoginScreen()
+                    viewModel.signup(User(email, password))
                 } else {
                     println("Kayit Basarisiz")
                 }
@@ -101,7 +128,7 @@ fun RegisterScreen(navigateToLoginScreen: () -> Unit = {}) {
                     fontSize = 18,
                     fontWeight = FontWeight.W500
                 ) {
-                    navigateToLoginScreen()
+                    navigateToSignInScreen()
                 }
             }
         }
