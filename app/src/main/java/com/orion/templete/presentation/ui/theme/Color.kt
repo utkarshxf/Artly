@@ -10,55 +10,44 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-val ColorPrimaryLight = Color(0xFF1877F2)
-val ColorPrimaryVariantLight = Color(0xFF4267B2)
-val ColorSecondaryLight = Color(0xFF0E5AFA)
-val ColorSecondaryVariantLight = Color(0xFFB8B8B8)
-val ColorBackgroundLight = Color(0xFFF2F3F5)
-val ColorSurfaceLight = Color(0xFFFFFFFF)
-val ColorErrorLight = Color(0xFFF44336)
-val ColorOnPrimaryLight = Color(0xFFFFFFFF)
-val ColorOnSecondaryLight = Color(0xFFFFFFFF)
-val ColorOnBackgroundLight = Color(0xFF000000)
-val ColorOnSurfaceLight = Color(0xFF000000)
-val ColorOnErrorLight = Color(0xFFFFFFFF)
-val ColorIsLightLight = Color(0xFFFFFFFF)
+// Primary Colors
+val ColorPrimaryLight = Color(0xFF212121)       // Very dark gray, almost black
+val ColorPrimaryVariantLight = Color(0xFF424242) // Dark gray
 
-val ColorTextPrimaryLight = Color(0xFF000000)
-val ColorTextSecondaryLight = Color(0xFF505050)
-val ColorTextTertiaryLight = Color(0xFF676767)
-val FloatingActionButtonLight = Color(0xFF0E5AFA)
+// Secondary Colors
+val ColorSecondaryLight = Color(0xFF455A64)     // Blue-gray (from your original)
+val ColorSecondaryVariantLight = Color(0xFF78909C) // Lighter blue-gray (from your original)
 
-val ColorInputBorderLight = Color(0xFFEAEAEA)
-val ColorInputBgLight = Color(0xFFFFFFFF)
-val ColorButtonBgPrimaryLight = Color(0xFF000000)
-val ColorButtonTextPrimaryLight = Color(0xFFFFFFFF)
-val ColorItemAddToggleBgLight = Color(0xFFFFFFFF)
-val ColorItemAddToggleTextLight = Color(0xFF000000)
-val ColorItemOnlineStorePhotoBorderLight = Color(0xFF505050)
+// Background and Surface
+val ColorBackgroundLight = Color(0xFFF5F5F5)    // Very light gray
+val ColorSurfaceLight = Color(0xFFFFFFFF)       // White
 
-val ColorPrimaryDark = Color(0xFF1877F2)
-val ColorPrimaryVariantDark = Color(0xFF4267B2)
-val ColorSecondaryDark = Color(0xFF0E5AFA)
-val ColorSecondaryVariantDark = Color(0xFFFFFFFF)
+// Accent and Error
+val ColorAccent = Color(0xFF4CAF50)             // Green accent (from your original)
+val ColorErrorLight = Color(0xFFFFA000)         // Amber (from your original)
+
+// Text Colors
+val ColorTextPrimaryLight = Color(0xFF000000)   // Black (from your original)
+val ColorTextSecondaryLight = Color(0xFF505050) // Dark gray (from your original)
+val ColorTextTertiaryLight = Color(0xFF676767)  // Medium gray (from your original)
+
+// Input and Button Colors
+val ColorInputBorderLight = Color(0xFFEAEAEA)   // Light gray (from your original)
+val ColorInputBgLight = Color(0xFFFFFFFF)       // White (from your original)
+val ColorButtonBgPrimaryLight = Color(0xFF000000) // Black (from your original)
+val ColorButtonTextPrimaryLight = Color(0xFFFFFFFF) // White (from your original)
+
+// Additional UI Elements
+val ColorItemAddToggleBgLight = Color(0xFFFFFFFF) // White (from your original)
+val ColorItemAddToggleTextLight = Color(0xFF000000) // Black (from your original)
+val ColorItemOnlineStorePhotoBorderLight = Color(0xFF505050) // Dark gray (from your original)
+
+// Floating Action Button
+val FloatingActionButtonLight = Color(0xFF0E5AFA) // Bright blue (from your original)
+
+// Dark Theme Colors (kept from your original)
 val ColorBackgroundDark = Color(0xFF18191A)
 val ColorSurfaceDark = Color(0xFF242526)
-val ColorErrorDark = Color(0xFFF44336)
-val ColorOnPrimaryDark = Color(0xFFFFFFFF)
-val ColorOnSecondaryDark = Color(0xFFBFBFC0)
-val ColorOnBackgroundDark = Color(0xFFFFFFFF)
-val ColorOnSurfaceDark = Color(0xFFE3E6EA)
-val ColorOnErrorDark = Color(0xFFFFFFFF)
-val ColorIsLightDark = Color(0xFFFFFFFF)
-
 val ColorTextPrimaryDark = Color(0xFFE3E6EA)
 val ColorTextSecondaryDark = Color(0xFFA9ACB1)
 val ColorTextTertiaryDark = Color(0xFF919297)
-
-val ColorInputBorderDark = Color(0xFF3A3B3C)
-val ColorInputBgDark = Color(0xFF3A3B3C)
-val ColorButtonBgPrimaryDark = Color(0xFF1A73E9)
-val ColorButtonTextPrimaryDark = Color(0xFFFFFFFF)
-val ColorItemAddToggleBgDark = Color(0xFF242526)
-val ColorItemAddToggleTextDark = Color(0xFFE3E6EA)
-val ColorItemOnlineStorePhotoBorderDark = Color(0xFFE3E6EA)

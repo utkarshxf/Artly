@@ -4,6 +4,7 @@ package com.orion.templete.data.network
 import androidx.compose.ui.geometry.Offset
 import com.google.android.gms.common.internal.safeparcel.SafeParcelable.Param
 import com.orion.templete.data.model.ArtworkDTO
+import com.orion.templete.data.model.Content
 import com.orion.templete.data.model.LoginResponseDTO
 import com.orion.templete.data.model.TokenRequest
 import com.orion.templete.data.model.User
@@ -27,10 +28,10 @@ interface ApiService {
     @POST("check")
     suspend fun verifyUser(@Body token: TokenRequest): retrofit2.Response<Boolean>
 
-    @GET("pagination")
-    suspend fun paginationArtwork(@Query("offset") offset: Int ,@Query("pageSize") pageSize: Int):retrofit2.Response<ArtworkDTO>
+    @GET("artwork/recommend")
+    suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int):retrofit2.Response<List<Content>>
 
     companion object {
-        var baseurl = "http://10.0.2.2:8080/"
+        var baseurl = "http://10.0.2.2:7040/"
     }
 }

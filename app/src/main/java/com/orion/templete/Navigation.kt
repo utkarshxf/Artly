@@ -38,7 +38,11 @@ fun Navigation(startDest :String) {
                 })
         }
         composable("home_screen") {
-            BottomAppNev()
+            BottomAppNev(navigateToLoginScreen = {
+                navController.navigate("login_screen") {
+                    popUpTo("home_screen") { inclusive = true }
+                }
+            })
         }
     }
 }

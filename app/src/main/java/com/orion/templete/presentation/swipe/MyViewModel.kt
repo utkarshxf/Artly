@@ -31,7 +31,7 @@ class MyViewModel @Inject constructor(
         onRequest = { nextPage ->
             repository.paginationArtwork(nextPage, 5)
         },
-        getNextKey = { artworkDTO ->
+        getNextKey = {
             state.page + 1
         },
         onError = { throwable ->
@@ -39,9 +39,9 @@ class MyViewModel @Inject constructor(
         },
         onSuccess = { items, newKey ->
             state = state.copy(
-                items = ArtworkDTO( items.content),
+                items = items,
                 page = newKey,
-                endReached = items.content.isEmpty()
+                endReached = items.isEmpty()
             )
         }
     )
@@ -70,7 +70,7 @@ class MyViewModel @Inject constructor(
 
 data class ScreenState(
     val isLoading: Boolean = false,
-    val items: ArtworkDTO = ArtworkDTO(emptyList()),
+    val items: List<Content> = emptyList(),
     val error: String? = null,
     val endReached: Boolean = false,
     val page: Int = 0

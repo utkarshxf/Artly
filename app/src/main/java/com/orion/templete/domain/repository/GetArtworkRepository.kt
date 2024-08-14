@@ -1,8 +1,9 @@
 package com.orion.templete.domain.repository
 
 import com.orion.templete.data.model.ArtworkDTO
+import com.orion.templete.data.model.Content
 
 interface GetArtworkRepository {
     suspend fun getArtwork(): ArtworkDTO
-    suspend fun paginationArtwork( offset : Int, pageSize:Int): ArtworkDTO
+    suspend fun paginationArtwork( offset : Int, pageSize:Int): List<Content>
 }
