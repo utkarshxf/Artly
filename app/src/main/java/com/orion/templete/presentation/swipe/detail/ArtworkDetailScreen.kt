@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
@@ -55,6 +56,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orion.templete.R
 import com.orion.templete.data.model.Content
+import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
+import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
+import com.orion.templete.presentation.ui.theme.MediumSize
+import com.orion.templete.presentation.ui.theme.SmallSize
 import kotlin.math.max
 import kotlin.math.min
 
@@ -69,15 +74,13 @@ fun ArtworkDetailScreen(content: Content) {
 
 @Composable
 fun Details(content: Content, scrollState: LazyListState) {
-    val AppBarCollapsedHeight = 56.dp
-    val AppBarExpendedHeight = 400.dp
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight),
         state = scrollState
     ) {
         item {
             BasicInfo(content)
-//            Description(content)
+            Description(content)
 
         }
     }
@@ -85,7 +88,7 @@ fun Details(content: Content, scrollState: LazyListState) {
 @Composable
 fun Description(content: Content) {
     Text(
-        text = content.description,
+        text = content.description ?: stringResource(R.string.no_dis),
         fontWeight = Medium,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
     )
@@ -120,8 +123,6 @@ fun InfoColumn(@DrawableRes iconResource: Int,text:String) {
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
-    val AppBarCollapsedHeight = 56.dp
-    val AppBarExpendedHeight = 400.dp
     val imageHight = AppBarExpendedHeight - AppBarCollapsedHeight
     val maxOffset = with(LocalDensity.current){
         imageHight.roundToPx()
@@ -148,7 +149,7 @@ fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
                     painter = painterResource(id = R.drawable.russ),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxHeight()
+                    modifier = Modifier.fillMaxSize()
                 )
                 Box(
                     modifier = Modifier
@@ -156,11 +157,8 @@ fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
                         .background(
                             Brush.verticalGradient(
                                 colorStops = arrayOf(
-                                    Pair(
-                                        0.4f,
-                                        Transparent
-                                    ),
-                                    Pair(1f, Color.White)
+                                    Pair(0.4f, Transparent),
+                                    Pair(1f, MaterialTheme.colorScheme.surface)
                                 )
                             )
                         )
@@ -169,8 +167,8 @@ fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
                     modifier = Modifier
                         .fillMaxHeight()
                         .padding(
-                            horizontal = 16.dp,
-                            vertical = 8.dp
+                            horizontal = MediumSize,
+                            vertical = SmallSize
                         ),
                     verticalAlignment = Alignment.Bottom
                 )
@@ -180,7 +178,7 @@ fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
                             .clip(
                                 RoundedCornerShape(4.dp)
                             )
-                            .background(LightGray)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .padding(vertical = 6.dp, horizontal = 16.dp)
                     )
                 }

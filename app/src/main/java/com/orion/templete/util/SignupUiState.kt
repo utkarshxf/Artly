@@ -3,12 +3,12 @@ package com.orion.templete.util
 import com.orion.templete.data.model.LoginResponseDTO
 import com.orion.templete.data.model.User
 
-data class SigningState(
+data class LoginUiState(
     val isLoading: Boolean = false,
     val data: LoginResponseDTO? = null,
     val error: String? = null
 )
-data class SignupState(
+data class SignupUiState(
     val isLoading: Boolean = false,
     val data: User? = null,
     val error: String? = null

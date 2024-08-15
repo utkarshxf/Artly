@@ -1,8 +1,7 @@
 package com.orion.templete.presentation.common
 
 
-import android.util.Log
-import android.widget.Toast
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,7 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.orion.templete.data.model.Content
-import com.orion.templete.presentation.registration.RegisterViewModel
+import com.orion.templete.presentation.auth.common.authViewModel
 import com.orion.templete.presentation.swipe.SwipeScreen
 import com.orion.templete.presentation.swipe.detail.ArtworkDetailScreen
 import com.orion.templete.util.SecureStorage
@@ -43,7 +42,7 @@ import com.orion.templete.util.SecureStorage
 @Composable
 fun BottomAppNev(
     navigateToLoginScreen: () -> Unit = {} ,
-    viewModel: RegisterViewModel =  hiltViewModel()
+    viewModel: authViewModel =  hiltViewModel()
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -81,8 +80,7 @@ fun BottomAppNev(
     }
     Box(modifier = Modifier.fillMaxSize() , contentAlignment = Alignment.BottomCenter) {
         NavigationBar(
-            modifier = Modifier.height(82.dp),
-            containerColor = Color.White,
+            modifier = Modifier.height(82.dp)
         ) {
             BottomNavigationItem().bottomNavigationItems().forEachIndexed { index, navigationItem ->
                 Column(
@@ -105,13 +103,18 @@ fun BottomAppNev(
                         Icon(
                             painterResource(id = navigationItem.icon),
                             contentDescription = navigationItem.label,
-                            tint = if (index == navigationSelectedItem) Color.Black else Color.Gray,
+                            tint = if (index == navigationSelectedItem){
+                                if(isSystemInDarkTheme()) Color.White else Color.Black
+                            } else
+                                Color.Gray,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                     Text(
                         text = navigationItem.label,
-                        color = if (index == navigationSelectedItem) Color.Black else Color.Gray,
+                        color = if (index == navigationSelectedItem){
+                            if(isSystemInDarkTheme()) Color.White else Color.Black
+                        } else Color.Gray,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

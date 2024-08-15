@@ -165,7 +165,6 @@ private fun ProfileCard(
             Column(Modifier.align(Alignment.BottomStart)) {
                 Text(
                     text = artwork.name,
-                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(10.dp)
