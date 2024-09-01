@@ -16,7 +16,7 @@ class UserRepositoryImplementation @Inject constructor(
     }
 
     override suspend fun signup(user: User): User {
-        return safeApiRequest { apiService.signup(User("sdasdsd","sadsads")) }
+        return safeApiRequest { apiService.signup(user)}
     }
 
     override suspend fun verifyUser(token: TokenRequest): Boolean {

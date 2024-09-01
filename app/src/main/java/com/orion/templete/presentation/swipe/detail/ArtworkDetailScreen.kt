@@ -40,7 +40,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.Gray
-import androidx.compose.ui.graphics.Color.Companion.LightGray
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.graphicsLayer
@@ -48,14 +47,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.Content
+import com.orion.templete.data.model.RecommendedArtworkDTO
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
@@ -64,51 +63,53 @@ import kotlin.math.max
 import kotlin.math.min
 
 @Composable
-fun ArtworkDetailScreen(content: Content) {
+fun ArtworkDetailScreen(recommendedArtworkDTO: RecommendedArtworkDTO) {
     val scrollState = rememberLazyListState()
-    Box{
-        Details(content,scrollState)
-        ParallaxToolbar(content,scrollState)
+    Box {
+        Details(recommendedArtworkDTO, scrollState)
+        ParallaxToolbar(recommendedArtworkDTO, scrollState)
     }
 }
 
 @Composable
-fun Details(content: Content, scrollState: LazyListState) {
+fun Details(recommendedArtworkDTO: RecommendedArtworkDTO, scrollState: LazyListState) {
     LazyColumn(
-        contentPadding = PaddingValues(top = AppBarExpendedHeight),
-        state = scrollState
+        contentPadding = PaddingValues(top = AppBarExpendedHeight), state = scrollState
     ) {
         item {
-            BasicInfo(content)
-            Description(content)
+            BasicInfo(recommendedArtworkDTO)
+            Description(recommendedArtworkDTO)
 
         }
     }
 }
+
 @Composable
-fun Description(content: Content) {
+fun Description(recommendedArtworkDTO: RecommendedArtworkDTO) {
     Text(
-        text = content.description ?: stringResource(R.string.no_dis),
+        text = recommendedArtworkDTO.artwork?.description ?: stringResource(R.string.no_dis),
         fontWeight = Medium,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
     )
 
 }
+
 @Composable
-fun BasicInfo(content: Content) {
+fun BasicInfo(recommendedArtworkDTO: RecommendedArtworkDTO) {
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        InfoColumn(R.drawable.bookmark_border_24px,content.type)
-        InfoColumn(R.drawable.bookmark_border_24px,content.type)
-        InfoColumn(R.drawable.bookmark_border_24px,content.type)
+        InfoColumn(R.drawable.bookmark_border_24px, recommendedArtworkDTO.likes.toString())
+        InfoColumn(R.drawable.bookmark_border_24px, recommendedArtworkDTO.noOfComments.toString())
+        InfoColumn(R.drawable.bookmark_border_24px, recommendedArtworkDTO.artworkGenre.toString())
     }
 }
+
 @Composable
-fun InfoColumn(@DrawableRes iconResource: Int,text:String) {
+fun InfoColumn(@DrawableRes iconResource: Int, text: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             painter = (painterResource(id = iconResource)),
@@ -122,14 +123,14 @@ fun InfoColumn(@DrawableRes iconResource: Int,text:String) {
 
 @SuppressLint("SuspiciousIndentation")
 @Composable
-fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
+fun ParallaxToolbar(artworkDTO: RecommendedArtworkDTO, scrollState: LazyListState) {
     val imageHight = AppBarExpendedHeight - AppBarCollapsedHeight
-    val maxOffset = with(LocalDensity.current){
+    val maxOffset = with(LocalDensity.current) {
         imageHight.roundToPx()
     } - WindowInsets.systemBars.getTop(LocalDensity.current)
-    val offset = min(scrollState.firstVisibleItemScrollOffset,maxOffset)
-    val offsetprogress = max(0f,offset*3f-2f*maxOffset) /maxOffset
-    val imageHeight = AppBarExpendedHeight- AppBarCollapsedHeight
+    val offset = min(scrollState.firstVisibleItemScrollOffset, maxOffset)
+    val offsetprogress = max(0f, offset * 3f - 2f * maxOffset) / maxOffset
+    val imageHeight = AppBarExpendedHeight - AppBarCollapsedHeight
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
@@ -146,7 +147,7 @@ fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
                         alpha = 1f - offsetprogress
                     }) {
                 Image(
-                    painter = painterResource(id = R.drawable.russ),
+                    painter = rememberAsyncImagePainter(artworkDTO.artwork?.imageUrl),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -163,24 +164,23 @@ fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
                             )
                         )
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(
-                            horizontal = MediumSize,
-                            vertical = SmallSize
-                        ),
-                    verticalAlignment = Alignment.Bottom
-                )
-                {
-                    Text(
-                        content.releasedDate, fontWeight = FontWeight.Medium, modifier = Modifier
-                            .clip(
-                                RoundedCornerShape(4.dp)
-                            )
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(vertical = 6.dp, horizontal = 16.dp)
-                    )
+                artworkDTO.artwork?.releasedDate?.let {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(
+                                horizontal = MediumSize, vertical = SmallSize
+                            ), verticalAlignment = Alignment.Bottom
+                    ) {
+                        Text(
+                            it, fontWeight = Medium, modifier = Modifier
+                                .clip(
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(vertical = 6.dp, horizontal = 16.dp)
+                        )
+                    }
                 }
             }
             Column(
@@ -190,9 +190,9 @@ fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = content.name,
+                    text = artworkDTO.artwork?.name ?: stringResource(R.string.no_name),
                     fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = Bold,
                     modifier = Modifier
                         .padding(horizontal = (16 + 28 * offsetprogress).dp)
                         .scale(1f - 0.25f * offsetprogress)
@@ -214,12 +214,13 @@ fun ParallaxToolbar(content: Content, scrollState: LazyListState) {
         CircularButton(R.drawable.user)
     }
 }
+
 @Composable
 fun CircularButton(
     @DrawableRes iconResource: Int,
     color: Color = Gray,
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
-    onClick:()->Unit={}
+    onClick: () -> Unit = {}
 ) {
 
     Button(

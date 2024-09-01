@@ -32,34 +32,28 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.orion.templete.data.model.Content
+import com.orion.templete.data.model.RecommendedArtworkDTO
 import com.orion.templete.presentation.auth.common.authViewModel
+import com.orion.templete.presentation.profile.ProfileScreen
+import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
 import com.orion.templete.presentation.swipe.detail.ArtworkDetailScreen
+import com.orion.templete.presentation.ui.theme.ButtonHeight
+import com.orion.templete.presentation.ui.theme.MediumSize
 import com.orion.templete.util.SecureStorage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomAppNev(
     navigateToLoginScreen: () -> Unit = {} ,
-    viewModel: authViewModel =  hiltViewModel()
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
     var navigationSelectedItem by remember { mutableStateOf(0) }
-    val validUser = viewModel.checkUser.data
-    LaunchedEffect(validUser) {
-        val token = SecureStorage(context).getToken()
-        viewModel.isValidToken(token ?: "NoData")
-
-        if (validUser == false) {
-            navigateToLoginScreen()
-        }
-    }
     NavHost (
         navController = navController,
         startDestination = Screens.Swipe.route,
-        modifier = Modifier.padding(bottom = 82.dp)
+        modifier = Modifier.padding(bottom = ButtonHeight)
     ){
         composable(Screens.Swipe.route) {
             SwipeScreen(navigateToDetailScreen = {data->
@@ -68,19 +62,26 @@ fun BottomAppNev(
             })
         }
         composable(Screens.Profile.route) {
-            // Search profile content
+            ProfileScreen()
+        }
+        composable(Screens.Search.route)
+        {
+            SearchScreen()
         }
         composable(Screens.ArtworkDetail.route)
         {
-            val content = navController.previousBackStackEntry?.savedStateHandle?.get<Content>("data-mapped")
-            if (content!=null){
-                ArtworkDetailScreen(content)
+            val recommendedArtworkDTO = navController.previousBackStackEntry?.savedStateHandle?.get<RecommendedArtworkDTO>("data-mapped")
+            if (recommendedArtworkDTO!=null){
+                ArtworkDetailScreen(recommendedArtworkDTO)
             }
         }
     }
     Box(modifier = Modifier.fillMaxSize() , contentAlignment = Alignment.BottomCenter) {
         NavigationBar(
-            modifier = Modifier.height(82.dp)
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = MediumSize,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.height(ButtonHeight)
         ) {
             BottomNavigationItem().bottomNavigationItems().forEachIndexed { index, navigationItem ->
                 Column(
@@ -102,7 +103,7 @@ fun BottomAppNev(
                     ) {
                         Icon(
                             painterResource(id = navigationItem.icon),
-                            contentDescription = navigationItem.label,
+                            contentDescription = null,
                             tint = if (index == navigationSelectedItem){
                                 if(isSystemInDarkTheme()) Color.White else Color.Black
                             } else
@@ -110,13 +111,6 @@ fun BottomAppNev(
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                    Text(
-                        text = navigationItem.label,
-                        color = if (index == navigationSelectedItem){
-                            if(isSystemInDarkTheme()) Color.White else Color.Black
-                        } else Color.Gray,
-                        style = MaterialTheme.typography.bodySmall
-                    )
                 }
             }
         }

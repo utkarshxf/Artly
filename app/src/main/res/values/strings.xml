@@ -1,9 +1,10 @@
 <resources>
-    <string name="app_name">Template</string>
+    <string name="app_name">Artistry</string>
     <string name="email_hint">Email</string>
     <string name="password_hint">Password</string>
     <string name="login_button_label">Login</string>
     <string name="signup_button_label">Signup</string>
     <string name="fullname_hint">full name</string>
     <string name="no_dis">No description available</string>
+    <string name="no_name">No Name\n</string>
 </resources>

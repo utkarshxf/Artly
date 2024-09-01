@@ -1,10 +1,17 @@
 package com.orion.templete.data.model
 
+import android.os.Parcelable
+import kotlinx.android.parcel.Parcelize
 
-data class ArtworkDTO(
-    val content: List<Content>
-) {
-    operator fun plus(items: List<Content>): ArtworkDTO {
-        return ArtworkDTO(this.content + items)
-    }
-}
+@Parcelize
+data class ArtworkDTO (
+    val description: String?,
+    val id: String?,
+    val imageUrl: String?,
+    val madeWith: String?,
+    val name: String?,
+    val releasedDate: String?,
+    val status: String?,
+    val storageType: String?,
+    val type: String?
+):Parcelable

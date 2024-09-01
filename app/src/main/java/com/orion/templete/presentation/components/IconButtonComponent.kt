@@ -1,4 +1,4 @@
-package com.nameisjayant.composeprojects.components
+package com.orion.templete.presentation.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.material3.IconButton
@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.orion.templete.presentation.components.AppIcon
 
 
 @Composable

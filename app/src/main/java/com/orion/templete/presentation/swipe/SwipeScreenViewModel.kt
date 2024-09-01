@@ -6,8 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orion.templete.data.model.ArtworkDTO
-import com.orion.templete.data.model.Content
+import com.orion.templete.data.model.RecommendedArtworkDTO
 import com.orion.templete.domain.paginator.DefaultPaginator
 import com.orion.templete.domain.repository.GetArtworkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,20 +15,20 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class MyViewModel @Inject constructor(
+class SwipeScreenViewModel @Inject constructor(
     private val repository: GetArtworkRepository
 ) : ViewModel() {
 
     var state by mutableStateOf(ScreenState())
         private set
 
-    private val pagination: DefaultPaginator<Int, Content> = DefaultPaginator(
+    private val pagination: DefaultPaginator<Int, RecommendedArtworkDTO> = DefaultPaginator(
         initialKey = state.page,
         onLoadUpdated = { isLoading ->
             state = state.copy(isLoading = isLoading)
         },
         onRequest = { nextPage ->
-            repository.paginationArtwork(nextPage, 5)
+            repository.paginationArtwork(nextPage, 10)
         },
         getNextKey = {
             state.page + 1
@@ -70,7 +69,7 @@ class MyViewModel @Inject constructor(
 
 data class ScreenState(
     val isLoading: Boolean = false,
-    val items: List<Content> = emptyList(),
+    val items: List<RecommendedArtworkDTO> = emptyList(),
     val error: String? = null,
     val endReached: Boolean = false,
     val page: Int = 0
