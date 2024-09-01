@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.RecommendedArtworkDTO
 import com.orion.templete.domain.paginator.DefaultPaginator
 import com.orion.templete.domain.repository.GetArtworkRepository
+import com.orion.templete.usecase.GetArtworkUseCase
+import com.orion.templete.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,10 +18,13 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SwipeScreenViewModel @Inject constructor(
-    private val repository: GetArtworkRepository
+    private val repository: GetArtworkRepository,
+    private val likeArtworkUseCase: GetArtworkUseCase
 ) : ViewModel() {
 
     var state by mutableStateOf(ScreenState())
+        private set
+    var likeArtworkState by mutableStateOf<Resource<Boolean>>(Resource.Loading(null))
         private set
 
     private val pagination: DefaultPaginator<Int, RecommendedArtworkDTO> = DefaultPaginator(
@@ -64,6 +69,15 @@ class SwipeScreenViewModel @Inject constructor(
         state = ScreenState()
         loadNextItems()
     }
+
+    fun likeArtwork(artworkId: String, userId: String) {
+        viewModelScope.launch {
+            likeArtworkUseCase.likeArtwork(artworkId, userId).collect { resource ->
+                likeArtworkState = resource
+            }
+        }
+    }
+
 }
 
 

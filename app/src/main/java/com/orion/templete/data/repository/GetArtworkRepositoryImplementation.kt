@@ -18,4 +18,10 @@ class GetArtworkRepositoryImplementation @Inject constructor(private  val apiSer
         val response = safeApiRequest { apiService.paginationArtwork("1" ,offset, pageSize) }
         return response
     }
+
+    override suspend fun likeArtwork(artworkId: String, userId: String): Boolean {
+        val response =  apiService.likeArtwork(artworkId, userId)
+        return response.isSuccessful
+    }
+
 }

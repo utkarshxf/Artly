@@ -124,7 +124,11 @@ fun SwipeCard(
                             .swipableCard(state = state,
                                 blockedDirections = listOf(Direction.Down),
                                 onSwiped = {
-                                    Log.d("Swappable-Card", "Swiped ${state.swipedDirection}")
+                                    if(state.swipedDirection == Direction.Right)
+                                    {
+                                        Log.d("Swappable-Card", "Swiped ${state.swipedDirection}")
+                                        swipeScreenViewModel.likeArtwork(artwork.artwork?.id.toString(), "1")
+                                    }
                                     currentIndex++
                                     if (currentIndex >= artworkList.size && !stateOfCards.isLoading) {
                                         swipeScreenViewModel.loadNextItems()

@@ -19,6 +19,17 @@ class GetArtworkUseCase @Inject constructor(
             emit(Resource.Error(e.message))
         }
     }
-
-
+    fun likeArtwork(artworkId: String, userId: String): Flow<Resource<Boolean>> = flow {
+        emit(Resource.Loading(null))
+        try {
+            val isLiked = getArtworkRepository.likeArtwork(artworkId, userId)
+            if (isLiked) {
+                emit(Resource.Success(true))
+            } else {
+                emit(Resource.Error("Failed to like artwork"))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message))
+        }
+    }
 }
