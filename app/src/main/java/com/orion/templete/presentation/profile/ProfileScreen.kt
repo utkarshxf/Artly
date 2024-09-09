@@ -1,295 +1,264 @@
 package com.orion.templete.presentation.profile
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
+
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
-import androidx.compose.ui.text.style.TextOverflow
+
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orion.templete.presentation.components.AppIconButton
-import com.nameisjayant.composeprojects.components.SpacerHeight
-import com.nameisjayant.composeprojects.components.SpacerWidth
-import com.orion.templete.R
-import com.orion.templete.presentation.components.AppIcon
-import com.orion.templete.presentation.ui.theme.Blue
-import com.orion.templete.presentation.ui.theme.ButtonHeight
-import com.orion.templete.presentation.ui.theme.LargeSize
-import com.orion.templete.presentation.ui.theme.MediumSize
-import com.orion.templete.presentation.ui.theme.SmallSize
+import com.orion.templete.data.model.User
+import com.orion.templete.data.model.UserDTO
 import com.orion.templete.presentation.ui.theme.TempleteTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.google.android.material.chip.Chip
 
 @Composable
 fun ProfileScreen() {
-    Surface {
-        ProfileRow(
-            topBarSection = {
-                TopBar(
-                    name = "UserName",
-                )
-            },
-            profileSection = {
-                ProfileSection()
-            },
-            buttonSection = {
-                ButtonSection(modifier = Modifier.fillMaxWidth())
-            }
-        )
-        {
-
-        }
-    }
+    val user = UserDTO(
+        artist = true,
+        id = "12345",
+        name = "John Doe",
+        profilePicture = "https://example.com/profile.jpg",
+        dob = "2024-09-03",
+        gender = "Male",
+        language = "English",
+        countryIso2 = "US"
+    )
+    ProfileContent(user = user)
 }
 
 @Composable
-private fun ProfileRow(
-    modifier: Modifier = Modifier,
-    topBarSection: (@Composable () -> Unit)? = null,
-    profileSection: (@Composable () -> Unit)? = null,
-    buttonSection: (@Composable () -> Unit)? = null,
-    savedSection: (@Composable () -> Unit)? = null,
-) {
+private fun ProfileContent(user: UserDTO) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .padding(MediumSize),
+            .padding(16.dp)
     ) {
-        topBarSection?.invoke()
-        profileSection?.invoke()
-        buttonSection?.invoke()
-        savedSection?.invoke()
-    }
-}
-
-
-
-
-@Composable
-private fun TopBar(
-    modifier: Modifier = Modifier,
-    name: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start,
-        modifier = modifier.fillMaxWidth(0.5F)
-    ) {
-        AppIconButton(icon = R.drawable.ic_arrow_back , tint = MaterialTheme.colorScheme.onSurface){}
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-            Text(
-                text = name,
-                overflow = TextOverflow.Ellipsis,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun ProfileSection(
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.fillMaxWidth(),Arrangement.Center , Alignment.CenterHorizontally) {
-        RoundImage(
-            image = painterResource(id = R.drawable.user),
-            modifier = Modifier.size(80.dp)
-
-        )
-        SpacerHeight(SmallSize)
-        Text(
-            text = "DisplayName",
-            fontWeight = FontWeight.Bold,
-        )
-        SpacerHeight(MediumSize)
+        ProfileHeader(user)
+        Spacer(modifier = Modifier.height(16.dp))
         StatSection()
-        SpacerHeight(MediumSize)
-        Genre()
-        SpacerHeight(MediumSize)
+        Spacer(modifier = Modifier.height(16.dp))
+        GenreSection()
+        Spacer(modifier = Modifier.height(16.dp))
         ProfileDescriptionSection(
-            description = "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
-            url = "https://www.instagram.com/usrname/",
-            followedBy = listOf("viratkohli", "mrbeast"),
+            description = "Passionate artist exploring the boundaries of creativity. Join me on this artistic journey!",
+            url = "https://www.instagram.com/${user.name.lowercase().replace(" ", "")}/",
+            followedBy = listOf("artlover", "gallery123")
         )
-        SpacerHeight(MediumSize)
+        Spacer(modifier = Modifier.height(16.dp))
+        ButtonSection()
+        Spacer(modifier = Modifier.height(24.dp))
+        ArtworkTabs(user)
     }
 }
 
 @Composable
-fun Genre() {
+private fun ProfileHeader(user: UserDTO) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            "genre", fontWeight = Medium, modifier = Modifier
-                .clip(
-                    RoundedCornerShape(4.dp)
-                )
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(vertical = 6.dp, horizontal = 16.dp)
+        AsyncImage(
+            model = user.profilePicture,
+            contentDescription = "Profile picture",
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
         )
-    }
-}
-
-@Composable
-private fun RoundImage(
-    image: Painter,
-    modifier: Modifier = Modifier
-) {
-    Image(
-        painter = image,
-        contentDescription = null,
-        modifier = modifier
-            .aspectRatio(1f, matchHeightConstraintsFirst = true)
-            .border(
-                width = 1.dp,
-                color = Color.LightGray,
-                shape = CircleShape
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = user.name,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
             )
-            .padding(3.dp)
-            .clip(CircleShape)
-    )
+            Text(
+                text = "@${user.name.lowercase().replace(" ", "")}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Composable
-private fun StatSection(modifier: Modifier = Modifier) {
+private fun StatSection() {
     Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(32.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        ProfileStatSection(number = "32", text = "Artworks")
-        ProfileStatSection(number = "32", text = "Followers")
-        ProfileStatSection(number = "32", text = "Following")
+        ProfileStat("32", "Artworks")
+        ProfileStat("1.2K", "Followers")
+        ProfileStat("723", "Following")
     }
 }
+
 @Composable
-private fun ProfileStatSection(
-    number: String,
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-    ) {
+private fun ProfileStat(number: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = number,
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
         )
-        SpacerHeight(SmallSize)
-        Text(text = text)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun GenreSection() {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(listOf("Abstract", "Surrealism", "Pop Art")) { genre ->
+            CustomChip(
+                text = genre,
+                onClick = { /* Handle genre click */ }
+            )
+        }
+    }
+}
+@Composable
+private fun CustomChip(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = modifier.clip(RoundedCornerShape(16.dp))
+    ) {
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
     }
 }
 
 @Composable
 private fun ProfileDescriptionSection(
-    description: String?,
-    url: String?,
-    followedBy: List<String>?,
-    otherCount: Int = 18
+    description: String,
+    url: String,
+    followedBy: List<String>
 ) {
-    val letterSpacing = 0.5.sp
-    val lineHeight = 20.sp
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(text = description, style = MaterialTheme.typography.bodyMedium)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = url,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Followed by ${followedBy.joinToString(", ")} and 18 others",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun ButtonSection() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (description != null) {
-            Text(
-                text = description,
-                letterSpacing = letterSpacing,
-                lineHeight = lineHeight
-            )
-        }
-        if (url != null) {
-            Text(
-                text = url,
-                color = Blue,
-                letterSpacing = letterSpacing,
-                lineHeight = lineHeight
-            )
-        }
-        if (followedBy != null) {
-            Text(
-                text = buildAnnotatedString {
-                    val boldStyle = SpanStyle(
-                        fontWeight = FontWeight.Bold
-                    )
-                    append("followed by ")
-                    followedBy.forEachIndexed { index, name ->
-                        pushStyle(boldStyle)
-                        append(name)
-                        pop()
-                        if (index < followedBy.size - 1) {
-                            append(" , ")
-                        }
-                    }
-                    if (otherCount > 2) {
-                        append(" and ")
-                        pushStyle(boldStyle)
-                        append("other")
-                    }
-                },
-                letterSpacing = letterSpacing,
-                lineHeight = lineHeight
-            )
+        Button(
+            onClick = { /* Handle follow */ },
+            modifier = Modifier.weight(1f)
+        ) {
+            Text("Follow")
         }
     }
 }
 
 @Composable
-private fun ButtonSection(
-    modifier: Modifier = Modifier
-) {
-    val height = 32.dp
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.size(height)
-            .border(
-                width = 1.dp,
-                color =MaterialTheme.colorScheme.onSurface,
-                shape = RoundedCornerShape(5.dp),
-            )
-    ) {
-        Text(
-            text = "Following",
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp
-        )
+private fun ArtworkTabs(user: UserDTO) {
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val tabs = if (user.artist) {
+        listOf("Saved Artwork", "Posted Artwork")
+    } else {
+        listOf("Saved Artwork")
+    }
+
+    Column {
+        TabRow(selectedTabIndex = selectedTabIndex) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { selectedTabIndex = index },
+                    text = { Text(title) }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        when (selectedTabIndex) {
+            0 -> ArtworkGrid(isPosted = false)
+            1 -> if (user.artist) ArtworkGrid(isPosted = true)
+        }
     }
 }
 
+@Composable
+private fun ArtworkGrid(isPosted: Boolean) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(9) { index ->
+            AsyncImage(
+                model = if (isPosted) "https://example.com/posted_artwork_$index.jpg"
+                else "https://example.com/saved_artwork_$index.jpg",
+                contentDescription = "Artwork",
+                modifier = Modifier
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
 
 
 @Preview(showBackground = true , showSystemUi = true , )
