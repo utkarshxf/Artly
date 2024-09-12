@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.swipe.components.Direction
 import com.orion.templete.presentation.swipe.components.rememberSwipeableCardState

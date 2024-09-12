@@ -1,4 +1,4 @@
-package com.orion.templete.data.model
+package com.orion.templete.data.model.artwork_model
 
 import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize

@@ -1,10 +1,11 @@
 package com.orion.templete.data.network
 
 
-import com.orion.templete.data.model.RecommendedArtworkDTO
-import com.orion.templete.data.model.LoginResponseDTO
-import com.orion.templete.data.model.TokenRequest
-import com.orion.templete.data.model.User
+import com.orion.templete.data.model.artist_model.SearchArtistResponse
+import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
+import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.TokenRequest
+import com.orion.templete.data.model.login_model.User
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -30,10 +31,13 @@ interface ApiService {
     suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int):retrofit2.Response<List<RecommendedArtworkDTO>>
 
     @PUT("artwork/user/like/{artworkId}/{userId}")
-    suspend fun likeArtwork(
-        @Path("artworkId") artworkId: String,
-        @Path("userId") userId: String
-    ): Response<Void>
+    suspend fun likeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Void>
+
+    @GET("/artist")
+    suspend fun getAllArtists(
+        @Query("artistName") artistName: String,
+        @Query("responseSize") artistId: Int = 18
+    ): retrofit2.Response<List<SearchArtistResponse>>
 
     companion object {
         var baseurl = "http://20.193.156.98:7040/"

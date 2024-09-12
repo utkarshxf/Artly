@@ -1,12 +1,11 @@
-package com.orion.templete.presentation.auth.common
+package com.orion.templete.presentation.auth.login
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orion.templete.data.model.User
+import com.orion.templete.data.model.login_model.User
 import com.orion.templete.usecase.RegisterUseCase
 import com.orion.templete.util.Resource
 import com.orion.templete.util.SecureStorage
@@ -19,7 +18,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class authViewModel @Inject constructor(
+class AuthViewModel @Inject constructor(
     private val loginUseCase: RegisterUseCase,
     private val secureStorage: SecureStorage
 ) : ViewModel() {

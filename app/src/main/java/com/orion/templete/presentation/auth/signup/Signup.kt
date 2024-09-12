@@ -1,17 +1,15 @@
 package com.orion.templete.presentation.auth.signup
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.orion.templete.data.model.User
-import com.orion.templete.presentation.auth.common.authViewModel
+import com.orion.templete.presentation.auth.login.AuthViewModel
 
 @Composable
 fun Signup(
     navController: NavController
 ) {
-    val viewModel: authViewModel = hiltViewModel()
+    val viewModel: AuthViewModel = hiltViewModel()
     SignupScreen(
         uiState = viewModel.signupData,
         signupUser = { viewModel.signup(it) },

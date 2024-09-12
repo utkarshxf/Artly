@@ -1,8 +1,8 @@
 package com.orion.templete.data.repository
 
-import com.orion.templete.data.model.LoginResponseDTO
-import com.orion.templete.data.model.TokenRequest
-import com.orion.templete.data.model.User
+import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.TokenRequest
+import com.orion.templete.data.model.login_model.User
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.SafeApiRequest

@@ -1,6 +1,6 @@
 package com.orion.templete.domain.paginator
 
-import com.orion.templete.data.model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
 import com.plcoding.composepagingyt.Paginator
 
 class DefaultPaginator<Key, Item>(

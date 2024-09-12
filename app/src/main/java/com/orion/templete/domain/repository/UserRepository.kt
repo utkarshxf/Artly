@@ -1,11 +1,11 @@
 package com.orion.templete.domain.repository
 
-import com.orion.templete.data.model.LoginResponseDTO
-import com.orion.templete.data.model.TokenRequest
-import com.orion.templete.data.model.User
+import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.TokenRequest
+import com.orion.templete.data.model.login_model.User
 
 interface UserRepository {
     suspend fun loginUserDetail(user: User): LoginResponseDTO
-    suspend fun signup(user : User):User
+    suspend fun signup(user : User): User
     suspend fun verifyUser(token : TokenRequest):Boolean
 }

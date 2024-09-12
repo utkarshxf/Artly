@@ -1,7 +1,7 @@
 package com.orion.templete.util
 
-import com.orion.templete.data.model.LoginResponseDTO
-import com.orion.templete.data.model.User
+import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.User
 
 data class LoginUiState(
     val isLoading: Boolean = false,

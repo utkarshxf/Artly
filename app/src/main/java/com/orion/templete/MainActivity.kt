@@ -5,8 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.Surface
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.orion.templete.presentation.auth.common.authViewModel
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.AndroidEntryPoint

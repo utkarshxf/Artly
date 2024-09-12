@@ -1,25 +1,21 @@
 package com.orion.templete.di
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
-import com.orion.templete.data.repository.GetArtworkRepositoryImplementation
+import com.orion.templete.data.repository.ArtistRepositoryImplementation
+import com.orion.templete.data.repository.ArtworkRepositoryImplementation
 import com.orion.templete.data.repository.UserRepositoryImplementation
-import com.orion.templete.domain.paginator.DefaultPaginator
-import com.orion.templete.domain.repository.GetArtworkRepository
+import com.orion.templete.domain.repository.ArtistRepository
+import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.SecureStorage
-import com.plcoding.composepagingyt.Paginator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
@@ -59,14 +55,22 @@ object  AppModule {
             .create(ApiService::class.java)
     }
     @Provides
-    fun provideArtWorkRepository(apiService: ApiService): GetArtworkRepository {
-        return GetArtworkRepositoryImplementation(apiService = apiService)
+    fun provideArtWorkRepository(apiService: ApiService): ArtworkRepository {
+        return ArtworkRepositoryImplementation(apiService = apiService)
     }
     @Provides
     fun provideUserRepository(
         apiService: ApiService,
     ): UserRepository {
         return UserRepositoryImplementation(
+            apiService = apiService,
+        )
+    }
+    @Provides
+    fun artistRepository(
+        apiService: ApiService,
+    ): ArtistRepository {
+        return ArtistRepositoryImplementation(
             apiService = apiService,
         )
     }

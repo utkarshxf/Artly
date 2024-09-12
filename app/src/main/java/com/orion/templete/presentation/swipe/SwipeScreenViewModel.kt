@@ -6,9 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orion.templete.data.model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
 import com.orion.templete.domain.paginator.DefaultPaginator
-import com.orion.templete.domain.repository.GetArtworkRepository
+import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.usecase.GetArtworkUseCase
 import com.orion.templete.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +18,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SwipeScreenViewModel @Inject constructor(
-    private val repository: GetArtworkRepository,
+    private val repository: ArtworkRepository,
     private val likeArtworkUseCase: GetArtworkUseCase
 ) : ViewModel() {
 

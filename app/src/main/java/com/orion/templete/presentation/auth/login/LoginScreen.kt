@@ -32,7 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.nameisjayant.composeprojects.components.SpacerHeight
 import com.orion.templete.R
-import com.orion.templete.data.model.User
+import com.orion.templete.data.model.login_model.User
 import com.orion.templete.presentation.common.CustomTextField
 import com.orion.templete.presentation.ui.theme.ButtonHeight
 import com.orion.templete.presentation.ui.theme.ExtraLargeSpacing

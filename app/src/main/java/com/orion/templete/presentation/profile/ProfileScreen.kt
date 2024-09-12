@@ -13,7 +13,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orion.templete.presentation.components.AppIconButton
-import com.orion.templete.data.model.User
 import com.orion.templete.data.model.UserDTO
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import androidx.compose.foundation.background

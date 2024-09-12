@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
 import com.orion.templete.presentation.ui.theme.MediumSize

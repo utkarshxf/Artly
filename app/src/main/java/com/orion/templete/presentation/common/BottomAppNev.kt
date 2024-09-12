@@ -14,9 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,20 +25,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.orion.templete.data.model.RecommendedArtworkDTO
-import com.orion.templete.presentation.auth.common.authViewModel
+import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
 import com.orion.templete.presentation.profile.ProfileScreen
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
 import com.orion.templete.presentation.swipe.detail.ArtworkDetailScreen
 import com.orion.templete.presentation.ui.theme.ButtonHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
-import com.orion.templete.util.SecureStorage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -15,22 +15,48 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.orion.templete.presentation.common.CustomSearchBar
+import com.orion.templete.presentation.common.UserSearchCard
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.orion.templete.data.model.ArtworkDTO
-import com.orion.templete.presentation.common.MySearchBar
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
 
 @Composable
-fun SearchScreen()
-{
+fun SearchScreen(viewModel: SearchScreenViewModel = hiltViewModel()) {
+    var query by remember { mutableStateOf("") }
+    var active by remember { mutableStateOf(false) }
+    val searchResults = viewModel.searchResults.collectAsState()
     SearchRow(
         header = {},
         search = {
-            MySearchBar {}
+            CustomSearchBar(
+                onQueryChange = { query = it },
+                query = query,
+                active = active,
+                onActiveChange = {
+                    active = it
+                    viewModel.searchArtist(query) },
+                placeholder = "Search",
+                content = {
+                    LazyColumn {
+                        items(searchResults.value) {
+                            UserSearchCard(it.name ?: "name", it.id ?: "id", it.profilePicture ?: "profilePicture")
+                        }
+                    }
+                }
+            )
         },
         content = {ArtworkFeed()}
     )
@@ -73,6 +99,7 @@ val dummyArtworks = listOf(
         name = "Shapes in Harmony"
     )
 )
+
 
 
 @Composable
