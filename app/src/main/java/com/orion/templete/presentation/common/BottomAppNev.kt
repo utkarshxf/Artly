@@ -30,6 +30,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
+import com.orion.templete.presentation.artist_profile.ArtisProfileScreen
 import com.orion.templete.presentation.profile.ProfileScreen
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
@@ -59,15 +60,25 @@ fun BottomAppNev(
         composable(Screens.Profile.route) {
             ProfileScreen()
         }
-        composable(Screens.Search.route)
-        {
-            SearchScreen()
-        }
         composable(Screens.ArtworkDetail.route)
         {
             val recommendedArtworkDTO = navController.previousBackStackEntry?.savedStateHandle?.get<RecommendedArtworkDTO>("data-mapped")
             if (recommendedArtworkDTO!=null){
                 ArtworkDetailScreen(recommendedArtworkDTO)
+            }
+        }
+        composable(Screens.Search.route)
+        {
+            SearchScreen(){ it ->
+                navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it)
+                navController.navigate(Screens.UserProfile.route)
+            }
+        }
+        composable(Screens.UserProfile.route)
+        {
+            val userID = navController.previousBackStackEntry?.savedStateHandle?.get<String>("UserID")
+            if (userID!=null){
+                ArtisProfileScreen(userID)
             }
         }
     }

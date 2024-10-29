@@ -1,5 +1,6 @@
 package com.orion.templete.data.repository
 
+import android.util.Log
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.domain.repository.ArtistRepository
@@ -12,7 +13,11 @@ class ArtistRepositoryImplementation @Inject constructor(private  val apiService
     ArtistRepository, SafeApiRequest() {
     override suspend fun searchArtist(query: String): Flow<List<SearchArtistResponse>> {
         return flow {
-            val response = safeApiRequest { apiService.getAllArtists(query) }
+            val response = safeApiRequest {
+                Log.d("query", "searchArtist: $query")
+                apiService.getAllArtists(query)
+            }
+
             emit(response)
         }
     }

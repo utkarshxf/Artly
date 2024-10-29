@@ -12,6 +12,7 @@ abstract class SafeApiRequest {
         apiRequest: suspend () -> Response<T>
     ): T {
         try {
+            Log.e("SafeApiRequest", "apiRequest: ${ apiRequest().body()!! }")
             return apiRequest().body()!!
         } catch (e: Exception) {
             throw handleApiError(e)

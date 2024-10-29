@@ -2,6 +2,7 @@ package com.orion.templete.presentation.common
 
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
@@ -20,12 +21,14 @@ import coil.compose.rememberAsyncImagePainter
 fun UserSearchCard(
     username: String,
     userId: String,
-    profilePictureUrl: String
+    profilePictureUrl: String,
+    onClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = MaterialTheme.shapes.medium
     ) {

@@ -34,7 +34,7 @@ import coil.compose.AsyncImage
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 
 @Composable
-fun SearchScreen(viewModel: SearchScreenViewModel = hiltViewModel()) {
+fun SearchScreen(viewModel: SearchScreenViewModel = hiltViewModel() , onUserClick: (String) -> Unit) {
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
     val searchResults = viewModel.searchResults.collectAsState()
@@ -52,7 +52,9 @@ fun SearchScreen(viewModel: SearchScreenViewModel = hiltViewModel()) {
                 content = {
                     LazyColumn {
                         items(searchResults.value) {
-                            UserSearchCard(it.name ?: "name", it.id ?: "id", it.profilePicture ?: "profilePicture")
+                            UserSearchCard(it.name ?: "name", it.id ?: "id", it.profilePicture ?: "profilePicture") {
+                                onUserClick(it.id ?: "id")
+                            }
                         }
                     }
                 }

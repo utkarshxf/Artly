@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.search
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
@@ -25,14 +26,15 @@ class SearchScreenViewModel @Inject constructor(
 
     // Function to search for artists
     fun searchArtist(query: String) {
+        Log.e("query", query)
         viewModelScope.launch {
             artistRepository.searchArtist(query)
                 .flowOn(Dispatchers.IO) // Execute on background thread
                 .catch { e ->
-                    // Handle error if needed
                     _searchResults.value = emptyList()
                 }
                 .collect { result ->
+                    Log.e("query", result.toString())
                     _searchResults.value = result // Emit the results
                 }
         }

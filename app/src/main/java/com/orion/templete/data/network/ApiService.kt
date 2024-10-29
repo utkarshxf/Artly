@@ -34,9 +34,9 @@ interface ApiService {
     @PUT("artwork/user/like/{artworkId}/{userId}")
     suspend fun likeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Void>
 
-    @GET("/artist")
+    @GET("/artist/search")
     suspend fun getAllArtists(
-        @Query("artistName") artistName: String,
+        @Query("query") artistName: String,
         @Query("responseSize") artistId: Int = 18
     ): retrofit2.Response<List<SearchArtistResponse>>
 
