@@ -18,6 +18,14 @@ val OpenSans = FontFamily(
     Font(R.font.open_sans_light, FontWeight.Light),
     Font(R.font.open_sans_regular, FontWeight.Normal)
 )
+val mollie = FontFamily(
+    Font(R.font.mollie_rocky, FontWeight.Light),
+    Font(R.font.mollie_rocky, FontWeight.Normal)
+)
+
+val IbmPlex = FontFamily(
+    Font(R.font.ibmplexmono_extralight)
+)
 
 val Typography = Typography(
     displayLarge = TextStyle(

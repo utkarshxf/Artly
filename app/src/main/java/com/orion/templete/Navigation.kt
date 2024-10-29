@@ -20,7 +20,8 @@ fun Navigation(startDest :String) {
             Signup(navController = navController)
         }
         composable("home_screen") {
-            BottomAppNev(navigateToLoginScreen = {
+            BottomAppNev(
+                navigateToLoginScreen = {
                 navController.navigate("login_screen") {
                     popUpTo("home_screen") { inclusive = true }
                 }

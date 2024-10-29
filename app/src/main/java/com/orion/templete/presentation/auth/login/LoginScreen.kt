@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nameisjayant.composeprojects.components.SpacerHeight
 import com.orion.templete.R
@@ -39,6 +40,7 @@ import com.orion.templete.presentation.ui.theme.ExtraLargeSpacing
 import com.orion.templete.presentation.ui.theme.LargeSize
 import com.orion.templete.presentation.ui.theme.MediumSize
 import com.orion.templete.presentation.ui.theme.SmallSize
+import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.LoginUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,5 +136,14 @@ fun GoToSignup(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = modifier.clickable { onNavigateToSignup() })
+    }
+}
+
+
+@Preview
+@Composable
+private fun LoginScreenPrev() {
+    TempleteTheme {
+        LoginScreen(Modifier,LoginUiState() , {} , {} , {})
     }
 }

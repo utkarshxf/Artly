@@ -44,7 +44,6 @@ import com.google.android.material.chip.Chip
 @Composable
 fun ProfileScreen() {
     val user = UserDTO(
-        artist = true,
         id = "12345",
         name = "John Doe",
         profilePicture = "https://example.com/profile.jpg",
@@ -214,7 +213,7 @@ private fun ButtonSection() {
 @Composable
 private fun ArtworkTabs(user: UserDTO) {
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = if (user.artist) {
+    val tabs = if (true) {
         listOf("Saved Artwork", "Posted Artwork")
     } else {
         listOf("Saved Artwork")
@@ -233,7 +232,7 @@ private fun ArtworkTabs(user: UserDTO) {
         Spacer(modifier = Modifier.height(16.dp))
         when (selectedTabIndex) {
             0 -> ArtworkGrid(isPosted = false)
-            1 -> if (user.artist) ArtworkGrid(isPosted = true)
+            1 -> if (true) ArtworkGrid(isPosted = true)
         }
     }
 }

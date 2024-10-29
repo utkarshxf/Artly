@@ -1,7 +1,6 @@
 package com.orion.templete.data.model
 
 data class UserDTO(
-    val artist: Boolean,
     val id: String,
     val name: String,
     val profilePicture: String,

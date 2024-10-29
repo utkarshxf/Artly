@@ -15,11 +15,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val token = SecureStorage(this).getToken()
         installSplashScreen()
-        val startDestination = if (token.isNullOrBlank().not()) { "home_screen" } else { "login_screen" }
+        val startDestination = if (token.isNullOrBlank().not()) { "home_screen" } else { "home_screen" }
         setContent {
             TempleteTheme {
                 Surface() {
-                    Navigation("home_screen")
+                    Navigation(startDestination)
                 }
             }
         }
