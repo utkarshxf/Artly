@@ -26,14 +26,12 @@ class UserRepositoryImplementation @Inject constructor(
 ) : UserRepository, SafeApiRequest() {
     override suspend fun getUserByUserId(userId: String): Flow<ResponseStates<UserDTO>> {
         return flow {
-
             emit(ResponseStates.Loading)
             try {
                 userDao.getUserById(userId)?.let { cachedUser ->
                     val cachedResponse = cachedUser.toDto()
                     emit(ResponseStates.Success(cachedResponse))
                 }
-                val response = safeApiRequest { apiService.getUserByUserId(userId) }
                 if (isNetworkAvailable(context)) {
                     val response = safeApiRequest { apiService.getUserByUserId(userId) }
                     withContext(Dispatchers.IO) {
@@ -43,8 +41,6 @@ class UserRepositoryImplementation @Inject constructor(
                 } else if (!isNetworkAvailable(context) && userDao.getUserById(userId) == null) {
                     emit(ResponseStates.Error("No internet connection and no cached data available"))
                 }
-                emit(ResponseStates.Success(response))
-
             } catch (e: Exception) {
                 emit(ResponseStates.Error(e.message ?: "Unknown Error Occurred"))
             }
