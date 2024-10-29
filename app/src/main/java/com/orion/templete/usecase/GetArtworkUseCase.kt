@@ -3,7 +3,7 @@ package com.orion.templete.usecase
 
 import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
 import com.orion.templete.domain.repository.ArtworkRepository
-import com.orion.templete.util.Resource
+import com.orion.templete.util.ResponseStates
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -11,25 +11,25 @@ import javax.inject.Inject
 class GetArtworkUseCase @Inject constructor(
     private val artworkRepository: ArtworkRepository
 ) {
-     fun getArtwork(): Flow<Resource<RecommendedArtworkDTO>> = flow {
-        emit(Resource.Loading(null))
+     fun getArtwork(): Flow<ResponseStates<RecommendedArtworkDTO>> = flow {
+        emit(ResponseStates.Loading)
         try {
-            emit(Resource.Success(artworkRepository.getArtwork()))
+            emit(ResponseStates.Success(artworkRepository.getArtwork()))
         } catch (e: Exception) {
-            emit(Resource.Error(e.message))
+            emit(ResponseStates.Error(e.message.toString()))
         }
     }
-    fun likeArtwork(artworkId: String, userId: String): Flow<Resource<Boolean>> = flow {
-        emit(Resource.Loading(null))
+    fun likeArtwork(artworkId: String, userId: String): Flow<ResponseStates<Boolean>> = flow {
+        emit(ResponseStates.Loading)
         try {
             val isLiked = artworkRepository.likeArtwork(artworkId, userId)
             if (isLiked) {
-                emit(Resource.Success(true))
+                emit(ResponseStates.Success(true))
             } else {
-                emit(Resource.Error("Failed to like artwork"))
+                emit(ResponseStates.Error("Failed to like artwork"))
             }
         } catch (e: Exception) {
-            emit(Resource.Error(e.message))
+            emit(ResponseStates.Error(e.message.toString()))
         }
     }
 }

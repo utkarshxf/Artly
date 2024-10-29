@@ -1,4 +1,4 @@
-package com.orion.templete.data.model
+package com.orion.templete.data.model.user_model
 
 data class UserDTO(
     val id: String,

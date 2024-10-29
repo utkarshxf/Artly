@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.login_model.User
 import com.orion.templete.usecase.RegisterUseCase
-import com.orion.templete.util.Resource
+import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.LoginUiState
 import com.orion.templete.util.UserCheckStateHolder
@@ -31,15 +31,15 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             loginUseCase(token).collect { isValid ->
                 when (isValid) {
-                    is Resource.Success -> {
+                    is ResponseStates.Success -> {
                         checkUser = UserCheckStateHolder(data = isValid.data, isLoading = false)
                     }
 
-                    is Resource.Error -> {
-                        checkUser = UserCheckStateHolder(error = isValid.message, isLoading = false)
+                    is ResponseStates.Error -> {
+                        checkUser = UserCheckStateHolder(error = isValid.error, isLoading = false)
                     }
 
-                    is Resource.Loading -> {
+                    is ResponseStates.Loading -> {
                         checkUser = UserCheckStateHolder(isLoading = true)
                     }
                 }
@@ -50,15 +50,15 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             loginUseCase.signup(user).collect{
                 when (it) {
-                    is Resource.Error -> {
-                        signupData = SignupUiState(error = it.message.toString())
+                    is ResponseStates.Error -> {
+                        signupData = SignupUiState(error = it.error.toString())
                     }
 
-                    is Resource.Loading -> {
+                    is ResponseStates.Loading -> {
                         signupData = SignupUiState(isLoading = true)
                     }
 
-                    is Resource.Success -> {
+                    is ResponseStates.Success -> {
                         signupData = SignupUiState(data = it.data)
                     }
                 }
@@ -70,15 +70,15 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             loginUseCase.signin(user).collect{
                 when (it) {
-                    is Resource.Error -> {
-                        signingData = LoginUiState(error = it.message.toString())
+                    is ResponseStates.Error -> {
+                        signingData = LoginUiState(error = it.error.toString())
                     }
 
-                    is Resource.Loading -> {
+                    is ResponseStates.Loading -> {
                         signingData = LoginUiState(isLoading = true)
                     }
 
-                    is Resource.Success -> {
+                    is ResponseStates.Success -> {
                         signingData = LoginUiState(data = it.data)
                         it.data?.let { loginResponse ->
                             secureStorage.saveToken(loginResponse.jwtToken)

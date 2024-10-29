@@ -13,7 +13,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orion.templete.presentation.components.AppIconButton
-import com.orion.templete.data.model.UserDTO
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -38,21 +37,33 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.android.material.chip.Chip
+import com.orion.templete.data.model.user_model.UserDTO
+import com.orion.templete.presentation.common.ErrorScreen
 
 @Composable
-fun ProfileScreen() {
-    val user = UserDTO(
-        id = "12345",
-        name = "John Doe",
-        profilePicture = "https://example.com/profile.jpg",
-        dob = "2024-09-03",
-        gender = "Male",
-        language = "English",
-        countryIso2 = "US"
-    )
-    ProfileContent(user = user)
+fun ProfileScreen(viewModel: ProfileScreenViewModel = hiltViewModel()) {
+    when (val uiState = viewModel.userData) {
+        is ProfileScreenUiState.Loading -> {
+            CircularProgressIndicator(
+                modifier = Modifier.fillMaxSize()
+                    .wrapContentSize(Alignment.Center)
+            )
+        }
+
+        is ProfileScreenUiState.Success -> {
+            ProfileContent(user = uiState.user)
+        }
+
+        is ProfileScreenUiState.Error -> {
+            ErrorScreen(
+                message = uiState.message,
+                onRetry = { viewModel.refreshProfile("string") }
+            )
+        }
+    }
 }
 
 @Composable

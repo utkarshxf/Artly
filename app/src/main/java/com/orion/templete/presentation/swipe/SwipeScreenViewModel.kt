@@ -10,7 +10,7 @@ import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
 import com.orion.templete.domain.paginator.DefaultPaginator
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.usecase.GetArtworkUseCase
-import com.orion.templete.util.Resource
+import com.orion.templete.util.ResponseStates
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,7 +24,7 @@ class SwipeScreenViewModel @Inject constructor(
 
     var state by mutableStateOf(ScreenState())
         private set
-    var likeArtworkState by mutableStateOf<Resource<Boolean>>(Resource.Loading(null))
+    var likeArtworkState by mutableStateOf<ResponseStates<Boolean>>(ResponseStates.Loading)
         private set
 
     private val pagination: DefaultPaginator<Int, RecommendedArtworkDTO> = DefaultPaginator(
