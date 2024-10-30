@@ -21,7 +21,7 @@ class RegisterUseCase @Inject constructor(
             emit(ResponseStates.Error(e.message ?: "An unknown error occurred"))
         }
     }
-    fun signup(user: User): Flow<ResponseStates<User>> = flow {
+    fun signup(user: User): Flow<ResponseStates<LoginResponseDTO>> = flow {
         emit(ResponseStates.Loading)
         try {
             emit(ResponseStates.Success(loginRepository.signup(user)))

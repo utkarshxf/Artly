@@ -6,6 +6,6 @@ import com.orion.templete.data.model.login_model.User
 
 interface LoginRepository {
     suspend fun loginUserDetail(user: User): LoginResponseDTO
-    suspend fun signup(user : User): User
+    suspend fun signup(user : User): LoginResponseDTO
     suspend fun verifyUser(token : TokenRequest):Boolean
 }

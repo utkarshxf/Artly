@@ -15,7 +15,7 @@ class LoginRepositoryImplementation @Inject constructor(
         return safeApiRequest { apiService.loginUser(user) }
     }
 
-    override suspend fun signup(user: User): User {
+    override suspend fun signup(user: User): LoginResponseDTO {
         return safeApiRequest { apiService.signup(user)}
     }
 

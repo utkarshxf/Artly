@@ -10,7 +10,7 @@ data class LoginUiState(
 )
 data class SignupUiState(
     val isLoading: Boolean = false,
-    val data: User? = null,
+    val data: LoginResponseDTO? = null,
     val error: String? = null
 )
 data class UserCheckStateHolder(
