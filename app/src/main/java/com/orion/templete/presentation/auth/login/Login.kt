@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.orion.templete.presentation.auth.AuthViewModel
 import com.orion.templete.presentation.common.Screens
 
 @Composable
@@ -21,8 +22,8 @@ fun Login(
             }
         },
         onNavigateToHome = {
-            navController.navigate(Screens.Login.route) {
-                popUpTo(Screens.Signup.route) { inclusive = true }
+            navController.navigate(Screens.Home.route) {
+                popUpTo(Screens.Login.route) { inclusive = true }
             }
         }
     )

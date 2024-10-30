@@ -47,7 +47,7 @@ fun SignupScreen(
     modifier: Modifier = Modifier,
     uiState: SignupUiState,
     signupUser: (User) -> Unit,
-    onNavigateToHome: () -> Unit,
+    onNavigateToRegister: () -> Unit,
     onNavigateToLogin: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -60,7 +60,7 @@ fun SignupScreen(
 
     LaunchedEffect(uiState.data) {
         uiState.data?.let {
-            onNavigateToHome()
+            onNavigateToRegister()
         }
     }
 

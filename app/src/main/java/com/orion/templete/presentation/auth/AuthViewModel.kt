@@ -1,4 +1,4 @@
-package com.orion.templete.presentation.auth.login
+package com.orion.templete.presentation.auth
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

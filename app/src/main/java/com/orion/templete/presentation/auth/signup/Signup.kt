@@ -3,7 +3,8 @@ package com.orion.templete.presentation.auth.signup
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.orion.templete.presentation.auth.login.AuthViewModel
+import com.orion.templete.presentation.auth.AuthViewModel
+import com.orion.templete.presentation.common.Screens
 
 @Composable
 fun Signup(
@@ -14,13 +15,13 @@ fun Signup(
         uiState = viewModel.signupData,
         signupUser = { viewModel.signup(it) },
         onNavigateToLogin = {
-            navController.navigate("login_screen") {
-                popUpTo("signup_screen") { inclusive = true }
+            navController.navigate(Screens.Login.route) {
+                popUpTo(Screens.Signup.route) { inclusive = true }
             }
         },
-        onNavigateToHome = {
-            navController.navigate("register_screen") {
-                popUpTo("signup_screen") { inclusive = true }
+        onNavigateToRegister = {
+            navController.navigate(Screens.UserRegister.route) {
+                popUpTo(Screens.Signup.route) { inclusive = true }
             }
         }
     )
