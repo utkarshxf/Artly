@@ -13,7 +13,7 @@ fun Login(
         uiState = viewMode.signingData,
         loginUser = { viewMode.loginUser(it) },
         onNavigateToSignup = {
-            navController.navigate("register_screen") {
+            navController.navigate("signup_screen") {
                 popUpTo("login_screen") { inclusive = true }
             }
         },

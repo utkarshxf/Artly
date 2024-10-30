@@ -7,6 +7,7 @@ import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
 import com.orion.templete.data.model.user_model.UserDTO
+import com.orion.templete.data.model.user_model.UserDetails
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -42,6 +43,9 @@ interface ApiService {
 
     @GET("/users/getUserByUserId/{userId}")
     suspend fun getUserByUserId(@Path("userId") userId: String): retrofit2.Response<UserDTO>
+
+    @POST("/users")
+    suspend fun createUser(@Body request: UserDetails): UserDetails
 
     companion object {
         var baseurl = "http://20.193.156.98:7040/"

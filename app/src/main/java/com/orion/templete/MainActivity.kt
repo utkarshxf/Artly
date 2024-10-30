@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.Surface
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.AndroidEntryPoint
@@ -15,7 +16,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val token = SecureStorage(this).getToken()
         installSplashScreen()
-        val startDestination = if (token.isNullOrBlank().not()) { "home_screen" } else { "home_screen" }
+        val startDestination = if (token.isNullOrBlank().not()) { Screens.Home.route } else {Screens.Home.route }
         setContent {
             TempleteTheme {
                 Surface() {

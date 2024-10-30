@@ -8,22 +8,31 @@ import com.orion.templete.presentation.auth.login.Login
 import com.orion.templete.presentation.common.BottomAppNev
 import com.orion.templete.presentation.auth.login.LoginScreen
 import com.orion.templete.presentation.auth.signup.Signup
+import com.orion.templete.presentation.common.Screens
+import com.orion.templete.presentation.user_register.UserRegisterScreen
 
 @Composable
 fun Navigation(startDest :String) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = startDest) {
-        composable("login_screen") {
+        composable(Screens.Login.route) {
             Login(navController = navController)
         }
-        composable("register_screen") {
+        composable(Screens.Signup.route) {
             Signup(navController = navController)
         }
-        composable("home_screen") {
+        composable(Screens.UserRegister.route) {
+            UserRegisterScreen(onNavigateToHome = {
+                navController.navigate(Screens.Home.route) {
+                    popUpTo(Screens.UserRegister.route) { inclusive = true }
+                }
+            })
+        }
+        composable(Screens.Home.route) {
             BottomAppNev(
                 navigateToLoginScreen = {
-                navController.navigate("login_screen") {
-                    popUpTo("home_screen") { inclusive = true }
+                navController.navigate(Screens.Login.route) {
+                    popUpTo(Screens.Home.route) { inclusive = true }
                 }
             })
         }

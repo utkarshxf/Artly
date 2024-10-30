@@ -19,7 +19,7 @@ fun Signup(
             }
         },
         onNavigateToHome = {
-            navController.navigate("home_screen") {
+            navController.navigate("register_screen") {
                 popUpTo("signup_screen") { inclusive = true }
             }
         }

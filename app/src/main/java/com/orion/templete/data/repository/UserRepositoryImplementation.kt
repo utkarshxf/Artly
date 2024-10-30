@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.flashcall.me.data.local.dao.UserDao
 import com.orion.templete.data.model.user_model.UserDTO
+import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.domain.repository.LoginRepository
 import com.orion.templete.domain.repository.UserRepository
@@ -48,4 +49,15 @@ class UserRepositoryImplementation @Inject constructor(
             emit(ResponseStates.Error(e.message ?: "Error in Flow"))
         }
     }
+
+    override suspend fun createUser(request: UserDetails): Flow<ResponseStates<UserDetails>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = apiService.createUser(request)
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
 }

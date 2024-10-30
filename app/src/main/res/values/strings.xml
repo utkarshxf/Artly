@@ -6,5 +6,11 @@
     <string name="signup_button_label">Signup</string>
     <string name="fullname_hint">full name</string>
     <string name="no_dis">No description available</string>
-    <string name="no_name">No Name\n</string>
+    <string name="no_name">No Name</string>
+    <string name="name_hint">enter your name</string>
+    <string name="dob_hint">enter your birthday</string>
+    <string name="gender_hint">gender</string>
+    <string name="language_hint">your language</string>
+    <string name="country_hint">enter your country</string>
+    <string name="save_button_label">create</string>
 </resources>
