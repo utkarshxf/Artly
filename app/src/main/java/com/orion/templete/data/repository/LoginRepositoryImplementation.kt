@@ -1,5 +1,6 @@
 package com.orion.templete.data.repository
 
+import android.util.Log
 import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
@@ -16,7 +17,9 @@ class LoginRepositoryImplementation @Inject constructor(
     }
 
     override suspend fun signup(user: User): LoginResponseDTO {
-        return safeApiRequest { apiService.signup(user)}
+        val response =  apiService.signup(user).body()!!
+        Log.d("signup" , response.jwtToken.toString() )
+        return response
     }
 
     override suspend fun verifyUser(token: TokenRequest): Boolean {

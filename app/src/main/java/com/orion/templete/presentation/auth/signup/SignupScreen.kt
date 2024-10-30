@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.auth.signup
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

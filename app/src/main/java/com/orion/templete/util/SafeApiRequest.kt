@@ -8,30 +8,25 @@ import retrofit2.Response
 import java.io.IOException
 
 abstract class SafeApiRequest {
-    suspend fun <T> safeApiRequest(
-        apiRequest: suspend () -> Response<T>
-    ): T {
-        try {
-            Log.e("SafeApiRequest", "apiRequest: ${ apiRequest().body()!! }")
-            return apiRequest().body()!!
-        } catch (e: Exception) {
-            throw handleApiError(e)
-        }
-    }
-
-    private fun handleApiError(e: Exception): Exception {
-        Log.e("SafeApiRequest", "handleApiError: ${e.message}")
-        return when (e) {
-            is HttpException -> {
-                when (e.code()) {
-                    401 -> Exception("Unauthorized")
-                    403 -> Exception("Forbidden")
-                    404 -> Exception("Not Found")
-                    else -> Exception("Something went wrong")
+    suspend fun <T : Any> safeApiRequest(call: suspend () -> Response<T>): T {
+        val response = call.invoke()
+        if (response.isSuccessful) {
+            if(response.body() != null){
+                return response.body()!!
+            }else{
+                throw Exception("Base Url Error")
+            }
+        } else {
+            val responseErr = response.errorBody()?.string()
+            val message = StringBuilder()
+            responseErr.let {
+                try {
+                    message.append(JSONObject(it).getString("error"))
+                } catch (e: JSONException) {
                 }
             }
-            is IOException -> Exception("Please check your network connection")
-            else -> Exception("An unknown error occurred")
+            Log.d("TAG", "safeApiRequest: ${message.toString()}")
+            throw Exception("error code: ${response.code()}: "+responseErr)
         }
     }
 }

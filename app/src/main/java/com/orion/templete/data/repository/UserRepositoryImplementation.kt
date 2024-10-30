@@ -43,9 +43,11 @@ class UserRepositoryImplementation @Inject constructor(
                     emit(ResponseStates.Error("No internet connection and no cached data available"))
                 }
             } catch (e: Exception) {
+                Log.d("Exception" , "Exception")
                 emit(ResponseStates.Error(e.message ?: "Unknown Error Occurred"))
             }
         }.catch { e ->
+            Log.d("Exception" , "Exception")
             emit(ResponseStates.Error(e.message ?: "Error in Flow"))
         }
     }
@@ -53,9 +55,21 @@ class UserRepositoryImplementation @Inject constructor(
     override suspend fun createUser(request: UserDetails): Flow<ResponseStates<UserDetails>> = flow {
         emit(ResponseStates.Loading)
         try {
-            val response = apiService.createUser(request)
+            val temp = UserDetails(
+                artist = true,
+                id = "string1",
+                name = "string1",
+                profilePicture = "string1",
+                dob = "2024-10-30",
+                gender = "string",
+                language = "string",
+                countryIso2 = "string"
+            )
+            val response = apiService.createUser(temp)
+            Log.d("Exception" , response.toString())
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
+            Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
     }

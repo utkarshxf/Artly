@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.auth
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -51,7 +52,8 @@ class AuthViewModel @Inject constructor(
             loginUseCase.signup(user).collect{
                 when (it) {
                     is ResponseStates.Error -> {
-                        signupData = SignupUiState(error = it.error.toString())
+                        Log.d("viewModelScope" , "Error")
+                        signupData = SignupUiState(error = it.error)
                     }
 
                     is ResponseStates.Loading -> {
@@ -59,6 +61,7 @@ class AuthViewModel @Inject constructor(
                     }
 
                     is ResponseStates.Success -> {
+                        Log.d("viewModelScope" , "Success")
                         it.data.let { loginResponse ->
                             secureStorage.saveToken(loginResponse.jwtToken)
                             secureStorage.saveUserId(loginResponse.username)

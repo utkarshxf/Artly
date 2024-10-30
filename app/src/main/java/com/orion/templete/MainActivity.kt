@@ -1,6 +1,7 @@
 package com.orion.templete
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.Surface
@@ -24,7 +25,9 @@ class MainActivity : ComponentActivity() {
         val userId = SecureStorage(this).getUserId()
         installSplashScreen()
         setContent {
-            val startDestination = if (token.isNullOrBlank() && userId.isNullOrBlank()) { Screens.Login.route } else { Screens.Home.route }
+            val startDestination = if (token.isNullOrBlank() && userId.isNullOrBlank()) {
+                Screens.Login.route
+            } else {  Screens.Home.route}
             TempleteTheme {
                 Surface() {
                     Navigation(startDestination)
