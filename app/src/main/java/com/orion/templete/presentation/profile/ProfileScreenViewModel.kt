@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.ResponseStates
+import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -15,6 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProfileScreenViewModel @Inject constructor(
     private val userRepository: UserRepository,
+    private val secureStorage: SecureStorage
 ) : ViewModel() {
 
     // Initialize with Loading state instead of null
@@ -22,7 +24,9 @@ class ProfileScreenViewModel @Inject constructor(
         private set
 
     init {
-        getUserProfile("string")
+        secureStorage.getUserId()?.let {
+            getUserProfile(it)
+        }
     }
 
     private fun getUserProfile(userId: String) {

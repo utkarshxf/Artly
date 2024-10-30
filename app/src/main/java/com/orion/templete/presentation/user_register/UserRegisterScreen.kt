@@ -55,6 +55,7 @@ import com.orion.templete.R
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.presentation.common.CustomTextField
 import com.orion.templete.presentation.ui.theme.TempleteTheme
+import com.orion.templete.util.SecureStorage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -256,18 +257,20 @@ fun UserRegisterScreen(
             // Submit Button with gradient background
             Button(
                 onClick = {
-                    viewModel.createUser(
-                        UserDetails(
-                            id = "userId",
-                            name = name,
-                            dob = dob,
-                            gender = gender,
-                            language = language,
-                            countryIso2 = countryIso2,
-                            artist = isArtist,
-                            profilePicture = ""
+                    SecureStorage(context).getUserId()?.let {
+                        viewModel.createUser(
+                            UserDetails(
+                                id = it,
+                                name = name,
+                                dob = dob,
+                                gender = gender,
+                                language = language,
+                                countryIso2 = countryIso2,
+                                artist = isArtist,
+                                profilePicture = ""
+                            )
                         )
-                    )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

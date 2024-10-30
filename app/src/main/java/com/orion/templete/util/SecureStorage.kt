@@ -26,8 +26,17 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
             apply()
         }
     }
+    fun saveUserId(userID: String) {
+        with(sharedPreferences.edit()) {
+            putString("userID", userID)
+            apply()
+        }
+    }
 
     fun getToken(): String? {
         return sharedPreferences.getString("token", null)
+    }
+    fun getUserId(): String? {
+        return sharedPreferences.getString("userID", null)
     }
 }

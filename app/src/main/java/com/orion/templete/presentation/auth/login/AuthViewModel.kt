@@ -80,8 +80,9 @@ class AuthViewModel @Inject constructor(
 
                     is ResponseStates.Success -> {
                         signingData = LoginUiState(data = it.data)
-                        it.data?.let { loginResponse ->
+                        it.data.let { loginResponse ->
                             secureStorage.saveToken(loginResponse.jwtToken)
+                            secureStorage.saveUserId(loginResponse.username)
                         }
                     }
                 }
