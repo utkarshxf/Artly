@@ -1,4 +1,4 @@
-package com.flashcall.me.data.local
+package com.orion.templete.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase

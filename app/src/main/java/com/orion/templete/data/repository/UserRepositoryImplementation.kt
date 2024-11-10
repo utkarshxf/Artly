@@ -3,6 +3,8 @@ package com.orion.templete.data.repository
 import android.content.Context
 import android.util.Log
 import com.flashcall.me.data.local.dao.UserDao
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.data.network.ApiService
@@ -65,11 +67,87 @@ class UserRepositoryImplementation @Inject constructor(
                 language = "string",
                 countryIso2 = "string"
             )
-            val response = apiService.createUser(temp)
-            Log.d("Exception" , response.toString())
+            val response = safeApiRequest { apiService.createUser(temp) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun followUser(
+        userId: String,
+        artistId: String
+    ): Flow<ResponseStates<Unit>>  = flow  {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.followUser(userId ,artistId ) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun unfollowArtist(
+        userId: String,
+        artistId: String
+    ): Flow<ResponseStates<Unit>> = flow  {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.unfollowArtist(userId , artistId)}
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun likeArtwork(
+        userId: String,
+        artworkId: String
+    ): Flow<ResponseStates<Unit>>  = flow  {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.likeArtwork(artworkId , userId)}
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun commentOnArtwork(
+        userId: String,
+        artworkId: String,
+        comment:CommentRequest
+    ): Flow<ResponseStates<Unit>>  = flow  {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.commentOnArtwork(userId , artworkId , comment ) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception" , e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun saveOnFavorites(
+        userId: String,
+        artworkId: String
+    ): Flow<ResponseStates<Unit>>  = flow  {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.saveOnFavorites(userId , artworkId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getArtistArtworks(userId: String): Flow<ResponseStates<List<ArtworkDTO>>>  = flow  {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getArtistArtworks(userId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
     }

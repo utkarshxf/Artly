@@ -30,7 +30,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
-import com.orion.templete.presentation.artist_profile.ArtisProfileScreen
+import com.orion.templete.presentation.artist_profile.ArtistProfileScreen
 import com.orion.templete.presentation.profile.ProfileScreen
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
@@ -78,7 +78,7 @@ fun BottomAppNev(
         {
             val userID = navController.previousBackStackEntry?.savedStateHandle?.get<String>("UserID")
             if (userID!=null){
-                ArtisProfileScreen(userID)
+                ArtistProfileScreen(userID)
             }
         }
     }

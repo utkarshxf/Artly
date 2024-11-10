@@ -36,73 +36,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.common.ErrorScreen
-import com.orion.templete.presentation.profile.ProfileScreenUiState
-import com.orion.templete.presentation.profile.ProfileScreenViewModel
-import com.orion.templete.presentation.ui.theme.TempleteTheme
+import com.orion.templete.presentation.common.LoadingScreen
+
 
 @Composable
-fun ArtisProfileScreen(userId :String ?=null, viewModel: ArtistProfileViewModel = hiltViewModel()) {
-
+fun ArtistProfileScreen(
+    userId: String? = null,
+    viewModel: ArtistProfileViewModel = hiltViewModel()
+) {
     LaunchedEffect(userId) {
-        if (userId != null) {
-            viewModel.getUserProfile(userId)
-        }
+        userId?.let { viewModel.getUserProfile(it) }
     }
 
-    when (val uiState = viewModel.artistProfileData) {
-        is ArtistProfileScreenUiState.Loading -> {
-            CircularProgressIndicator(
-                modifier = Modifier.fillMaxSize()
-                    .wrapContentSize(Alignment.Center)
-            )
-        }
-
-        is ArtistProfileScreenUiState.Success -> {
-            ArtisProfileContent(user = uiState.user)
-        }
-
-        is ArtistProfileScreenUiState.Error -> {
-            ErrorScreen(
-                message = uiState.message,
-                onRetry = { viewModel.refreshProfile("string") }
-            )
-        }
-    }
-}
-
-@Composable
-private fun ArtisProfileContent(user: UserDTO) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        ProfileHeader(user)
-        Spacer(modifier = Modifier.height(16.dp))
-        StatSection()
-        Spacer(modifier = Modifier.height(16.dp))
-        GenreSection()
-        Spacer(modifier = Modifier.height(16.dp))
-        ProfileDescriptionSection(
-            description = "Passionate artist exploring the boundaries of creativity. Join me on this artistic journey!",
-            url = "https://www.instagram.com/${user.name.lowercase().replace(" ", "")}/",
-            followedBy = listOf("artlover", "gallery123")
+    when (val uiState = viewModel.artistProfileScreenUiState) {
+        is ArtistProfileScreenUiState.Loading -> LoadingScreen()
+        is ArtistProfileScreenUiState.Success -> {}
+        is ArtistProfileScreenUiState.Error -> ErrorScreen(
+            message = uiState.message,
+            onRetry = { userId?.let { viewModel.refreshProfile(it) } }
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        ButtonSection()
-        Spacer(modifier = Modifier.height(24.dp))
-        ArtworkTabs(user)
     }
 }
 
 @Composable
-private fun ProfileHeader(user: UserDTO) {
+ fun ProfileHeader(user: UserDTO) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -132,7 +94,7 @@ private fun ProfileHeader(user: UserDTO) {
 }
 
 @Composable
-private fun StatSection() {
+ fun StatSection() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
@@ -160,7 +122,7 @@ private fun ProfileStat(number: String, label: String) {
 }
 
 @Composable
-private fun GenreSection() {
+ fun GenreSection() {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -173,7 +135,7 @@ private fun GenreSection() {
     }
 }
 @Composable
-private fun CustomChip(
+ fun CustomChip(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -194,7 +156,7 @@ private fun CustomChip(
 }
 
 @Composable
-private fun ProfileDescriptionSection(
+ fun ProfileDescriptionSection(
     description: String,
     url: String,
     followedBy: List<String>
@@ -217,7 +179,7 @@ private fun ProfileDescriptionSection(
 }
 
 @Composable
-private fun ButtonSection() {
+ fun ButtonSection() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -232,7 +194,7 @@ private fun ButtonSection() {
 }
 
 @Composable
-private fun ArtworkTabs(user: UserDTO) {
+ fun ArtworkTabs(user: UserDTO) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = if (true) {
         listOf("Saved Artwork", "Posted Artwork")
@@ -259,7 +221,7 @@ private fun ArtworkTabs(user: UserDTO) {
 }
 
 @Composable
-private fun ArtworkGrid(isPosted: Boolean) {
+ fun ArtworkGrid(isPosted: Boolean) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         horizontalArrangement = Arrangement.spacedBy(4.dp),

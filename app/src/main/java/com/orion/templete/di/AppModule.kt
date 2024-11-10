@@ -2,7 +2,7 @@ package com.orion.templete.di
 
 import android.content.Context
 import androidx.room.Room
-import com.flashcall.me.data.local.AppDatabase
+import com.orion.templete.data.local.AppDatabase
 import com.flashcall.me.data.local.dao.UserDao
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
