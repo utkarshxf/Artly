@@ -1,4 +1,4 @@
-package com.orion.templete.presentation.swipe.detail
+package com.orion.templete.presentation.artwork_detail
 
 import android.annotation.SuppressLint
 import androidx.annotation.DrawableRes
@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -28,10 +29,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,45 +52,79 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
+import com.orion.templete.presentation.common.ErrorScreen
+import com.orion.templete.presentation.profile.ProfileScreenUiState
+import com.orion.templete.presentation.profile.ProfileScreenViewModel
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
 import com.orion.templete.presentation.ui.theme.SmallSize
+import com.orion.templete.presentation.ui.theme.TempleteTheme
 import kotlin.math.max
 import kotlin.math.min
 
+
 @Composable
-fun ArtworkDetailScreen(recommendedArtworkDTO: RecommendedArtworkDTO) {
+fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = hiltViewModel()) {
+    LaunchedEffect(Unit) {
+        viewModel.getArtworkById(artworkId)
+    }
+    when (val uiState = viewModel.artworkDetailScreenUiState) {
+        is ArtworkDetailScreenUiState.Loading -> {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .wrapContentSize(Alignment.Center)
+            )
+        }
+
+        is ArtworkDetailScreenUiState.Success -> {
+            ArtworkDetailContent(uiState.artwork)
+        }
+
+        is ArtworkDetailScreenUiState.Error -> {
+            ErrorScreen(
+                message = uiState.message,
+                onRetry = { viewModel.refreshArtwork(artworkId) }
+            )
+        }
+    }
+}
+
+
+@Composable
+fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDetailsDTO) {
     val scrollState = rememberLazyListState()
     Box {
-        Details(recommendedArtworkDTO, scrollState)
-        ParallaxToolbar(recommendedArtworkDTO, scrollState)
+        Details(artworkDetailsDTO, scrollState)
+        ParallaxToolbar(artworkDetailsDTO, scrollState)
     }
 }
 
 @Composable
-fun Details(recommendedArtworkDTO: RecommendedArtworkDTO, scrollState: LazyListState) {
+fun Details(artworkDetailsDTO: ArtworkDetailsDTO, scrollState: LazyListState) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight), state = scrollState
     ) {
         item {
-            BasicInfo(recommendedArtworkDTO)
-            Description(recommendedArtworkDTO)
-
+            BasicInfo(artworkDetailsDTO)
+            Description(artworkDetailsDTO)
         }
     }
 }
 
 @Composable
-fun Description(recommendedArtworkDTO: RecommendedArtworkDTO) {
+fun Description(artworkDetailsDTO: ArtworkDetailsDTO) {
     Text(
-        text = recommendedArtworkDTO.artwork?.description ?: stringResource(R.string.no_dis),
+        text = artworkDetailsDTO.artwork?.description ?: stringResource(R.string.no_dis),
         fontWeight = Medium,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
     )
@@ -95,16 +132,16 @@ fun Description(recommendedArtworkDTO: RecommendedArtworkDTO) {
 }
 
 @Composable
-fun BasicInfo(recommendedArtworkDTO: RecommendedArtworkDTO) {
+fun BasicInfo(artworkDetailsDTO: ArtworkDetailsDTO) {
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        InfoColumn(R.drawable.bookmark_border_24px, recommendedArtworkDTO.likes.toString())
-        InfoColumn(R.drawable.bookmark_border_24px, recommendedArtworkDTO.noOfComments.toString())
-        InfoColumn(R.drawable.bookmark_border_24px, recommendedArtworkDTO.artworkGenre.toString())
+        InfoColumn(R.drawable.bookmark_border_24px, artworkDetailsDTO.likes.toString())
+        InfoColumn(R.drawable.bookmark_border_24px, artworkDetailsDTO.noOfComments.toString())
+        InfoColumn(R.drawable.bookmark_border_24px, artworkDetailsDTO.artworkGenre.toString())
     }
 }
 
@@ -123,7 +160,7 @@ fun InfoColumn(@DrawableRes iconResource: Int, text: String) {
 
 @SuppressLint("SuspiciousIndentation")
 @Composable
-fun ParallaxToolbar(artworkDTO: RecommendedArtworkDTO, scrollState: LazyListState) {
+fun ParallaxToolbar(artworkDTO: ArtworkDetailsDTO, scrollState: LazyListState) {
     val imageHight = AppBarExpendedHeight - AppBarCollapsedHeight
     val maxOffset = with(LocalDensity.current) {
         imageHight.roundToPx()
@@ -235,5 +272,14 @@ fun CircularButton(
 
     ) {
         Icon(painterResource(id = iconResource), contentDescription = null)
+    }
+}
+
+
+@Preview
+@Composable
+private fun ArtworkPreview() {
+    TempleteTheme() {
+        ArtworkDetailScreen("909727e8-a94c-47c4-9070-14b0d86bc19e")
     }
 }

@@ -29,12 +29,13 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
 import com.orion.templete.presentation.artist_profile.ArtistProfileScreen
 import com.orion.templete.presentation.profile.ProfileScreen
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
-import com.orion.templete.presentation.swipe.detail.ArtworkDetailScreen
+import com.orion.templete.presentation.artwork_detail.ArtworkDetailContent
+import com.orion.templete.presentation.artwork_detail.ArtworkDetailScreen
 import com.orion.templete.presentation.ui.theme.ButtonHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
 
@@ -48,7 +49,7 @@ fun BottomAppNev(
     var navigationSelectedItem by remember { mutableStateOf(0) }
     NavHost (
         navController = navController,
-        startDestination = Screens.Swipe.route,
+        startDestination = Screens.ArtworkDetail.route,
         modifier = Modifier.padding(bottom = ButtonHeight)
     ){
         composable(Screens.Swipe.route) {
@@ -60,12 +61,16 @@ fun BottomAppNev(
         composable(Screens.Profile.route) {
             ProfileScreen()
         }
+//        composable(Screens.ArtworkDetail.route)
+//        {
+//            val artworkDetailsDTO = navController.previousBackStackEntry?.savedStateHandle?.get<ArtworkDetailsDTO>("data-mapped")
+//            if (artworkDetailsDTO!=null){
+//                ArtworkDetailContent(artworkDetailsDTO)
+//            }
+//        }
         composable(Screens.ArtworkDetail.route)
         {
-            val recommendedArtworkDTO = navController.previousBackStackEntry?.savedStateHandle?.get<RecommendedArtworkDTO>("data-mapped")
-            if (recommendedArtworkDTO!=null){
-                ArtworkDetailScreen(recommendedArtworkDTO)
-            }
+            ArtworkDetailScreen("909727e8-a94c-47c4-9070-14b0d86bc19e")
         }
         composable(Screens.Search.route)
         {
@@ -76,9 +81,9 @@ fun BottomAppNev(
         }
         composable(Screens.UserProfile.route)
         {
+            ArtistProfileScreen()
             val userID = navController.previousBackStackEntry?.savedStateHandle?.get<String>("UserID")
             if (userID!=null){
-                ArtistProfileScreen(userID)
             }
         }
     }

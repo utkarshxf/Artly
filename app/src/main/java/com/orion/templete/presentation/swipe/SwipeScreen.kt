@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.swipe.components.Direction
 import com.orion.templete.presentation.swipe.components.rememberSwipeableCardState
@@ -44,7 +44,7 @@ import com.orion.templete.presentation.swipe.components.swipableCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeScreen(navigateToDetailScreen: (artwork: RecommendedArtworkDTO) -> Unit = {}) {
+fun SwipeScreen(navigateToDetailScreen: (artwork: ArtworkDetailsDTO) -> Unit = {}) {
     ArtCardRow(header = {
         HeaderRow()
     }, content = {
@@ -83,7 +83,7 @@ private fun HeaderRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeCard(
-    navigateToDetailScreen: (artwork: RecommendedArtworkDTO) -> Unit,
+    navigateToDetailScreen: (artwork: ArtworkDetailsDTO) -> Unit,
     swipeScreenViewModel: SwipeScreenViewModel = hiltViewModel()
 ) {
     val stateOfCards = swipeScreenViewModel.state
@@ -214,7 +214,7 @@ fun ArtworkProfileCard(
 @Composable
 private fun ProfileCard(
     modifier: Modifier,
-    artwork: RecommendedArtworkDTO,
+    artwork: ArtworkDetailsDTO,
 ) {
     Card(
         shape = RoundedCornerShape(0.dp),

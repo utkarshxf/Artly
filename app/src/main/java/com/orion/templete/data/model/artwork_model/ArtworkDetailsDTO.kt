@@ -4,7 +4,7 @@ import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
 
 @Parcelize
-data class RecommendedArtworkDTO(
+data class ArtworkDetailsDTO(
     val artwork: ArtworkDTO?,
     val userSimilarity: Int?,
     val likes: Int?,

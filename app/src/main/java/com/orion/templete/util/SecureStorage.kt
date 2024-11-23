@@ -12,12 +12,9 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
-    private val sharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        "secure_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    private val sharedPreferences = context.getSharedPreferences(
+        "app_prefs", // name of preferences file
+        Context.MODE_PRIVATE
     )
 
     fun saveToken(token: String) {

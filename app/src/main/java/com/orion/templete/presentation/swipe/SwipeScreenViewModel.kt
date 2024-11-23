@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
 import com.orion.templete.domain.paginator.DefaultPaginator
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.usecase.GetArtworkUseCase
@@ -27,7 +27,7 @@ class SwipeScreenViewModel @Inject constructor(
     var likeArtworkState by mutableStateOf<ResponseStates<Boolean>>(ResponseStates.Loading)
         private set
 
-    private val pagination: DefaultPaginator<Int, RecommendedArtworkDTO> = DefaultPaginator(
+    private val pagination: DefaultPaginator<Int, ArtworkDetailsDTO> = DefaultPaginator(
         initialKey = state.page,
         onLoadUpdated = { isLoading ->
             state = state.copy(isLoading = isLoading)
@@ -77,13 +77,12 @@ class SwipeScreenViewModel @Inject constructor(
             }
         }
     }
-
 }
 
 
 data class ScreenState(
     val isLoading: Boolean = false,
-    val items: List<RecommendedArtworkDTO> = emptyList(),
+    val items: List<ArtworkDetailsDTO> = emptyList(),
     val error: String? = null,
     val endReached: Boolean = false,
     val page: Int = 0

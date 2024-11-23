@@ -1,15 +1,15 @@
 package com.orion.templete.domain.paginator
 
-import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
 import com.plcoding.composepagingyt.Paginator
 
 class DefaultPaginator<Key, Item>(
     private val initialKey: Key,
     private inline val onLoadUpdated: (Boolean) -> Unit,
-    private inline val onRequest: suspend (nextKey: Key) -> List<RecommendedArtworkDTO>,
-    private inline val getNextKey: suspend (List<RecommendedArtworkDTO>) -> Key,
+    private inline val onRequest: suspend (nextKey: Key) -> List<ArtworkDetailsDTO>,
+    private inline val getNextKey: suspend (List<ArtworkDetailsDTO>) -> Key,
     private inline val onError: suspend (Throwable?) -> Unit,
-    private inline val onSuccess: suspend (items: List<RecommendedArtworkDTO>, newKey: Key) -> Unit
+    private inline val onSuccess: suspend (items: List<ArtworkDetailsDTO>, newKey: Key) -> Unit
 ) : Paginator<Key, Item> {
 
     private var currentKey = initialKey

@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
             } else {  Screens.Home.route}
             TempleteTheme {
                 Surface() {
-                    Navigation(startDestination)
+                    Navigation( Screens.Home.route)
                 }
             }
         }

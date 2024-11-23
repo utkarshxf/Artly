@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -19,14 +18,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,35 +33,49 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.orion.templete.data.model.user_model.UserDTO
-import com.orion.templete.presentation.common.ErrorScreen
-import com.orion.templete.presentation.common.LoadingScreen
+import com.orion.templete.presentation.ui.theme.TempleteTheme
 
 
 @Composable
-fun ArtistProfileScreen(
-    userId: String? = null,
-    viewModel: ArtistProfileViewModel = hiltViewModel()
-) {
-    LaunchedEffect(userId) {
-        userId?.let { viewModel.getUserProfile(it) }
-    }
-
-    when (val uiState = viewModel.artistProfileScreenUiState) {
-        is ArtistProfileScreenUiState.Loading -> LoadingScreen()
-        is ArtistProfileScreenUiState.Success -> {}
-        is ArtistProfileScreenUiState.Error -> ErrorScreen(
-            message = uiState.message,
-            onRetry = { userId?.let { viewModel.refreshProfile(it) } }
+fun ArtistProfileScreen() {
+    ProfileContent(
+        user = UserDTO(
+        name =  "Surrealism", profilePicture =  "Surrealism", id =  "Surrealism", dob =  "Surrealism", gender =  "Surrealism", language =  "Surrealism", countryIso2 = "Surrealism"
         )
+    )
+}
+
+@Composable
+private fun ProfileContent(user: UserDTO) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        ProfileHeader(user)
+        Spacer(modifier = Modifier.height(16.dp))
+        StatSection()
+        Spacer(modifier = Modifier.height(16.dp))
+        GenreSection()
+        Spacer(modifier = Modifier.height(16.dp))
+        ProfileDescriptionSection(
+            description = "Passionate artist exploring the boundaries of creativity. Join me on this artistic journey!",
+            url = "https://www.instagram.com/${user.name.lowercase().replace(" ", "")}/",
+            followedBy = listOf("artlover", "gallery123")
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        ButtonSection()
+        Spacer(modifier = Modifier.height(24.dp))
+        ArtworkTabs(user)
     }
 }
 
 @Composable
- fun ProfileHeader(user: UserDTO) {
+private fun ProfileHeader(user: UserDTO) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -94,7 +105,7 @@ fun ArtistProfileScreen(
 }
 
 @Composable
- fun StatSection() {
+private fun StatSection() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
@@ -122,7 +133,7 @@ private fun ProfileStat(number: String, label: String) {
 }
 
 @Composable
- fun GenreSection() {
+private fun GenreSection() {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -134,8 +145,9 @@ private fun ProfileStat(number: String, label: String) {
         }
     }
 }
+
 @Composable
- fun CustomChip(
+private fun CustomChip(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -156,7 +168,7 @@ private fun ProfileStat(number: String, label: String) {
 }
 
 @Composable
- fun ProfileDescriptionSection(
+private fun ProfileDescriptionSection(
     description: String,
     url: String,
     followedBy: List<String>
@@ -179,7 +191,7 @@ private fun ProfileStat(number: String, label: String) {
 }
 
 @Composable
- fun ButtonSection() {
+private fun ButtonSection() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -194,7 +206,7 @@ private fun ProfileStat(number: String, label: String) {
 }
 
 @Composable
- fun ArtworkTabs(user: UserDTO) {
+private fun ArtworkTabs(user: UserDTO) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = if (true) {
         listOf("Saved Artwork", "Posted Artwork")
@@ -221,7 +233,7 @@ private fun ProfileStat(number: String, label: String) {
 }
 
 @Composable
- fun ArtworkGrid(isPosted: Boolean) {
+private fun ArtworkGrid(isPosted: Boolean) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -229,8 +241,8 @@ private fun ProfileStat(number: String, label: String) {
     ) {
         items(9) { index ->
             AsyncImage(
-                model = if (isPosted) "https://example.com/posted_artwork_$index.jpg"
-                else "https://example.com/saved_artwork_$index.jpg",
+                model = if (isPosted) "https://th.bing.com/th/id/OIP.yo1dUm6PUAZfXhcEG63oegHaE8?rs=1&pid=ImgDetMain"
+                else "https://th.bing.com/th/id/OIP.yo1dUm6PUAZfXhcEG63oegHaE8?rs=1&pid=ImgDetMain",
                 contentDescription = "Artwork",
                 modifier = Modifier
                     .aspectRatio(1f)
@@ -239,4 +251,14 @@ private fun ProfileStat(number: String, label: String) {
             )
         }
     }
+}
+
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun prev() {
+    TempleteTheme(darkTheme = false) {
+        ArtistProfileScreen()
+    }
+
 }
