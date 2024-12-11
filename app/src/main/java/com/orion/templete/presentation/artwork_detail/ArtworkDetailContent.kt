@@ -59,7 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.profile.ProfileScreenUiState
 import com.orion.templete.presentation.profile.ProfileScreenViewModel
@@ -101,7 +101,7 @@ fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = h
 
 
 @Composable
-fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDetailsDTO) {
+fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO) {
     val scrollState = rememberLazyListState()
     Box {
         Details(artworkDetailsDTO, scrollState)
@@ -110,7 +110,7 @@ fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDetailsDTO) {
 }
 
 @Composable
-fun Details(artworkDetailsDTO: ArtworkDetailsDTO, scrollState: LazyListState) {
+fun Details(artworkDetailsDTO: ArtworkDTO, scrollState: LazyListState) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight), state = scrollState
     ) {
@@ -122,9 +122,9 @@ fun Details(artworkDetailsDTO: ArtworkDetailsDTO, scrollState: LazyListState) {
 }
 
 @Composable
-fun Description(artworkDetailsDTO: ArtworkDetailsDTO) {
+fun Description(artworkDetailsDTO: ArtworkDTO) {
     Text(
-        text = artworkDetailsDTO.artwork?.description ?: stringResource(R.string.no_dis),
+        text = artworkDetailsDTO.description ?: stringResource(R.string.no_dis),
         fontWeight = Medium,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
     )
@@ -132,16 +132,16 @@ fun Description(artworkDetailsDTO: ArtworkDetailsDTO) {
 }
 
 @Composable
-fun BasicInfo(artworkDetailsDTO: ArtworkDetailsDTO) {
+fun BasicInfo(artworkDetailsDTO: ArtworkDTO) {
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        InfoColumn(R.drawable.bookmark_border_24px, artworkDetailsDTO.likes.toString())
-        InfoColumn(R.drawable.bookmark_border_24px, artworkDetailsDTO.noOfComments.toString())
-        InfoColumn(R.drawable.bookmark_border_24px, artworkDetailsDTO.artworkGenre.toString())
+        InfoColumn(R.drawable.bookmark_border_24px, "5")
+        InfoColumn(R.drawable.bookmark_border_24px, "7")
+        InfoColumn(R.drawable.bookmark_border_24px, "gn")
     }
 }
 
@@ -160,7 +160,7 @@ fun InfoColumn(@DrawableRes iconResource: Int, text: String) {
 
 @SuppressLint("SuspiciousIndentation")
 @Composable
-fun ParallaxToolbar(artworkDTO: ArtworkDetailsDTO, scrollState: LazyListState) {
+fun ParallaxToolbar(artworkDTO: ArtworkDTO, scrollState: LazyListState) {
     val imageHight = AppBarExpendedHeight - AppBarCollapsedHeight
     val maxOffset = with(LocalDensity.current) {
         imageHight.roundToPx()
@@ -184,7 +184,7 @@ fun ParallaxToolbar(artworkDTO: ArtworkDetailsDTO, scrollState: LazyListState) {
                         alpha = 1f - offsetprogress
                     }) {
                 Image(
-                    painter = rememberAsyncImagePainter(artworkDTO.artwork?.imageUrl),
+                    painter = rememberAsyncImagePainter(artworkDTO.imageUrl),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -201,7 +201,7 @@ fun ParallaxToolbar(artworkDTO: ArtworkDetailsDTO, scrollState: LazyListState) {
                             )
                         )
                 )
-                artworkDTO.artwork?.releasedDate?.let {
+                artworkDTO?.releasedDate?.let {
                     Row(
                         modifier = Modifier
                             .fillMaxHeight()
@@ -227,7 +227,7 @@ fun ParallaxToolbar(artworkDTO: ArtworkDetailsDTO, scrollState: LazyListState) {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = artworkDTO.artwork?.name ?: stringResource(R.string.no_name),
+                    text = artworkDTO.name ?: stringResource(R.string.no_name),
                     fontSize = 26.sp,
                     fontWeight = Bold,
                     modifier = Modifier

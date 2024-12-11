@@ -3,7 +3,6 @@ package com.orion.templete.data.network
 
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
-import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.TokenRequest
@@ -20,7 +19,7 @@ import retrofit2.http.Query
 
 interface ApiService {
     @GET("artwork")
-    suspend fun getAllArtworks(): retrofit2.Response<ArtworkDetailsDTO>
+    suspend fun getAllArtworks(): retrofit2.Response<ArtworkDTO>
 
     @POST("login")
     suspend fun loginUser(@Body user: User): retrofit2.Response<LoginResponseDTO>
@@ -32,7 +31,7 @@ interface ApiService {
     suspend fun verifyUser(@Body token: TokenRequest): retrofit2.Response<Boolean>
 
     @GET("artwork/recommend")
-    suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int):retrofit2.Response<List<ArtworkDetailsDTO>>
+    suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int):retrofit2.Response<List<ArtworkDTO>>
 
     @PUT("artwork/user/like/{artworkId}/{userId}")
     suspend fun likeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Unit>
@@ -99,11 +98,11 @@ interface ApiService {
     @GET("artwork/{artworkId}")
     suspend fun getArtworkById(
         @Path("artworkId") artworkId: String
-    ): Response<ArtworkDetailsDTO>
+    ): Response<ArtworkDTO>
 
 
     companion object {
-        var baseurl = "http://10.0.2.2:7040/"
+        var baseurl = "https://backend-art.onrender.com"
     }
     //this is the change before commit to new branch
 }

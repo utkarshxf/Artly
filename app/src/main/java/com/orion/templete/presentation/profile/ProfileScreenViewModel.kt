@@ -24,9 +24,10 @@ class ProfileScreenViewModel @Inject constructor(
         private set
 
     init {
-        secureStorage.getUserId()?.let {
-            getUserProfile(it)
-        }
+        getUserProfile("test4")
+//        secureStorage.getUserId()?.let {
+//            getUserProfile(it)
+//        }
     }
 
     private fun getUserProfile(userId: String) {

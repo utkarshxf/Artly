@@ -29,7 +29,6 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
 import com.orion.templete.presentation.artist_profile.ArtistProfileScreen
 import com.orion.templete.presentation.profile.ProfileScreen
 import com.orion.templete.presentation.search.SearchScreen
@@ -49,7 +48,7 @@ fun BottomAppNev(
     var navigationSelectedItem by remember { mutableStateOf(0) }
     NavHost (
         navController = navController,
-        startDestination = Screens.ArtworkDetail.route,
+        startDestination = Screens.Swipe.route,
         modifier = Modifier.padding(bottom = ButtonHeight)
     ){
         composable(Screens.Swipe.route) {
@@ -70,7 +69,7 @@ fun BottomAppNev(
 //        }
         composable(Screens.ArtworkDetail.route)
         {
-            ArtworkDetailScreen("909727e8-a94c-47c4-9070-14b0d86bc19e")
+            ArtworkDetailScreen("051c47a6-e7fc-449a-a7de-e4653d046938")
         }
         composable(Screens.Search.route)
         {

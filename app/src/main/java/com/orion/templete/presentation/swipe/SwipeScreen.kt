@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.swipe.components.Direction
 import com.orion.templete.presentation.swipe.components.rememberSwipeableCardState
@@ -44,7 +44,7 @@ import com.orion.templete.presentation.swipe.components.swipableCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeScreen(navigateToDetailScreen: (artwork: ArtworkDetailsDTO) -> Unit = {}) {
+fun SwipeScreen(navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit = {}) {
     ArtCardRow(header = {
         HeaderRow()
     }, content = {
@@ -83,7 +83,7 @@ private fun HeaderRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeCard(
-    navigateToDetailScreen: (artwork: ArtworkDetailsDTO) -> Unit,
+    navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit,
     swipeScreenViewModel: SwipeScreenViewModel = hiltViewModel()
 ) {
     val stateOfCards = swipeScreenViewModel.state
@@ -127,7 +127,7 @@ fun SwipeCard(
                                     if(state.swipedDirection == Direction.Right)
                                     {
                                         Log.d("Swappable-Card", "Swiped ${state.swipedDirection}")
-                                        swipeScreenViewModel.likeArtwork(artwork.artwork?.id.toString(), "1")
+                                        swipeScreenViewModel.likeArtwork(artwork?.id.toString(), "1")
                                     }
                                     currentIndex++
                                     if (currentIndex >= artworkList.size && !stateOfCards.isLoading) {
@@ -146,7 +146,7 @@ fun SwipeCard(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.BottomCenter
                         ) {
-                            ArtworkProfileCard(artwork.artwork?.name, artwork.artistName, artwork.artworkGenre, artwork.artwork?.releasedDate)
+                            ArtworkProfileCard(artwork.name, artwork.type, artwork.storageType, artwork.releasedDate)
                         }
                     }
                 }
@@ -214,7 +214,7 @@ fun ArtworkProfileCard(
 @Composable
 private fun ProfileCard(
     modifier: Modifier,
-    artwork: ArtworkDetailsDTO,
+    artwork: ArtworkDTO,
 ) {
     Card(
         shape = RoundedCornerShape(0.dp),
@@ -223,7 +223,7 @@ private fun ProfileCard(
     ) {
         Image(
             modifier = Modifier.fillMaxSize(),
-            painter = rememberAsyncImagePainter(artwork.artwork?.imageUrl),
+            painter = rememberAsyncImagePainter(artwork.imageUrl),
             contentDescription = null
         )
     }

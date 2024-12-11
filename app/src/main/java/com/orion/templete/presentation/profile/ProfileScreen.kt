@@ -60,7 +60,7 @@ fun ProfileScreen(viewModel: ProfileScreenViewModel = hiltViewModel()) {
         is ProfileScreenUiState.Error -> {
             ErrorScreen(
                 message = uiState.message,
-                onRetry = { viewModel.refreshProfile("string") }
+                onRetry = { viewModel.refreshProfile("test4") }
             )
         }
     }

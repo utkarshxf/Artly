@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orion.templete.data.model.artwork_model.ArtworkDetailsDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.util.ResponseStates
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +37,6 @@ class ArtworkDetailViewModel @Inject constructor(
 
 sealed interface ArtworkDetailScreenUiState {
     object Loading : ArtworkDetailScreenUiState
-    data class Success(val artwork: ArtworkDetailsDTO) : ArtworkDetailScreenUiState
+    data class Success(val artwork: ArtworkDTO) : ArtworkDetailScreenUiState
     data class Error(val message: String) : ArtworkDetailScreenUiState
 }
