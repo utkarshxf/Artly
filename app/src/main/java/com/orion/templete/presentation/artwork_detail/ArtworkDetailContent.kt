@@ -110,7 +110,7 @@ fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO) {
 }
 
 @Composable
-fun Details(artworkDetailsDTO: ArtworkDTO, scrollState: LazyListState) {
+private fun Details(artworkDetailsDTO: ArtworkDTO, scrollState: LazyListState) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight), state = scrollState
     ) {
@@ -160,7 +160,7 @@ fun InfoColumn(@DrawableRes iconResource: Int, text: String) {
 
 @SuppressLint("SuspiciousIndentation")
 @Composable
-fun ParallaxToolbar(artworkDTO: ArtworkDTO, scrollState: LazyListState) {
+private fun ParallaxToolbar(artworkDTO: ArtworkDTO, scrollState: LazyListState) {
     val imageHight = AppBarExpendedHeight - AppBarCollapsedHeight
     val maxOffset = with(LocalDensity.current) {
         imageHight.roundToPx()

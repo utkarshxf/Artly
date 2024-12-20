@@ -32,7 +32,7 @@ class ProfileScreenViewModel @Inject constructor(
 
     private fun getUserProfile(userId: String) {
         viewModelScope.launch {
-            userRepository.getUserByUserId(userId)
+            userRepository.getUserByUserId(userId , userId)
                 .collect { response ->
                     userData = when (response) {
                         is ResponseStates.Loading -> ProfileScreenUiState.Loading

@@ -42,8 +42,8 @@ interface ApiService {
         @Query("responseSize") artistId: Int = 18
     ): retrofit2.Response<List<SearchArtistResponse>>
 
-    @GET("/users/getUserByUserId/{userId}")
-    suspend fun getUserByUserId(@Path("userId") userId: String): retrofit2.Response<UserDTO>
+    @GET("/users/getUserByUserId/{userId}/{currentUserId}")
+    suspend fun getUserByUserId(@Path("userId") userId: String , @Path("currentUserId") currentUserId: String): retrofit2.Response<UserDTO>
 
     @POST("/users")
     suspend fun createUser(@Body request: UserDetails): Response<UserDetails>

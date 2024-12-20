@@ -27,19 +27,19 @@ class UserRepositoryImplementation @Inject constructor(
     private val userDao: UserDao,
     private val context: Context
 ) : UserRepository, SafeApiRequest() {
-    override suspend fun getUserByUserId(userId: String): Flow<ResponseStates<UserDTO>> {
+    override suspend fun getUserByUserId(userId: String , currentUserId:String): Flow<ResponseStates<UserDTO>> {
         return flow {
             emit(ResponseStates.Loading)
             try {
-                userDao.getUserById(userId)?.let { cachedUser ->
-                    val cachedResponse = cachedUser.toDto()
-                    emit(ResponseStates.Success(cachedResponse))
-                }
+//                userDao.getUserById(userId)?.let { cachedUser ->
+//                    val cachedResponse = cachedUser.toDto()
+//                    emit(ResponseStates.Success(cachedResponse))
+//                }
                 if (isNetworkAvailable(context)) {
-                    val response = safeApiRequest { apiService.getUserByUserId(userId) }
-                    withContext(Dispatchers.IO) {
-                        userDao.insertUser(response.toEntity())
-                    }
+                    val response = safeApiRequest { apiService.getUserByUserId(userId , currentUserId) }
+//                    withContext(Dispatchers.IO) {
+//                        userDao.insertUser(response.toEntity())
+//                    }
                     emit(ResponseStates.Success(response))
                 } else if (!isNetworkAvailable(context) && userDao.getUserById(userId) == null) {
                     emit(ResponseStates.Error("No internet connection and no cached data available"))

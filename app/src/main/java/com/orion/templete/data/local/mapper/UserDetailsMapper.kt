@@ -11,7 +11,8 @@ fun UserDTO.toEntity(): UserEntity {
         dob = this.dob,
         gender = this.gender,
         language = this.language,
-        countryIso2 = this.countryIso2
+        countryIso2 = this.countryIso2,
+        follow = this.follow
     )
 }
 
@@ -24,7 +25,8 @@ fun UserEntity.toDto(): UserDTO {
         dob = this.dob,
         gender = this.gender,
         language = this.language,
-        countryIso2 = this.countryIso2
+        countryIso2 = this.countryIso2,
+        follow = this.follow
     )
 }
 
@@ -47,7 +49,8 @@ object UserEntityFactory {
         dob: String,
         gender: String,
         language: String,
-        countryIso2: String
+        countryIso2: String,
+        follow:Boolean,
     ): UserEntity {
         return UserEntity(
             _id = id,
@@ -56,7 +59,8 @@ object UserEntityFactory {
             dob = dob,
             gender = gender,
             language = language,
-            countryIso2 = countryIso2
+            countryIso2 = countryIso2,
+            follow = follow
         )
     }
 }

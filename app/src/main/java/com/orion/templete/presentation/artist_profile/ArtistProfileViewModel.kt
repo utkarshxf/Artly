@@ -23,10 +23,10 @@ class ArtistProfileViewModel @Inject constructor(
     var artistProfileScreenUiState by mutableStateOf<ArtistProfileScreenUiState>(ArtistProfileScreenUiState.Loading)
         private set
 
-    var followArtistUiState by mutableStateOf<FollowArtistUiState>(FollowArtistUiState.Loading)
+    var followArtistUiState by mutableStateOf<FollowArtistUiState>(FollowArtistUiState.Ideal)
         private set
 
-    var unFollowArtistUiState by mutableStateOf<UnFollowArtistUiState>(UnFollowArtistUiState.Loading)
+    var unFollowArtistUiState by mutableStateOf<UnFollowArtistUiState>(UnFollowArtistUiState.Ideal)
         private set
 
     var userLikeArtistUiState by mutableStateOf<UserLikeArtistUiState>(UserLikeArtistUiState.Loading)
@@ -42,9 +42,9 @@ class ArtistProfileViewModel @Inject constructor(
         private set
 
 
-    fun getUserProfile(userId: String) {
+    fun getUserProfile(userId: String , currentUserId:String) {
         viewModelScope.launch {
-            userRepository.getUserByUserId(userId)
+            userRepository.getUserByUserId(userId,currentUserId)
                 .collect { response ->
                     artistProfileScreenUiState = when (response) {
                         is ResponseStates.Loading -> ArtistProfileScreenUiState.Loading
@@ -139,8 +139,8 @@ class ArtistProfileViewModel @Inject constructor(
         }
     }
 
-    fun refreshProfile(userId: String) {
-        getUserProfile(userId)
+    fun refreshProfile(userId: String , currentUserId:String) {
+        getUserProfile(userId , currentUserId)
     }
 }
 
@@ -157,12 +157,14 @@ sealed interface UserLikeArtistUiState {
 }
 
 sealed interface  FollowArtistUiState {
+    object Ideal :FollowArtistUiState
     object Loading : FollowArtistUiState
     data class Success(val unit :Unit) : FollowArtistUiState
     data class Error(val message: String) : FollowArtistUiState
 }
 
 sealed interface  UnFollowArtistUiState {
+    object Ideal :UnFollowArtistUiState
     object Loading : UnFollowArtistUiState
     data class Success(val unit :Unit) : UnFollowArtistUiState
     data class Error(val message: String) : UnFollowArtistUiState

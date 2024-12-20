@@ -11,7 +11,7 @@ import com.orion.templete.util.ListTypeConverter
     entities = [
         UserEntity::class
         ],
-    version = 1
+    version = 2
 )
 @TypeConverters(ListTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {

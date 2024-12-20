@@ -8,5 +8,6 @@ data class UserDTO(
     val dob: String,
     val gender: String,
     val language: String,
-    val countryIso2: String
+    val countryIso2: String,
+    val follow:Boolean
 )

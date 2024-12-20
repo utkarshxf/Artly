@@ -22,5 +22,6 @@ data class UserEntity(
     val gender: String,
     val language: String,
     val countryIso2: String,
+    val follow:Boolean,
     val lastUpdated: Long = System.currentTimeMillis()
 )
