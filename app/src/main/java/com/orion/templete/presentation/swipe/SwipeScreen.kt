@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -124,10 +125,12 @@ fun SwipeCard(
                             .swipableCard(state = state,
                                 blockedDirections = listOf(Direction.Down),
                                 onSwiped = {
-                                    if(state.swipedDirection == Direction.Right)
-                                    {
+                                    if (state.swipedDirection == Direction.Right) {
                                         Log.d("Swappable-Card", "Swiped ${state.swipedDirection}")
-                                        swipeScreenViewModel.likeArtwork(artwork?.id.toString(), "1")
+                                        swipeScreenViewModel.likeArtwork(
+                                            artwork?.id.toString(),
+                                            "1"
+                                        )
                                     }
                                     currentIndex++
                                     if (currentIndex >= artworkList.size && !stateOfCards.isLoading) {
@@ -175,13 +178,18 @@ fun ArtworkProfileCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Artwork Name
-            Text(
-                text = name ?: "No name",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Row {
+                // Artwork Name
+                Text(
+                    text = name ?: "No name",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                AppIcon(icon = R.drawable.ic_logo_no_bacground , tint = MaterialTheme.colorScheme.onPrimary , modifier = Modifier.size(40.dp))
+            }
+
 
             // Artist Name
             Text(
