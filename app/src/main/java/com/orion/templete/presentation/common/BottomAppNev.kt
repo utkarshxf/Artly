@@ -48,7 +48,7 @@ fun BottomAppNev(
     var navigationSelectedItem by remember { mutableStateOf(0) }
     NavHost (
         navController = navController,
-        startDestination = Screens.Swipe.route,
+        startDestination = Screens.UserProfile.route,
         modifier = Modifier.padding(bottom = ButtonHeight)
     ){
         composable(Screens.Swipe.route) {

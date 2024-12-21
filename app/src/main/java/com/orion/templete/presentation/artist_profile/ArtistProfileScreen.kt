@@ -1,17 +1,18 @@
 package com.orion.templete.presentation.artist_profile
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -30,28 +32,21 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,8 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -72,6 +65,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
@@ -110,27 +104,130 @@ fun ArtistProfileScreen(viewModel: ArtistProfileViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun ProfileContent(user: UserDTO) {
-    val scrollState = rememberLazyGridState()
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        ProfileHeader(user)
-        Spacer(modifier = Modifier.height(16.dp))
-        StatSection()
-        Spacer(modifier = Modifier.height(16.dp))
-        GenreSection()
-        Spacer(modifier = Modifier.height(16.dp))
-        ProfileDescriptionSection(
-            description = "Passionate artist exploring the boundaries of creativity. Join me on this artistic journey!",
-            url = "https://www.instagram.com/${user.name.lowercase().replace(" ", "")}/",
-            followedBy = listOf("artlover", "gallery123")
+private fun ProfileContent(user: UserDTO ,  viewModel: ArtistProfileViewModel = hiltViewModel()) {
+    LaunchedEffect(key1 = Unit) {
+        viewModel.getArtistArtworks("test")
+    }
+    val scrollGridState = rememberLazyGridState()
+    val scrollListState = rememberLazyListState()
+    val imageHeight = AppBarExpendedHeight - AppBarCollapsedHeight
+    val maxOffset = with(LocalDensity.current) {
+        imageHeight.roundToPx()
+    } - WindowInsets.systemBars.getTop(LocalDensity.current)
+
+    // Calculate total offset based on which state is active
+    val selectedTabIndex = remember { mutableStateOf(0) }
+    val totalScrollOffset = remember(scrollGridState, scrollListState, selectedTabIndex.value) {
+        derivedStateOf {
+            when (selectedTabIndex.value) {
+                0 -> {
+                    val firstVisibleItem = scrollGridState.firstVisibleItemIndex
+                    val firstVisibleItemOffset = scrollGridState.firstVisibleItemScrollOffset
+                    (firstVisibleItem * maxOffset) + firstVisibleItemOffset
+                }
+                else -> {
+                    val firstVisibleItem = scrollListState.firstVisibleItemIndex
+                    val firstVisibleItemOffset = scrollListState.firstVisibleItemScrollOffset
+                    (firstVisibleItem * maxOffset) + firstVisibleItemOffset
+                }
+            }
+        }
+    }.value
+
+    val offset = min(totalScrollOffset, maxOffset)
+
+    val animatedHeight by animateFloatAsState(
+        targetValue = max(0f, (AppBarExpendedHeight.value - offset)),
+        animationSpec = spring(
+            dampingRatio = 0.8f,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "height"
+    )
+
+    val animatedOffset = animateIntAsState(
+        targetValue = -offset,
+        animationSpec = spring(
+            dampingRatio = 0.8f,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "offset"
+    )
+
+    Column {
+        Column(
+            modifier = Modifier
+                .height(animatedHeight.dp)
+                .padding(horizontal = 12.dp)
+                .offset { IntOffset(x = 0, y = animatedOffset.value) },
+        ) {
+            Spacer(modifier = Modifier.height(12.dp))
+            ProfileHeader(user)
+            Spacer(modifier = Modifier.height(12.dp))
+            StatSection()
+            Spacer(modifier = Modifier.height(12.dp))
+            GenreSection()
+            Spacer(modifier = Modifier.height(12.dp))
+            ProfileDescriptionSection(
+                description = "Passionate artist exploring the boundaries of creativity. Join me on this artistic journey!",
+                url = "https://www.instagram.com/${user.name.lowercase().replace(" ", "")}/",
+                followedBy = listOf("artlover", "gallery123")
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            ButtonSection(user.follow)
+        }
+        ArtworkContent(
+            selectedTabIndex = selectedTabIndex
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        ButtonSection(user.follow)
-        ArtworkContent(scrollState)
+        LaunchedEffect(key1 = Unit) {
+            viewModel.getArtistArtworks("test")
+        }
+        when (val uiState = viewModel.artWorksUiState) {
+            is ArtWorksUiState.Loading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentSize(Alignment.Center)
+                )
+            }
+
+            is ArtWorksUiState.Success -> {
+                when (selectedTabIndex.value) {
+                    0 -> ArtworkGrid(scrollGridState , uiState.artworks)
+                    1 -> ArtworkColumnList(scrollListState , uiState.artworks)
+                }
+            }
+
+            is ArtWorksUiState.Error -> {
+                ErrorScreen(
+                    message = uiState.message,
+                    onRetry = { viewModel.refreshProfile("test" , "test4") }
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun ArtworkColumnList(scrollState: LazyListState, artworks: List<ArtworkDTO>) {
+    LazyColumn(
+        userScrollEnabled = true,
+        state = scrollState,
+        modifier = Modifier.fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(artworks) { index ->
+            Image(
+                painter = rememberAsyncImagePainter(model = index.imageUrl),
+                contentDescription = "Artwork",
+                modifier = Modifier
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { },
+                contentScale = ContentScale.Crop
+            )
+        }
     }
 }
 
@@ -315,16 +412,17 @@ private fun ButtonSection( initialFollowState: Boolean , viewModel: ArtistProfil
     }
 }
 @Composable
-fun ArtworkContent(scrollState: LazyGridState) {
-    var selectedTabIndex by remember { mutableStateOf(0) }
+fun ArtworkContent(selectedTabIndex: MutableState<Int>) {
+
     val tabs = listOf(
-        ImageWithText(R.drawable.ic_gird, "Posted Artwork")
+        ImageWithText(R.drawable.ic_gird, "Posted Artwork"),
+        ImageWithText(R.drawable.ic_list, "Posted Artwork")
     )
-    TabRow(selectedTabIndex = selectedTabIndex) {
+    TabRow(selectedTabIndex = selectedTabIndex.value) {
         tabs.forEachIndexed { index, imageWithText ->
             Tab(
-                selected = selectedTabIndex == index,
-                onClick = { selectedTabIndex = index },
+                selected = selectedTabIndex.value == index,
+                onClick = { selectedTabIndex.value = index },
                 text = {
                     Icon(
                         painter = painterResource(id = imageWithText.image),
@@ -335,54 +433,29 @@ fun ArtworkContent(scrollState: LazyGridState) {
             )
         }
     }
-
-    when (selectedTabIndex) {
-        0 -> ArtworkGrid(scrollState)
-    }
 }
 @Composable
-private fun ArtworkGrid(scrollState: LazyGridState, viewModel: ArtistProfileViewModel = hiltViewModel() ) {
-    LaunchedEffect(key1 = Unit) {
-        viewModel.getArtistArtworks("test")
-    }
-    when (val uiState = viewModel.artWorksUiState) {
-        is ArtWorksUiState.Loading -> {
-            CircularProgressIndicator(
+private fun ArtworkGrid(scrollState: LazyGridState, artworks: List<ArtworkDTO>) {
+    LazyVerticalGrid(
+        userScrollEnabled = true,
+        state = scrollState,
+        modifier = Modifier.fillMaxHeight(),
+        columns = GridCells.Fixed(2),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(artworks) { index ->
+            Image(
+                painter = rememberAsyncImagePainter(model = index.imageUrl),
+                contentDescription = "Artwork",
                 modifier = Modifier
-                    .fillMaxSize()
-                    .wrapContentSize(Alignment.Center)
-            )
-        }
-
-        is ArtWorksUiState.Success -> {
-            LazyVerticalGrid(
-                state = scrollState,
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(uiState.artworks) { index ->
-                    Image(
-                        painter = rememberAsyncImagePainter(model = index.imageUrl),
-                        contentDescription = "Artwork",
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { },
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
-        }
-
-        is ArtWorksUiState.Error -> {
-            ErrorScreen(
-                message = uiState.message,
-                onRetry = { viewModel.refreshProfile("test" , "test4") }
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { },
+                contentScale = ContentScale.Crop
             )
         }
     }
-
 }
 
 
