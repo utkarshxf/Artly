@@ -13,7 +13,8 @@ interface UserRepository {
     suspend fun followUser(userId: String, artistId: String): Flow<ResponseStates<Unit>>
     suspend fun unfollowArtist(userId: String, artistId: String): Flow<ResponseStates<Unit>>
     suspend fun likeArtwork(userId: String, artworkId: String): Flow<ResponseStates<Unit>>
+    suspend fun unLikeArtwork(userId: String, artworkId: String): Flow<ResponseStates<Unit>>
     suspend fun commentOnArtwork(userId: String, artworkId: String , comment: CommentRequest): Flow<ResponseStates<Unit>>
     suspend fun saveOnFavorites(userId: String, artworkId: String): Flow<ResponseStates<Unit>>
-    suspend fun getArtistArtworks(userId: String): Flow<ResponseStates<List<ArtworkDTO>>>
+    suspend fun getArtistArtworks(userId: String , artistId: String ): Flow<ResponseStates<List<ArtworkDTO>>>
 }

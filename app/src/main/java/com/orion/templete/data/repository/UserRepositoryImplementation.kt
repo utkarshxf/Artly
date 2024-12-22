@@ -8,18 +8,13 @@ import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.data.network.ApiService
-import com.orion.templete.domain.repository.LoginRepository
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SafeApiRequest
 import com.orion.templete.util.isNetworkAvailable
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.withContext
-import toDto
-import toEntity
 import javax.inject.Inject
 
 class UserRepositoryImplementation @Inject constructor(
@@ -114,6 +109,19 @@ class UserRepositoryImplementation @Inject constructor(
         }
     }
 
+    override suspend fun unLikeArtwork(
+        userId: String,
+        artworkId: String
+    ): Flow<ResponseStates<Unit>> = flow  {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.unLikeArtwork(artworkId , userId)}
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
     override suspend fun commentOnArtwork(
         userId: String,
         artworkId: String,
@@ -142,10 +150,10 @@ class UserRepositoryImplementation @Inject constructor(
         }
     }
 
-    override suspend fun getArtistArtworks(userId: String): Flow<ResponseStates<List<ArtworkDTO>>>  = flow  {
+    override suspend fun getArtistArtworks( userId: String , artistId:String): Flow<ResponseStates<List<ArtworkDTO>>>  = flow  {
         emit(ResponseStates.Loading)
         try {
-            val response = safeApiRequest { apiService.getArtistArtworks(userId) }
+            val response = safeApiRequest { apiService.getArtistArtworks(userId , artistId) }
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))

@@ -36,6 +36,9 @@ interface ApiService {
     @PUT("artwork/user/like/{artworkId}/{userId}")
     suspend fun likeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Unit>
 
+    @PUT("artwork/user/unlike/{artworkId}/{userId}")
+    suspend fun unLikeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Unit>
+
     @GET("/artist/search")
     suspend fun getAllArtists(
         @Query("query") artistName: String,
@@ -92,11 +95,13 @@ interface ApiService {
      */
     @GET("/artist/getArtworkByArtistId")
     suspend fun getArtistArtworks(
+        @Query("userId") userId:String,
         @Query("artistId") artistId: String
     ): Response<List<ArtworkDTO>>
 
-    @GET("artwork/{artworkId}")
+    @GET("artwork/{userId}/{artworkId}")
     suspend fun getArtworkById(
+        @Path("userId") userId: String,
         @Path("artworkId") artworkId: String
     ): Response<ArtworkDTO>
 

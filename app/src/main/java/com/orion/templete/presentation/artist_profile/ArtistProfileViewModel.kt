@@ -29,7 +29,10 @@ class ArtistProfileViewModel @Inject constructor(
     var unFollowArtistUiState by mutableStateOf<UnFollowArtistUiState>(UnFollowArtistUiState.Ideal)
         private set
 
-    var userLikeArtistUiState by mutableStateOf<UserLikeArtistUiState>(UserLikeArtistUiState.Loading)
+    var userLikeArtworkUiState by mutableStateOf<UserLikeArtistUiState>(UserLikeArtistUiState.Loading)
+        private set
+
+    var userUnLikeArtworkUiState by mutableStateOf<UserUnLikeArtistUiState>(UserUnLikeArtistUiState.Loading)
         private set
 
     var commentOnArtistUiState by mutableStateOf<CommentOnArtistUiState>(CommentOnArtistUiState.Loading)
@@ -88,10 +91,24 @@ class ArtistProfileViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.likeArtwork(userId,artworkId)
                 .collect { response ->
-                    userLikeArtistUiState = when (response) {
+                    userLikeArtworkUiState = when (response) {
                         is ResponseStates.Loading -> UserLikeArtistUiState.Loading
                         is ResponseStates.Success -> UserLikeArtistUiState.Success(response.data)
                         is ResponseStates.Error -> UserLikeArtistUiState.Error(response.error)
+                    }
+                }
+        }
+    }
+
+    //unlike
+    fun unLikeArtwork(userId: String , artworkId:String){
+        viewModelScope.launch {
+            userRepository.unLikeArtwork(userId,artworkId)
+                .collect { response ->
+                    userUnLikeArtworkUiState = when (response) {
+                        is ResponseStates.Loading -> UserUnLikeArtistUiState.Loading
+                        is ResponseStates.Success -> UserUnLikeArtistUiState.Success(response.data)
+                        is ResponseStates.Error -> UserUnLikeArtistUiState.Error(response.error)
                     }
                 }
         }
@@ -126,9 +143,9 @@ class ArtistProfileViewModel @Inject constructor(
     }
 
     //save to fav
-    fun getArtistArtworks(userId: String){
+    fun getArtistArtworks(userId: String , artistId: String){
         viewModelScope.launch {
-            userRepository.getArtistArtworks(userId)
+            userRepository.getArtistArtworks(userId , artistId)
                 .collect { response ->
                     artWorksUiState = when (response) {
                         is ResponseStates.Loading -> ArtWorksUiState.Loading
@@ -154,6 +171,12 @@ sealed interface UserLikeArtistUiState {
     object Loading : UserLikeArtistUiState
     data class Success(val unit :Unit) : UserLikeArtistUiState
     data class Error(val message: String) : UserLikeArtistUiState
+}
+
+sealed interface UserUnLikeArtistUiState {
+    object Loading : UserUnLikeArtistUiState
+    data class Success(val unit :Unit) : UserUnLikeArtistUiState
+    data class Error(val message: String) : UserUnLikeArtistUiState
 }
 
 sealed interface  FollowArtistUiState {

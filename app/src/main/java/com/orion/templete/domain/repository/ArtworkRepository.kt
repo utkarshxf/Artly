@@ -8,5 +8,5 @@ interface ArtworkRepository {
     suspend fun getArtwork(): ArtworkDTO
     suspend fun paginationArtwork( offset : Int, pageSize:Int): List<ArtworkDTO>
     suspend fun likeArtwork(artworkId: String, userId: String): Boolean
-    suspend fun getArtworkById(userId: String): Flow<ResponseStates<ArtworkDTO>>
+    suspend fun getArtworkById(userId: String , artworkId: String): Flow<ResponseStates<ArtworkDTO>>
 }

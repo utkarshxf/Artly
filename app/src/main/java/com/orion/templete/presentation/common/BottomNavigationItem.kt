@@ -9,7 +9,7 @@ data class BottomNavigationItem(
     fun bottomNavigationItems() : List<BottomNavigationItem> {
         return listOf(
             BottomNavigationItem(
-                icon = R.drawable.home,
+                icon = R.drawable.ic_swip,
                 route = Screens.Swipe.route
             ),
             BottomNavigationItem(
@@ -17,7 +17,7 @@ data class BottomNavigationItem(
                 route = Screens.Search.route
             ),
             BottomNavigationItem(
-                icon = R.drawable.user,
+                icon = R.drawable.ic_profile,
                 route = Screens.Profile.route
             )
         )

@@ -19,9 +19,9 @@ class ArtworkDetailViewModel @Inject constructor(
     var artworkDetailScreenUiState by mutableStateOf<ArtworkDetailScreenUiState>(ArtworkDetailScreenUiState.Loading)
         private set
 
-    fun getArtworkById(userId: String) {
+    fun getArtworkById(userId: String , artworkId: String) {
         viewModelScope.launch {
-            artworkRepository.getArtworkById(userId).collect { response ->
+            artworkRepository.getArtworkById(userId , artworkId).collect { response ->
                 artworkDetailScreenUiState = when (response) {
                         is ResponseStates.Loading -> ArtworkDetailScreenUiState.Loading
                         is ResponseStates.Success -> ArtworkDetailScreenUiState.Success(response.data)
@@ -30,8 +30,8 @@ class ArtworkDetailViewModel @Inject constructor(
                 }
         }
     }
-    fun refreshArtwork(userId: String) {
-        getArtworkById(userId)
+    fun refreshArtwork(userId: String , artworkId: String) {
+        getArtworkById(userId , artworkId)
     }
 }
 

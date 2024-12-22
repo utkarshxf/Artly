@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.presentation.common.ArtworkItem
 
 @Composable
 fun SearchScreen(viewModel: SearchScreenViewModel = hiltViewModel() , onUserClick: (String) -> Unit) {
@@ -233,35 +234,3 @@ fun TodaysBiggestHit() {
     }
 }
 
-@Composable
-fun ArtworkItem(artwork: ArtworkDTO) {
-    Card(
-        modifier = Modifier
-            .size(150.dp, 200.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = artwork.imageUrl,
-                contentDescription = artwork.description,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-            )
-            Column(modifier = Modifier.padding(8.dp)) {
-                Text(
-                    text = artwork.name ?: "Untitled",
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = artwork.madeWith ?: "Unknown medium",
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}

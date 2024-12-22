@@ -1,6 +1,7 @@
 package com.orion.templete.presentation.common
 
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,7 +49,7 @@ fun BottomAppNev(
     var navigationSelectedItem by remember { mutableStateOf(0) }
     NavHost (
         navController = navController,
-        startDestination = Screens.UserProfile.route,
+        startDestination = Screens.ArtworkDetail.route,
         modifier = Modifier.padding(bottom = ButtonHeight)
     ){
         composable(Screens.Swipe.route) {
@@ -69,7 +70,7 @@ fun BottomAppNev(
 //        }
         composable(Screens.ArtworkDetail.route)
         {
-            ArtworkDetailScreen("051c47a6-e7fc-449a-a7de-e4653d046938")
+            ArtworkDetailScreen("4bfde960-4807-421e-b11b-7f5472e848ea")
         }
         composable(Screens.Search.route)
         {

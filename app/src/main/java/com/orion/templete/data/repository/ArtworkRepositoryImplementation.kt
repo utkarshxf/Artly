@@ -27,10 +27,10 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
         return response.isSuccessful
     }
 
-    override suspend fun getArtworkById(userId: String): Flow<ResponseStates<ArtworkDTO>> = flow {
+    override suspend fun getArtworkById(userId: String,artworkId: String): Flow<ResponseStates<ArtworkDTO>> = flow {
             emit(ResponseStates.Loading)
             try {
-                val response = safeApiRequest { apiService.getArtworkById(userId) }
+                val response = safeApiRequest { apiService.getArtworkById(userId = userId, artworkId = artworkId) }
                 emit(ResponseStates.Success(response))
             } catch (e: Exception) {
                 emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))

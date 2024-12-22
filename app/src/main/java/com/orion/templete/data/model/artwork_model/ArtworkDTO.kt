@@ -13,5 +13,6 @@ data class ArtworkDTO (
     val releasedDate: String? = null,
     val status: String? = null,
     val storageType: String? = null,
-    val type: String? = null
+    val type: String? = null,
+    val liked: Boolean? = null
 ):Parcelable

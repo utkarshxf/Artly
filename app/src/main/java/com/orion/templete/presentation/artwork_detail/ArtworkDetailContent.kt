@@ -4,11 +4,13 @@ import android.annotation.SuppressLint
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,12 +18,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -41,7 +46,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.Color.Companion.White
@@ -60,9 +64,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.user_model.UserDTO
+import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
+import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
-import com.orion.templete.presentation.profile.ProfileScreenUiState
-import com.orion.templete.presentation.profile.ProfileScreenViewModel
+import com.orion.templete.presentation.common.ProfileHeader
+import com.orion.templete.presentation.components.GenreSection
+import com.orion.templete.presentation.search.dummyArtworks
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
@@ -75,7 +83,7 @@ import kotlin.math.min
 @Composable
 fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
-        viewModel.getArtworkById(artworkId)
+        viewModel.getArtworkById(artworkId , "test4")
     }
     when (val uiState = viewModel.artworkDetailScreenUiState) {
         is ArtworkDetailScreenUiState.Loading -> {
@@ -93,7 +101,7 @@ fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = h
         is ArtworkDetailScreenUiState.Error -> {
             ErrorScreen(
                 message = uiState.message,
-                onRetry = { viewModel.refreshArtwork(artworkId) }
+                onRetry = { viewModel.refreshArtwork("test4" ,artworkId) }
             )
         }
     }
@@ -103,6 +111,9 @@ fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = h
 @Composable
 fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO) {
     val scrollState = rememberLazyListState()
+    val vm: ArtistProfileViewModel = hiltViewModel()
+    val likeState = vm.userLikeArtworkUiState
+    val unlikeState = vm.userUnLikeArtworkUiState
     Box {
         Details(artworkDetailsDTO, scrollState)
         ParallaxToolbar(artworkDetailsDTO, scrollState)
@@ -117,6 +128,53 @@ private fun Details(artworkDetailsDTO: ArtworkDTO, scrollState: LazyListState) {
         item {
             BasicInfo(artworkDetailsDTO)
             Description(artworkDetailsDTO)
+            AboutTheArtist()
+            RecommendFromArtist()
+            RecommendFromGenre()
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+fun AboutTheArtist() {
+    val user = UserDTO("afsfsdf" , "sfdaffs" , "dfsfdsfd" ,"sdfsfdsfds" , "male" , "english" , "in" , true)
+    ProfileHeader(user)
+}
+
+@Composable
+fun RecommendFromArtist() {
+    Column {
+        Text(
+            text = "More From Artist",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(dummyArtworks) { artwork ->
+                ArtworkItem(artwork)
+            }
+        }
+    }
+}
+@Composable
+fun RecommendFromGenre() {
+    Column {
+        Text(
+            text = "Similar Genre",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(dummyArtworks) { artwork ->
+                ArtworkItem(artwork)
+            }
         }
     }
 }
@@ -139,21 +197,22 @@ fun BasicInfo(artworkDetailsDTO: ArtworkDTO) {
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        InfoColumn(R.drawable.bookmark_border_24px, "5")
-        InfoColumn(R.drawable.bookmark_border_24px, "7")
-        InfoColumn(R.drawable.bookmark_border_24px, "gn")
+        InfoColumn(if (artworkDetailsDTO.liked == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, "5")
+        InfoColumn(R.drawable.ic_comment, "7")
+        InfoColumn(R.drawable.ic_save, "gn")
     }
 }
 
 @Composable
 fun InfoColumn(@DrawableRes iconResource: Int, text: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             painter = (painterResource(id = iconResource)),
             contentDescription = null,
-            tint = Black,
-            modifier = Modifier.height(24.dp)
+            tint =  if(isSystemInDarkTheme()) Color.White else Color.Black,
+            modifier = Modifier.size(24.dp)
         )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(text = text, fontWeight = Bold)
     }
 }
@@ -199,8 +258,11 @@ private fun ParallaxToolbar(artworkDTO: ArtworkDTO, scrollState: LazyListState) 
                                     Pair(1f, MaterialTheme.colorScheme.surface)
                                 )
                             )
-                        )
-                )
+                        ),
+                    contentAlignment = Alignment.BottomStart
+                ){
+                    GenreSection()
+                }
                 artworkDTO?.releasedDate?.let {
                     Row(
                         modifier = Modifier
@@ -229,6 +291,7 @@ private fun ParallaxToolbar(artworkDTO: ArtworkDTO, scrollState: LazyListState) 
                 Text(
                     text = artworkDTO.name ?: stringResource(R.string.no_name),
                     fontSize = 26.sp,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = Bold,
                     modifier = Modifier
                         .padding(horizontal = (16 + 28 * offsetprogress).dp)
@@ -247,8 +310,8 @@ private fun ParallaxToolbar(artworkDTO: ArtworkDTO, scrollState: LazyListState) 
             .height(AppBarCollapsedHeight)
             .padding(horizontal = 16.dp)
     ) {
-        CircularButton(R.drawable.home)
-        CircularButton(R.drawable.user)
+        CircularButton(R.drawable.ic_arrow_back)
+        CircularButton(if (artworkDTO.liked == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite)
     }
 }
 
@@ -280,6 +343,6 @@ fun CircularButton(
 @Composable
 private fun ArtworkPreview() {
     TempleteTheme() {
-        ArtworkDetailScreen("909727e8-a94c-47c4-9070-14b0d86bc19e")
+        ArtworkDetailScreen("4bfde960-4807-421e-b11b-7f5472e848ea")
     }
 }

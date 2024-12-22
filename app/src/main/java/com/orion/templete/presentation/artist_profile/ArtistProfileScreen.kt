@@ -68,6 +68,8 @@ import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.common.ErrorScreen
+import com.orion.templete.presentation.common.ProfileHeader
+import com.orion.templete.presentation.components.GenreSection
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
 import com.orion.templete.presentation.ui.theme.TempleteTheme
@@ -106,7 +108,7 @@ fun ArtistProfileScreen(viewModel: ArtistProfileViewModel = hiltViewModel()) {
 @Composable
 private fun ProfileContent(user: UserDTO ,  viewModel: ArtistProfileViewModel = hiltViewModel()) {
     LaunchedEffect(key1 = Unit) {
-        viewModel.getArtistArtworks("test")
+        viewModel.getArtistArtworks(userId = "test4" , artistId = "test")
     }
     val scrollGridState = rememberLazyGridState()
     val scrollListState = rememberLazyListState()
@@ -180,7 +182,7 @@ private fun ProfileContent(user: UserDTO ,  viewModel: ArtistProfileViewModel = 
             selectedTabIndex = selectedTabIndex
         )
         LaunchedEffect(key1 = Unit) {
-            viewModel.getArtistArtworks("test")
+            viewModel.getArtistArtworks("test4" , "test")
         }
         when (val uiState = viewModel.artWorksUiState) {
             is ArtWorksUiState.Loading -> {
@@ -232,36 +234,6 @@ fun ArtworkColumnList(scrollState: LazyListState, artworks: List<ArtworkDTO>) {
 }
 
 @Composable
-private fun ProfileHeader(user: UserDTO) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = user.profilePicture,
-            contentDescription = "Profile picture",
-            modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = user.name,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "@${user.name.lowercase().replace(" ", "")}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 private fun StatSection() {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -285,41 +257,6 @@ private fun ProfileState(number: String, label: String) {
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun GenreSection() {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(listOf("Abstract", "Surrealism", "Pop Art")) { genre ->
-            CustomChip(
-                text = genre,
-                onClick = { /* Handle genre click */ }
-            )
-        }
-    }
-}
-
-@Composable
-private fun CustomChip(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = modifier.clip(RoundedCornerShape(16.dp))
-    ) {
-        Text(
-            text = text,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
     }
 }
