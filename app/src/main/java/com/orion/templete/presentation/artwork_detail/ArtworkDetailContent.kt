@@ -1,9 +1,11 @@
 package com.orion.templete.presentation.artwork_detail
 
 import android.annotation.SuppressLint
+import android.text.style.ClickableSpan
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,7 +85,7 @@ import kotlin.math.min
 @Composable
 fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
-        viewModel.getArtworkById(artworkId , "test4")
+        viewModel.getArtworkById("test4" ,artworkId)
     }
     when (val uiState = viewModel.artworkDetailScreenUiState) {
         is ArtworkDetailScreenUiState.Loading -> {
@@ -197,7 +199,7 @@ fun BasicInfo(artworkDetailsDTO: ArtworkDTO) {
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        InfoColumn(if (artworkDetailsDTO.liked == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, "5")
+        ClickableIcon(if (artworkDetailsDTO.liked == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, "5")
         InfoColumn(R.drawable.ic_comment, "7")
         InfoColumn(R.drawable.ic_save, "gn")
     }
@@ -210,6 +212,18 @@ fun InfoColumn(@DrawableRes iconResource: Int, text: String) {
             painter = (painterResource(id = iconResource)),
             contentDescription = null,
             tint =  if(isSystemInDarkTheme()) Color.White else Color.Black,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = text, fontWeight = Bold)
+    }
+}
+@Composable
+fun ClickableIcon(@DrawableRes iconResource: Int, text: String , onClick: () -> Unit = {}) {
+    Row(verticalAlignment = Alignment.CenterVertically , modifier = Modifier.clickable { onClick() }) {
+        Image(
+            painter = (painterResource(id = iconResource)),
+            contentDescription = null,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
