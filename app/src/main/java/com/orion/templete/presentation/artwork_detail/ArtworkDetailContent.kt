@@ -1,7 +1,6 @@
 package com.orion.templete.presentation.artwork_detail
 
 import android.annotation.SuppressLint
-import android.text.style.ClickableSpan
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -38,10 +37,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,8 +78,10 @@ import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.ProfileHeader
 import com.orion.templete.presentation.components.GenreSection
 import com.orion.templete.presentation.search.dummyArtworks
+import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
+import com.orion.templete.presentation.ui.theme.Black
 import com.orion.templete.presentation.ui.theme.MediumSize
 import com.orion.templete.presentation.ui.theme.SmallSize
 import com.orion.templete.presentation.ui.theme.TempleteTheme
@@ -113,22 +120,24 @@ fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = h
 @Composable
 fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO) {
     val scrollState = rememberLazyListState()
-    val vm: ArtistProfileViewModel = hiltViewModel()
-    val likeState = vm.userLikeArtworkUiState
-    val unlikeState = vm.userUnLikeArtworkUiState
+    var isLiked = remember { mutableStateOf(artworkDetailsDTO.liked) }
     Box {
-        Details(artworkDetailsDTO, scrollState)
-        ParallaxToolbar(artworkDetailsDTO, scrollState)
+        Details(artworkDetailsDTO, scrollState , isLiked)
+        ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked)
     }
 }
 
 @Composable
-private fun Details(artworkDetailsDTO: ArtworkDTO, scrollState: LazyListState) {
+private fun Details(
+    artworkDetailsDTO: ArtworkDTO,
+    scrollState: LazyListState,
+    isLiked: MutableState<Boolean?>
+) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight), state = scrollState
     ) {
         item {
-            BasicInfo(artworkDetailsDTO)
+            BasicInfo(isLiked)
             Description(artworkDetailsDTO)
             AboutTheArtist()
             RecommendFromArtist()
@@ -192,22 +201,41 @@ fun Description(artworkDetailsDTO: ArtworkDTO) {
 }
 
 @Composable
-fun BasicInfo(artworkDetailsDTO: ArtworkDTO) {
+fun BasicInfo(isLiked: MutableState<Boolean?>) {
+    val vm: ArtistProfileViewModel = hiltViewModel()
+    var showComments by remember { mutableStateOf(false) }
+
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        ClickableIcon(if (artworkDetailsDTO.liked == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, "5")
-        InfoColumn(R.drawable.ic_comment, "7")
+        ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "5" ){
+            if(isLiked.value == true){
+                vm.unLikeArtwork("test4" , "4bfde960-4807-421e-b11b-7f5472e848ea")
+            }else{
+                vm.likeArtwork("test4" , "4bfde960-4807-421e-b11b-7f5472e848ea")
+            }
+            isLiked.value = !isLiked.value!!
+        }
+        InfoColumn(R.drawable.ic_comment, "7"){
+            showComments = false
+        }
         InfoColumn(R.drawable.ic_save, "gn")
     }
+    if(showComments){
+        BottomSheet(onDismiss = { showComments = false }){
+            Box(){}
+        }
+    }
+
+
 }
 
 @Composable
-fun InfoColumn(@DrawableRes iconResource: Int, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+fun InfoColumn(@DrawableRes iconResource: Int, text: String , onClick: () -> Unit ={}) {
+    Row(verticalAlignment = Alignment.CenterVertically , modifier = Modifier.clickable { onClick() }) {
         Icon(
             painter = (painterResource(id = iconResource)),
             contentDescription = null,
@@ -219,12 +247,13 @@ fun InfoColumn(@DrawableRes iconResource: Int, text: String) {
     }
 }
 @Composable
-fun ClickableIcon(@DrawableRes iconResource: Int, text: String , onClick: () -> Unit = {}) {
+fun ClickableIcon(@DrawableRes iconResource: Int, text: String, tint: Color = LocalContentColor.current , onClick: () -> Unit = {}) {
     Row(verticalAlignment = Alignment.CenterVertically , modifier = Modifier.clickable { onClick() }) {
-        Image(
+        Icon(
             painter = (painterResource(id = iconResource)),
             contentDescription = null,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(24.dp),
+            tint = tint
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = text, fontWeight = Bold)
@@ -233,14 +262,19 @@ fun ClickableIcon(@DrawableRes iconResource: Int, text: String , onClick: () -> 
 
 @SuppressLint("SuspiciousIndentation")
 @Composable
-private fun ParallaxToolbar(artworkDTO: ArtworkDTO, scrollState: LazyListState) {
-    val imageHight = AppBarExpendedHeight - AppBarCollapsedHeight
+private fun ParallaxToolbar(
+    artworkDTO: ArtworkDTO,
+    scrollState: LazyListState,
+    isLiked: MutableState<Boolean?>
+) {
+    val vm: ArtistProfileViewModel = hiltViewModel()
+    val imageHeight = AppBarExpendedHeight - AppBarCollapsedHeight
     val maxOffset = with(LocalDensity.current) {
-        imageHight.roundToPx()
+        imageHeight.roundToPx()
     } - WindowInsets.systemBars.getTop(LocalDensity.current)
     val offset = min(scrollState.firstVisibleItemScrollOffset, maxOffset)
     val offsetprogress = max(0f, offset * 3f - 2f * maxOffset) / maxOffset
-    val imageHeight = AppBarExpendedHeight - AppBarCollapsedHeight
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
@@ -325,7 +359,14 @@ private fun ParallaxToolbar(artworkDTO: ArtworkDTO, scrollState: LazyListState) 
             .padding(horizontal = 16.dp)
     ) {
         CircularButton(R.drawable.ic_arrow_back)
-        CircularButton(if (artworkDTO.liked == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite)
+        CircularButton(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite ,  tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else LocalContentColor.current ){
+            if(isLiked.value == true){
+                vm.unLikeArtwork("test4" , "4bfde960-4807-421e-b11b-7f5472e848ea")
+            }else{
+                vm.likeArtwork("test4" , "4bfde960-4807-421e-b11b-7f5472e848ea")
+            }
+            isLiked.value = !isLiked.value!!
+        }
     }
 }
 
@@ -334,6 +375,7 @@ fun CircularButton(
     @DrawableRes iconResource: Int,
     color: Color = Gray,
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
+    tint: Color = LocalContentColor.current,
     onClick: () -> Unit = {}
 ) {
 
@@ -341,14 +383,14 @@ fun CircularButton(
         onClick = onClick,
         contentPadding = PaddingValues(),
         shape = RoundedCornerShape(4.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = White, contentColor = color),
+        colors = ButtonDefaults.buttonColors(containerColor =  LocalContentColor.current.copy(alpha = 0.2f), contentColor = color),
         elevation = elevation,
         modifier = Modifier
             .width(38.dp)
             .height(38.dp)
 
     ) {
-        Icon(painterResource(id = iconResource), contentDescription = null)
+        Icon(painterResource(id = iconResource), contentDescription = null , modifier = Modifier.size(24.dp) , tint = tint)
     }
 }
 

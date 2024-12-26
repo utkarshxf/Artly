@@ -1,7 +1,6 @@
 package com.orion.templete.presentation.common
 
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,10 +33,10 @@ import com.orion.templete.presentation.artist_profile.ArtistProfileScreen
 import com.orion.templete.presentation.profile.ProfileScreen
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
-import com.orion.templete.presentation.artwork_detail.ArtworkDetailContent
 import com.orion.templete.presentation.artwork_detail.ArtworkDetailScreen
 import com.orion.templete.presentation.ui.theme.ButtonHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
+import com.orion.templete.presentation.upload.UploadScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +59,9 @@ fun BottomAppNev(
         }
         composable(Screens.Profile.route) {
             ProfileScreen()
+        }
+        composable(Screens.Upload.route) {
+            UploadScreen()
         }
 //        composable(Screens.ArtworkDetail.route)
 //        {

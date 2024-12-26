@@ -10,7 +10,7 @@ sealed class Screens(val route: String){
     object Login : Screens("login_route")
     object Signup : Screens("signup_route")
     object Home : Screens("home_route")
-
+    object Upload :Screens("upload_route")
 
 
     object Splash : Screens("splash_route")

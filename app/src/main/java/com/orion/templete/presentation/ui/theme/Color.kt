@@ -14,7 +14,7 @@ val Gray = Color(0xFF2F343F)
 val Dark = Color(0xFF262B33)
 
 // Additional colors
-val ErrorRed = Color(0xFFED4956)
+val ErrorRed = Color(0xFFF63D68)
 val LighterGray = Color(0xFFDBDBDB)
 
 internal val LightColors = lightColorScheme(
