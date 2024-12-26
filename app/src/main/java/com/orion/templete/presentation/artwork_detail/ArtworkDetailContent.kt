@@ -29,17 +29,26 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -61,6 +70,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
 import androidx.compose.ui.tooling.preview.Preview
@@ -220,18 +230,128 @@ fun BasicInfo(isLiked: MutableState<Boolean?>) {
             isLiked.value = !isLiked.value!!
         }
         InfoColumn(R.drawable.ic_comment, "7"){
-            showComments = false
+            showComments = true
         }
         InfoColumn(R.drawable.ic_save, "gn")
     }
     if(showComments){
-        BottomSheet(onDismiss = { showComments = false }){
-            Box(){}
+        val dummyComments = listOf(
+            Comment("john_doe", "Great shot! 📸"),
+            Comment("emma.smith", "This is absolutely stunning!"),
+            Comment("photo_lover", "What camera did you use?"),
+            Comment("travel_buddy", "The lighting is perfect ✨"),
+            Comment("art.gallery", "Love the composition"),
+            Comment("mike_photos", "Can you share your editing process?")
+        )
+        var comments by remember { mutableStateOf(dummyComments) }
+        BottomSheet(onDismiss = { showComments = false }) {
+            CommentSection(
+                comments = comments,
+                onSendComment = { newComment ->
+                    comments = comments + Comment("current_user", newComment)
+                }
+            )
         }
     }
-
-
 }
+
+@Composable
+fun CommentSection(
+    comments: List<Comment>,
+    onSendComment: (String) -> Unit
+) {
+    var commentText by remember { mutableStateOf("") }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Comments",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyColumn(
+            modifier = Modifier.weight(1f)
+        ) {
+            items(comments) { comment ->
+                CommentItem(comment)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = commentText,
+                onValueChange = { commentText = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Add a comment...") },
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent
+                ),
+                maxLines = 5
+            )
+
+            IconButton(
+                onClick = {
+                    if (commentText.isNotBlank()) {
+                        onSendComment(commentText)
+                        commentText = ""
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send",
+                    tint = if (commentText.isBlank()) Color.Gray else MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommentItem(comment: Comment) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter(model = "https://dxvnlnyzij172.cloudfront.net/users/M_preview.png"),
+            contentDescription = null,
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+        )
+        Text(
+            text = comment.username,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = comment.text,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+data class Comment(
+    val username: String,
+    val text: String
+)
+
 
 @Composable
 fun InfoColumn(@DrawableRes iconResource: Int, text: String , onClick: () -> Unit ={}) {

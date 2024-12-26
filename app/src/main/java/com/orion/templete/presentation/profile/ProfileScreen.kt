@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -213,7 +214,7 @@ private fun ButtonSection() {
                     .fillMaxWidth()
 
                     .background(
-                        color = Color.White, shape = RoundedCornerShape(10.dp)
+                        color = Color.Transparent, shape = RoundedCornerShape(10.dp)
                     )
                     .border(
                         1.dp,
@@ -225,7 +226,7 @@ private fun ButtonSection() {
                 Text(
                     "Edit",
                     modifier = Modifier.padding(12.dp),
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = LocalContentColor.current,
                     style = MaterialTheme.typography.labelLarge
                 )
             }
