@@ -5,6 +5,7 @@ import android.util.Log
 import com.flashcall.me.data.local.dao.UserDao
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
+import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.data.network.ApiService
@@ -130,6 +131,19 @@ class UserRepositoryImplementation @Inject constructor(
         emit(ResponseStates.Loading)
         try {
             val response = safeApiRequest { apiService.commentOnArtwork(userId , artworkId , comment ) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception" , e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getCommentsOnArtwork(
+        artworkId: String,
+    ): Flow<ResponseStates<List<GetCommentsDTO>>>  = flow  {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getCommentOnArtwork( artworkId ) }
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())

@@ -1,7 +1,9 @@
 package com.orion.templete.presentation.artwork_detail
 
 import android.annotation.SuppressLint
+import android.os.Build
 import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -81,8 +83,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.artwork_model.comments.CommentRequest
+import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
+import com.orion.templete.presentation.artist_profile.GetCommentsOnArtworkUiState
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.ProfileHeader
@@ -99,6 +104,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
@@ -127,6 +133,7 @@ fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = h
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO) {
     val scrollState = rememberLazyListState()
@@ -137,6 +144,7 @@ fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO) {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun Details(
     artworkDetailsDTO: ArtworkDTO,
@@ -210,6 +218,7 @@ fun Description(artworkDetailsDTO: ArtworkDTO) {
 
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun BasicInfo(isLiked: MutableState<Boolean?>) {
     val vm: ArtistProfileViewModel = hiltViewModel()
@@ -232,32 +241,57 @@ fun BasicInfo(isLiked: MutableState<Boolean?>) {
         InfoColumn(R.drawable.ic_comment, "7"){
             showComments = true
         }
-        InfoColumn(R.drawable.ic_save, "gn")
+        InfoColumn(R.drawable.ic_save, "Save"){
+            vm.saveOnFavorites("test4" , "051c47a6-e7fc-449a-a7de-e4653d046938")
+        }
     }
-    if(showComments){
-        val dummyComments = listOf(
-            Comment("john_doe", "Great shot! 📸"),
-            Comment("emma.smith", "This is absolutely stunning!"),
-            Comment("photo_lover", "What camera did you use?"),
-            Comment("travel_buddy", "The lighting is perfect ✨"),
-            Comment("art.gallery", "Love the composition"),
-            Comment("mike_photos", "Can you share your editing process?")
-        )
-        var comments by remember { mutableStateOf(dummyComments) }
+    if(showComments) {
+        LaunchedEffect(Unit) {
+            vm.getAllComments("4bfde960-4807-421e-b11b-7f5472e848ea")
+        }
         BottomSheet(onDismiss = { showComments = false }) {
-            CommentSection(
-                comments = comments,
-                onSendComment = { newComment ->
-                    comments = comments + Comment("current_user", newComment)
+            when (val uiState = vm.getCommentsOnArtworkUiState) {
+                is GetCommentsOnArtworkUiState.Loading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.Center)
+                    )
+
                 }
-            )
+
+                is GetCommentsOnArtworkUiState.Success -> {
+                    var comments by remember { mutableStateOf(uiState.data) }
+                    CommentSection(
+                        comments = comments,
+                        onSendComment = { newComment ->
+                            comments = listOf(GetCommentsDTO(
+                                userId = "current_user",
+                                text = newComment
+                            )) + comments
+                            vm.commentOnArtwork(
+                                "test4",
+                                "4bfde960-4807-421e-b11b-7f5472e848ea",
+                                CommentRequest(text = newComment)
+                            )
+                        }
+                    )
+                }
+
+                is GetCommentsOnArtworkUiState.Error -> {
+                    ErrorScreen(
+                        message = uiState.message,
+                        onRetry = { vm.refreshComments("4bfde960-4807-421e-b11b-7f5472e848ea") }
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 fun CommentSection(
-    comments: List<Comment>,
+    comments: List<GetCommentsDTO>,
     onSendComment: (String) -> Unit
 ) {
     var commentText by remember { mutableStateOf("") }
@@ -290,7 +324,8 @@ fun CommentSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
             TextField(
                 value = commentText,
@@ -323,25 +358,26 @@ fun CommentSection(
 }
 
 @Composable
-private fun CommentItem(comment: Comment) {
+private fun CommentItem(comment: GetCommentsDTO) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = rememberAsyncImagePainter(model = "https://dxvnlnyzij172.cloudfront.net/users/M_preview.png"),
+            painter = rememberAsyncImagePainter(model = comment.userProfilePicture),
             contentDescription = null,
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
         )
         Text(
-            text = comment.username,
+            text = comment.userName?:"Unknown",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = comment.text,
+            text = comment.text?:"Unknown Comment",
             style = MaterialTheme.typography.bodyMedium
         )
     }
@@ -515,6 +551,7 @@ fun CircularButton(
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview
 @Composable
 private fun ArtworkPreview() {

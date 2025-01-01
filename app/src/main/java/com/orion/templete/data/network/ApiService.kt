@@ -4,6 +4,7 @@ package com.orion.templete.data.network
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
+import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
@@ -79,6 +80,14 @@ interface ApiService {
         @Path("artworkId") artworkId: String,
         @Body comment: CommentRequest
     ): Response<Unit>
+
+    /**
+     * Get All Comment on artwork
+     */
+    @GET("/comments/artwork/{artworkId}")
+    suspend fun getCommentOnArtwork(
+        @Path("artworkId") artworkId: String,
+    ): Response<List<GetCommentsDTO>>
 
 
     /**
