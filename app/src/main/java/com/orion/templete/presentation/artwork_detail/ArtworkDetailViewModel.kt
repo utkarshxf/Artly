@@ -19,6 +19,7 @@ class ArtworkDetailViewModel @Inject constructor(
     var artworkDetailScreenUiState by mutableStateOf<ArtworkDetailScreenUiState>(ArtworkDetailScreenUiState.Loading)
         private set
 
+
     fun getArtworkById(userId: String , artworkId: String) {
         viewModelScope.launch {
             artworkRepository.getArtworkById(userId , artworkId).collect { response ->

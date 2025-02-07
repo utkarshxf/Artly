@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,26 +30,32 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -62,31 +69,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.Transparent
-import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
+import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
+import com.orion.templete.presentation.artist_profile.FavoritesUiState
 import com.orion.templete.presentation.artist_profile.GetCommentsOnArtworkUiState
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
@@ -96,7 +111,6 @@ import com.orion.templete.presentation.search.dummyArtworks
 import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
-import com.orion.templete.presentation.ui.theme.Black
 import com.orion.templete.presentation.ui.theme.MediumSize
 import com.orion.templete.presentation.ui.theme.SmallSize
 import com.orion.templete.presentation.ui.theme.TempleteTheme
@@ -155,7 +169,7 @@ private fun Details(
         contentPadding = PaddingValues(top = AppBarExpendedHeight), state = scrollState
     ) {
         item {
-            BasicInfo(isLiked)
+            BasicInfo(artworkDetailsDTO , isLiked)
             Description(artworkDetailsDTO)
             AboutTheArtist()
             RecommendFromArtist()
@@ -220,9 +234,12 @@ fun Description(artworkDetailsDTO: ArtworkDTO) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun BasicInfo(isLiked: MutableState<Boolean?>) {
+fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     var showComments by remember { mutableStateOf(false) }
+    var showSavedFolders by remember { mutableStateOf(false) }
+    var showCreateNewCollection by remember { mutableStateOf(false) }
+//    vm.saveOnFavorites("test4" , "051c47a6-e7fc-449a-a7de-e4653d046938")
 
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -242,7 +259,15 @@ fun BasicInfo(isLiked: MutableState<Boolean?>) {
             showComments = true
         }
         InfoColumn(R.drawable.ic_save, "Save"){
-            vm.saveOnFavorites("test4" , "051c47a6-e7fc-449a-a7de-e4653d046938")
+            showSavedFolders = true
+        }
+    }
+    if (showSavedFolders){
+        BottomSheet(onDismiss = { showSavedFolders = false }) {
+            SaveSection(
+                onAddCollection = { showCreateNewCollection =! showCreateNewCollection },
+                vm = vm
+            )
         }
     }
     if(showComments) {
@@ -284,6 +309,149 @@ fun BasicInfo(isLiked: MutableState<Boolean?>) {
                         onRetry = { vm.refreshComments("4bfde960-4807-421e-b11b-7f5472e848ea") }
                     )
                 }
+            }
+        }
+    }
+    if(showCreateNewCollection) {
+        BottomSheet(
+            skipPartiallyExpanded = true,
+            isDraggable = false,
+            onDismiss = { showCreateNewCollection = false }
+        ) {
+            CreateNewCollection(artworkDetailsDTO.imageUrl , onSubmit = {
+                vm.createNewFavorites("test4" , it)
+                showCreateNewCollection = false
+            }, onCancel = {
+                showCreateNewCollection = false
+            })
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateNewCollection(
+    imageUrl: String?,
+    onSubmit: (favoritesDTO) -> Unit = {},
+    onCancel: () -> Unit = {}
+) {
+    var collectionName by remember { mutableStateOf("") }
+    var isCollaborative by remember { mutableStateOf(false) }
+
+    // Add focus requester
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Request focus when the composable is first launched
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Background Image
+        if (imageUrl != null) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        // Semi-transparent overlay
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.4f))
+        )
+
+        // Content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            // Top Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                    onCancel()
+                }) {
+                    Text(
+                        "Cancel",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                Text(
+                    "New collection",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                TextButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        onSubmit( favoritesDTO(title = collectionName , description = "collection"))
+                    },
+                    enabled = collectionName.isNotBlank()
+                ) {
+                    Text(
+                        "Save",
+                        color = if (collectionName.isNotBlank()) Color.White else Color.White.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Bottom Section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = collectionName,
+                    onValueChange = { collectionName = it },
+                    placeholder = { Text("Name your collection", color = Color.White.copy(alpha = 0.7f)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        cursorColor = Color.White,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f)
+                    ),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                            if (collectionName.isNotBlank()) {
+                                onSubmit(favoritesDTO(title = collectionName , description = "collection"))
+                            }
+                        }
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
             }
         }
     }
@@ -352,6 +520,144 @@ fun CommentSection(
                     contentDescription = "Send",
                     tint = if (commentText.isBlank()) Color.Gray else MaterialTheme.colorScheme.primary
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun SaveSection(
+    onAddCollection: () -> Unit = {},
+    vm: ArtistProfileViewModel = hiltViewModel()
+) {
+    LaunchedEffect(Unit) {
+        vm.getFavoritesByUserId("test4")
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Save",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        when (val uiState = vm.favoritesUiState) {
+            is FavoritesUiState.Loading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentSize(Alignment.Center)
+                )
+
+            }
+
+            is FavoritesUiState.Success -> {
+                val favorites by remember { mutableStateOf(uiState.favorites) }
+                LazyVerticalGrid(
+                    userScrollEnabled = true,
+                    modifier = Modifier.fillMaxHeight(),
+                    columns = GridCells.Fixed(3),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)){
+                    item {
+                        Column {
+                            CollectionCard("Add New Collection" , ""){
+                                onAddCollection()
+                            }
+                        }
+                    }
+                    items(favorites) {
+                        Column {
+                            CollectionCard(it.title , ""){
+                                it.id?.let { it1 ->
+                                    vm.saveOnFavorites("1a93e82f-b93f-4944-b1c4-aba3e1970be0" ,
+                                        it1
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            is FavoritesUiState.Error -> {
+                ErrorScreen(
+                    message = uiState.message,
+                    onRetry = { vm.refreshComments("4bfde960-4807-421e-b11b-7f5472e848ea") }
+                )
+            }
+        }
+    }
+}
+@Composable
+fun CollectionCard(
+    title: String,
+    imageUrl: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(160.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp,
+            pressedElevation = 8.dp
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(onClick = onClick)
+        ) {
+            // Background Image
+            AsyncImage(
+                model = imageUrl,
+                error = painterResource(id = R.drawable.ic_add),
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Gradient Overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.7f)
+                            )
+                        )
+                    )
+            )
+
+            // Title and Additional Info
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.BottomStart
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
@@ -559,3 +865,8 @@ private fun ArtworkPreview() {
         ArtworkDetailScreen("4bfde960-4807-421e-b11b-7f5472e848ea")
     }
 }
+
+
+
+// fav save not working
+// get fav is not updated after adding new

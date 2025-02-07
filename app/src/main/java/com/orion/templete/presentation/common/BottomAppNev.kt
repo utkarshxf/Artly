@@ -1,6 +1,8 @@
 package com.orion.templete.presentation.common
 
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +40,7 @@ import com.orion.templete.presentation.ui.theme.ButtonHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
 import com.orion.templete.presentation.upload.UploadScreen
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomAppNev(

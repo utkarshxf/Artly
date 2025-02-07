@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
+import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.ResponseStates
@@ -50,6 +51,12 @@ class ArtistProfileViewModel @Inject constructor(
         private set
 
     var artWorksUiState by mutableStateOf<ArtWorksUiState>(ArtWorksUiState.Loading)
+        private set
+
+    var favoritesUiState by mutableStateOf<FavoritesUiState>(FavoritesUiState.Loading)
+        private set
+
+    var createFavoritesUiState by mutableStateOf<CreateFavoritesUiState>(CreateFavoritesUiState.Loading)
         private set
 
 
@@ -143,14 +150,41 @@ class ArtistProfileViewModel @Inject constructor(
         }
     }
 
-    //save to fav
-    fun saveOnFavorites(userId: String, artworkId: String) {
+    fun getFavoritesByUserId(userId: String){
         viewModelScope.launch {
-            userRepository.saveOnFavorites(userId, artworkId).collect { response ->
+            userRepository.getAllFavorites(userId).collect { response ->
+                favoritesUiState = when (response) {
+                    is ResponseStates.Loading -> FavoritesUiState.Loading
+                    is ResponseStates.Success -> FavoritesUiState.Success(response.data)
+                    is ResponseStates.Error -> FavoritesUiState.Error(response.error)
+                }
+            }
+        }
+    }
+
+    //save to fav
+    fun saveOnFavorites(favoritesId: String, artworkId: String) {
+        viewModelScope.launch {
+            userRepository.saveOnFavorites(favoritesId, artworkId).collect { response ->
                 addToFavoritesUiState = when (response) {
                     is ResponseStates.Loading -> AddToFavoritesUiState.Loading
                     is ResponseStates.Success -> AddToFavoritesUiState.Success(response.data)
                     is ResponseStates.Error -> AddToFavoritesUiState.Error(response.error)
+                }
+            }
+        }
+    }
+
+    fun createNewFavorites(userId: String, favorites: favoritesDTO) {
+        viewModelScope.launch {
+            userRepository.createNewFavorites(userId, favorites).collect { response ->
+                createFavoritesUiState = when (response) {
+                    is ResponseStates.Loading -> CreateFavoritesUiState.Loading
+                    is ResponseStates.Success -> {
+                        getFavoritesByUserId(userId)
+                        CreateFavoritesUiState.Success(response.data)
+                    }
+                    is ResponseStates.Error -> CreateFavoritesUiState.Error(response.error)
                 }
             }
         }
@@ -233,3 +267,14 @@ sealed interface ArtWorksUiState {
     data class Error(val message: String) : ArtWorksUiState
 }
 
+sealed interface FavoritesUiState {
+    object Loading : FavoritesUiState
+    data class Success(val favorites: List<favoritesDTO>) : FavoritesUiState
+    data class Error(val message: String) : FavoritesUiState
+}
+
+sealed interface CreateFavoritesUiState {
+    object Loading : CreateFavoritesUiState
+    data class Success(val favorite: favoritesDTO) : CreateFavoritesUiState
+    data class Error(val message: String) : CreateFavoritesUiState
+}

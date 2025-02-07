@@ -6,6 +6,7 @@ import com.flashcall.me.data.local.dao.UserDao
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
+import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.data.network.ApiService
@@ -152,14 +153,17 @@ class UserRepositoryImplementation @Inject constructor(
     }
 
     override suspend fun saveOnFavorites(
-        userId: String,
+        favoritesId: String,
         artworkId: String
     ): Flow<ResponseStates<Unit>>  = flow  {
         emit(ResponseStates.Loading)
         try {
-            val response = safeApiRequest { apiService.saveOnFavorites(userId , artworkId) }
+            Log.d("Exception" , favoritesId)
+            Log.d("Exception" , artworkId)
+            val response = safeApiRequest { apiService.saveOnFavorites(favoritesId , artworkId) }
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
+            Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
     }
@@ -168,6 +172,29 @@ class UserRepositoryImplementation @Inject constructor(
         emit(ResponseStates.Loading)
         try {
             val response = safeApiRequest { apiService.getArtistArtworks(userId , artistId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getAllFavorites(userId: String): Flow<ResponseStates<List<favoritesDTO>>> = flow{
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getFavoritesByUserId(userId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun createNewFavorites(
+        userId: String,
+        favorites: favoritesDTO
+    ): Flow<ResponseStates<favoritesDTO>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.createNewFavorites(userId , favorites) }
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))

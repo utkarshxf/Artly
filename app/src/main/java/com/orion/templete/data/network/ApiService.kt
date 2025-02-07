@@ -5,6 +5,7 @@ import com.orion.templete.data.model.artist_model.SearchArtistResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
+import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
@@ -93,9 +94,9 @@ interface ApiService {
     /**
      * Save artwork to favorites
      */
-    @PUT("/favorites/{userId}/artwork/{artworkId}/add-artwork")
+    @PUT("/favorites/artwork/add-artwork/{id}/{artworkId}")
     suspend fun saveOnFavorites(
-        @Path("userId") userId: String,
+        @Path("id") id: String,
         @Path("artworkId") artworkId: String
     ): Response<Unit>
 
@@ -113,6 +114,17 @@ interface ApiService {
         @Path("userId") userId: String,
         @Path("artworkId") artworkId: String
     ): Response<ArtworkDTO>
+
+    @GET("favorites/user/{userId}")
+    suspend fun getFavoritesByUserId(
+        @Path("userId") userId: String
+    ): Response<List<favoritesDTO>>
+
+    @POST("favorites/user/{userId}")
+    suspend fun createNewFavorites(
+        @Path("userId") userId: String,
+        @Body favorites: favoritesDTO
+    ): Response<favoritesDTO>
 
 
     companion object {
