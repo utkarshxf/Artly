@@ -314,8 +314,6 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
     }
     if(showCreateNewCollection) {
         BottomSheet(
-            skipPartiallyExpanded = true,
-            isDraggable = false,
             onDismiss = { showCreateNewCollection = false }
         ) {
             CreateNewCollection(artworkDetailsDTO.imageUrl , onSubmit = {
@@ -578,9 +576,7 @@ fun SaveSection(
                         Column {
                             CollectionCard(it.title , ""){
                                 it.id?.let { it1 ->
-                                    vm.saveOnFavorites("1a93e82f-b93f-4944-b1c4-aba3e1970be0" ,
-                                        it1
-                                    )
+                                    vm.saveOnFavorites(favoritesId = it1 , artworkId = "82f64100-ef66-467d-927f-d0ded483e24a" )
                                 }
                             }
                         }

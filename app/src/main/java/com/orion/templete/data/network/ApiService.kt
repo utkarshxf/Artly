@@ -129,6 +129,7 @@ interface ApiService {
 
     companion object {
         var baseurl = "https://backend-art.onrender.com"
+//        var baseurl = "http://10.0.2.2:7040"
     }
     //this is the change before commit to new branch
 }

@@ -1,6 +1,5 @@
 package com.orion.templete.presentation.profile
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,61 +22,104 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.common.ErrorScreen
+import com.orion.templete.presentation.profile.common.DrawerContent
 import com.orion.templete.presentation.ui.theme.TempleteTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(viewModel: ProfileScreenViewModel = hiltViewModel()) {
-    when (val uiState = viewModel.userData) {
-        is ProfileScreenUiState.Loading -> {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .wrapContentSize(Alignment.Center)
-            )
-        }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-        is ProfileScreenUiState.Success -> {
-            ProfileContent(user = uiState.user)
-        }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    ModalDrawerSheet(
+                        drawerContainerColor = MaterialTheme.colorScheme.background,
+                        windowInsets = WindowInsets(0)
+                    ) {
+                        DrawerContent(
+                            onClose = {
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                    }
+                }
+            }
+        ) {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                when (val uiState = viewModel.userData) {
+                    is ProfileScreenUiState.Loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .wrapContentSize(Alignment.Center)
+                        )
+                    }
 
-        is ProfileScreenUiState.Error -> {
-            ErrorScreen(message = uiState.message, onRetry = { viewModel.refreshProfile("test4") })
+                    is ProfileScreenUiState.Success -> {
+                        ProfileContent(user = uiState.user, onMenuClick = {
+                            scope.launch { drawerState.open() }
+                        })
+                    }
+
+                    is ProfileScreenUiState.Error -> {
+                        ErrorScreen(
+                            message = uiState.message,
+                            onRetry = { viewModel.refreshProfile("test4") })
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ProfileContent(user: UserDTO) {
+private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        ProfileHeader(user)
+        ProfileHeader(user , onMenuClick)
         Spacer(modifier = Modifier.height(16.dp))
         StatSection()
         Spacer(modifier = Modifier.height(16.dp))
@@ -95,7 +138,7 @@ private fun ProfileContent(user: UserDTO) {
 }
 
 @Composable
-private fun ProfileHeader(user: UserDTO) {
+private fun ProfileHeader(user: UserDTO, onMenuClick: () -> Unit = {}) {
     Row(
         modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
     ) {
@@ -118,6 +161,13 @@ private fun ProfileHeader(user: UserDTO) {
                 text = "@${user.name.lowercase().replace(" ", "")}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        IconButton(onClick = onMenuClick) {
+            Icon(
+                imageVector = Icons.Default.Menu,
+                contentDescription = "Menu"
             )
         }
     }

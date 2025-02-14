@@ -31,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -170,7 +171,7 @@ fun ArtworkProfileCard(
             .height(150.dp)
             .fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface),
     ) {
         Column(
             modifier = Modifier

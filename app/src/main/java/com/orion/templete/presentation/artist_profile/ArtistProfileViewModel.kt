@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.artist_profile
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -168,8 +169,14 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.saveOnFavorites(favoritesId, artworkId).collect { response ->
                 addToFavoritesUiState = when (response) {
                     is ResponseStates.Loading -> AddToFavoritesUiState.Loading
-                    is ResponseStates.Success -> AddToFavoritesUiState.Success(response.data)
-                    is ResponseStates.Error -> AddToFavoritesUiState.Error(response.error)
+                    is ResponseStates.Success -> {
+                        Log.d("ErrorUser", "saveOnFavorites: ${response.data}")
+                        AddToFavoritesUiState.Success(response.data)
+                    }
+                    is ResponseStates.Error -> {
+                        Log.d("ErrorUser", "saveOnFavorites: ${response.error}")
+                        AddToFavoritesUiState.Error(response.error)
+                    }
                 }
             }
         }
