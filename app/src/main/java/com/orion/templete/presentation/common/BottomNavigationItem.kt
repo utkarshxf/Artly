@@ -17,11 +17,7 @@ data class BottomNavigationItem(
                 route = Screens.Search.route
             ),
             BottomNavigationItem(
-                icon = R.drawable.ic_add,
-                route = Screens.Upload.route
-            ),
-            BottomNavigationItem(
-                icon = R.drawable.ic_profile,
+                icon = R.drawable.user,
                 route = Screens.Profile.route
             )
         )

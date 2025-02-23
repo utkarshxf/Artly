@@ -14,8 +14,12 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,10 +34,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.orion.templete.R
+import com.orion.templete.presentation.common.Screens
 
 @Composable
-fun DrawerContent(onClose: () -> Unit) {
+fun DrawerContent(navController: NavController , onClose: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -72,21 +78,53 @@ fun DrawerContent(onClose: () -> Unit) {
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
         // Menu items
+
+
+
+        NavigationDrawerItem(colors = drawerItemColor,icon = { Icon(painterResource(id =R.drawable.ic_save), contentDescription = null) },
+            label = { Text("Favorites") },
+            selected = false,
+            onClick = {
+                navController.navigate(Screens.FavoritesScreen.route)
+            })
+        NavigationDrawerItem(colors = drawerItemColor,icon = { Icon(painterResource(id =R.drawable.ic_add), contentDescription = null) },
+            label = { Text("Custom Print") },
+            selected = false,
+            onClick = {
+                navController.navigate(Screens.Upload.route)
+            })
+
+        NavigationDrawerItem(
+            colors = drawerItemColor,
+            icon = { Icon(Icons.Default.ShoppingCart, contentDescription = null) },
+            label = { Text("Cart") },
+            selected = false,
+            onClick = { navController.navigate(Screens.Cart.route) }
+        )
+
+        // Your Orders
+        NavigationDrawerItem(
+            colors = drawerItemColor,
+            icon = { Icon(Icons.Default.List, contentDescription = null) },
+            label = { Text("Your Orders") },
+            selected = false,
+            onClick = { navController.navigate(Screens.YourOrder.route) }
+        )
+
+        // Shipping Address
+        NavigationDrawerItem(
+            colors = drawerItemColor,
+            icon = { Icon(Icons.Default.Home, contentDescription = null) },
+            label = { Text("Shipping Address") },
+            selected = false,
+            onClick = { navController.navigate(Screens.InAppShippingAddressScreen.route) }
+        )
+
         NavigationDrawerItem(colors = drawerItemColor,icon = { Icon(Icons.Default.Settings, contentDescription = null) },
             label = { Text("Settings") },
             selected = false,
-            onClick = { /* Handle click */ })
+            onClick = { navController.navigate(Screens.SettingsScreen.route)})
 
-        NavigationDrawerItem(colors = drawerItemColor,
-            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-            label = { Text("Profile") },
-            selected = false,
-            onClick = { /* Handle click */ })
-
-        NavigationDrawerItem(colors = drawerItemColor,icon = { Icon(Icons.Default.Favorite, contentDescription = null) },
-            label = { Text("Favorites") },
-            selected = false,
-            onClick = { /* Handle click */ })
 
         // Add logout at bottom
         Spacer(modifier = Modifier.weight(1f))

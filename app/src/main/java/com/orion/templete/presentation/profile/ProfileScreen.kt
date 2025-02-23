@@ -2,6 +2,7 @@ package com.orion.templete.presentation.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,21 +50,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.common.ErrorScreen
+import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.profile.common.DrawerContent
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import kotlinx.coroutines.launch
 
 @Composable
-fun ProfileScreen(viewModel: ProfileScreenViewModel = hiltViewModel()) {
+fun ProfileScreen(navController: NavController , viewModel: ProfileScreenViewModel = hiltViewModel()) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -77,6 +81,7 @@ fun ProfileScreen(viewModel: ProfileScreenViewModel = hiltViewModel()) {
                         windowInsets = WindowInsets(0)
                     ) {
                         DrawerContent(
+                            navController = navController,
                             onClose = {
                                 scope.launch { drawerState.close() }
                             }
@@ -96,9 +101,11 @@ fun ProfileScreen(viewModel: ProfileScreenViewModel = hiltViewModel()) {
                     }
 
                     is ProfileScreenUiState.Success -> {
-                        ProfileContent(user = uiState.user, onMenuClick = {
-                            scope.launch { drawerState.open() }
-                        })
+                        ProfileContent(
+                            user = uiState.user,
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            onClick = { navController.navigate(Screens.UserEditScreen.route) }
+                        )
                     }
 
                     is ProfileScreenUiState.Error -> {
@@ -113,7 +120,7 @@ fun ProfileScreen(viewModel: ProfileScreenViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit) {
+private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -131,7 +138,7 @@ private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit) {
             followedBy = listOf("artlover", "gallery123")
         )
         Spacer(modifier = Modifier.height(16.dp))
-        ButtonSection()
+        ButtonSection(onClick = onClick)
         Spacer(modifier = Modifier.height(24.dp))
         ArtworkTabs(user)
     }
@@ -251,9 +258,8 @@ private fun ProfileDescriptionSection(
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-private fun ButtonSection() {
+private fun ButtonSection(onClick: () -> Unit) {
     TempleteTheme {
         Row(
             modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -262,7 +268,7 @@ private fun ButtonSection() {
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-
+                    .clickable { onClick() }
                     .background(
                         color = Color.Transparent, shape = RoundedCornerShape(10.dp)
                     )
@@ -329,14 +335,4 @@ private fun ArtworkGrid(isPosted: Boolean) {
             )
         }
     }
-}
-
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-private fun prev() {
-    TempleteTheme(darkTheme = true) {
-        ProfileScreen()
-    }
-
 }

@@ -1,5 +1,7 @@
 package com.orion.templete
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,6 +13,7 @@ import com.orion.templete.presentation.auth.signup.Signup
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.user_register.UserRegisterScreen
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Navigation(startDest :String) {
     val navController = rememberNavController()
@@ -36,5 +39,6 @@ fun Navigation(startDest :String) {
                 }
             })
         }
+
     }
 }
