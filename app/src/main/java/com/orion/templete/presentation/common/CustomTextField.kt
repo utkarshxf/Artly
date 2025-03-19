@@ -52,6 +52,11 @@ fun CustomTextField(
         keyboardOptions = KeyboardOptions.Default.copy(
             keyboardType = keyboardType
         ),
+        prefix = {
+            if (keyboardType == KeyboardType.Phone){
+                Text(text = "+91 -  ", style = MaterialTheme.typography.bodyMedium)
+            }
+        },
         singleLine = isSingleLine,
         colors = TextFieldDefaults.textFieldColors(
             containerColor = if (isSystemInDarkTheme()){

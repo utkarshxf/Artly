@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import com.orion.templete.data.local.AppDatabase
 import com.flashcall.me.data.local.dao.UserDao
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
 import com.orion.templete.data.repository.ArtistRepositoryImplementation
@@ -49,6 +52,13 @@ object  AppModule {
             }
             .build()
     }
+
+    @Provides
+    @Singleton
+    fun providesFirebaseAuth(): FirebaseAuth {
+        return Firebase.auth
+    }
+
     @Provides
     @Singleton
     fun provideApiService(okHttpClient: OkHttpClient): ApiService {
@@ -79,9 +89,13 @@ object  AppModule {
     @Provides
     fun provideUserRepository(
         apiService: ApiService,
+        firebaseAuth: FirebaseAuth,
+        @ApplicationContext context: Context
     ): LoginRepository {
         return LoginRepositoryImplementation(
             apiService = apiService,
+            db = firebaseAuth,
+            context = context
         )
     }
     @Provides

@@ -22,17 +22,16 @@ class ProfileScreenViewModel @Inject constructor(
     // Initialize with Loading state instead of null
     var userData by mutableStateOf<ProfileScreenUiState>(ProfileScreenUiState.Loading)
         private set
-
+    val currentUserId = secureStorage.getUserDetails()?.id
     init {
-        getUserProfile("test4")
-//        secureStorage.getUserId()?.let {
-//            getUserProfile(it)
-//        }
+        currentUserId?.let {
+            getUserProfile(currentUserId)
+        }
     }
 
     private fun getUserProfile(userId: String) {
         viewModelScope.launch {
-            userRepository.getUserByUserId(userId , userId)
+            userRepository.getUserByUserId(userId)
                 .collect { response ->
                     userData = when (response) {
                         is ResponseStates.Loading -> ProfileScreenUiState.Loading
@@ -43,8 +42,10 @@ class ProfileScreenViewModel @Inject constructor(
         }
     }
 
-    fun refreshProfile(userId: String) {
-        getUserProfile(userId)
+    fun refreshProfile() {
+        if (currentUserId != null) {
+            getUserProfile(currentUserId)
+        }
     }
 }
 

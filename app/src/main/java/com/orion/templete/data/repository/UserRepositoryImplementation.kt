@@ -3,6 +3,7 @@ package com.orion.templete.data.repository
 import android.content.Context
 import android.util.Log
 import com.flashcall.me.data.local.dao.UserDao
+import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
@@ -24,7 +25,7 @@ class UserRepositoryImplementation @Inject constructor(
     private val userDao: UserDao,
     private val context: Context
 ) : UserRepository, SafeApiRequest() {
-    override suspend fun getUserByUserId(userId: String , currentUserId:String): Flow<ResponseStates<UserDTO>> {
+    override suspend fun getUserByUserId(userId: String): Flow<ResponseStates<UserDTO>> {
         return flow {
             emit(ResponseStates.Loading)
             try {
@@ -33,7 +34,7 @@ class UserRepositoryImplementation @Inject constructor(
 //                    emit(ResponseStates.Success(cachedResponse))
 //                }
                 if (isNetworkAvailable(context)) {
-                    val response = safeApiRequest { apiService.getUserByUserId(userId , currentUserId) }
+                    val response = safeApiRequest { apiService.getUserByUserId(userId) }
 //                    withContext(Dispatchers.IO) {
 //                        userDao.insertUser(response.toEntity())
 //                    }
@@ -51,11 +52,41 @@ class UserRepositoryImplementation @Inject constructor(
         }
     }
 
+    override suspend fun getArtistByArtistId(
+        artistId: String,
+        currentUserId: String
+    ): Flow<ResponseStates<ArtistDTO>> {
+        return flow {
+            emit(ResponseStates.Loading)
+            try {
+//                userDao.getUserById(userId)?.let { cachedUser ->
+//                    val cachedResponse = cachedUser.toDto()
+//                    emit(ResponseStates.Success(cachedResponse))
+//                }
+                if (isNetworkAvailable(context)) {
+                    val response = safeApiRequest { apiService.getArtistByArtistId(currentUserId , artistId) }
+//                    withContext(Dispatchers.IO) {
+//                        userDao.insertUser(response.toEntity())
+//                    }
+                    emit(ResponseStates.Success(response))
+                } else if (!isNetworkAvailable(context) && userDao.getUserById(artistId) == null) {
+                    emit(ResponseStates.Error("No internet connection and no cached data available"))
+                }
+            } catch (e: Exception) {
+                Log.d("Exception" , "Exception")
+                emit(ResponseStates.Error(e.message ?: "Unknown Error Occurred"))
+            }
+        }.catch { e ->
+            Log.d("Exception" , "Exception")
+            emit(ResponseStates.Error(e.message ?: "Error in Flow"))
+        }
+    }
+
     override suspend fun createUser(request: UserDetails): Flow<ResponseStates<UserDetails>> = flow {
         emit(ResponseStates.Loading)
         try {
             val temp = UserDetails(
-                artist = true,
+                artist = false,
                 id = "string1",
                 name = "string1",
                 profilePicture = "string1",
@@ -64,7 +95,8 @@ class UserRepositoryImplementation @Inject constructor(
                 language = "string",
                 countryIso2 = "string"
             )
-            val response = safeApiRequest { apiService.createUser(temp) }
+            Log.d("Exception" , request.toString())
+            val response = safeApiRequest { apiService.createUser(request) }
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -152,21 +184,7 @@ class UserRepositoryImplementation @Inject constructor(
         }
     }
 
-    override suspend fun saveOnFavorites(
-        favoritesId: String,
-        artworkId: String
-    ): Flow<ResponseStates<Unit>>  = flow  {
-        emit(ResponseStates.Loading)
-        try {
-            Log.d("Exception" , favoritesId)
-            Log.d("Exception" , artworkId)
-            val response = safeApiRequest { apiService.saveOnFavorites(favoritesId , artworkId) }
-            emit(ResponseStates.Success(response))
-        } catch (e: Exception) {
-            Log.d("Exception" , e.message.toString())
-            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
-        }
-    }
+
 
     override suspend fun getArtistArtworks( userId: String , artistId:String): Flow<ResponseStates<List<ArtworkDTO>>>  = flow  {
         emit(ResponseStates.Loading)
@@ -174,31 +192,8 @@ class UserRepositoryImplementation @Inject constructor(
             val response = safeApiRequest { apiService.getArtistArtworks(userId , artistId) }
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
+            Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
     }
-
-    override suspend fun getAllFavorites(userId: String): Flow<ResponseStates<List<favoritesDTO>>> = flow{
-        emit(ResponseStates.Loading)
-        try {
-            val response = safeApiRequest { apiService.getFavoritesByUserId(userId) }
-            emit(ResponseStates.Success(response))
-        } catch (e: Exception) {
-            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
-        }
-    }
-
-    override suspend fun createNewFavorites(
-        userId: String,
-        favorites: favoritesDTO
-    ): Flow<ResponseStates<favoritesDTO>> = flow {
-        emit(ResponseStates.Loading)
-        try {
-            val response = safeApiRequest { apiService.createNewFavorites(userId , favorites) }
-            emit(ResponseStates.Success(response))
-        } catch (e: Exception) {
-            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
-        }
-    }
-
 }

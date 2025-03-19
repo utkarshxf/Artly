@@ -29,7 +29,11 @@ fun UserSearchCard(
             .fillMaxWidth()
             .padding(8.dp)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
         shape = MaterialTheme.shapes.medium
     ) {
         Row(
@@ -54,12 +58,13 @@ fun UserSearchCard(
             Column {
                 Text(
                     text = username,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "ID: $userId",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "@$userId",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

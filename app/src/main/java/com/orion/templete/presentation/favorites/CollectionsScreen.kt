@@ -9,39 +9,51 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.orion.templete.data.model.favorits.favoritesDTO
+import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.ui.theme.TempleteTheme
-
-data class Collection(
-    val id: String,
-    val name: String,
-    val items: Int = 0
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionsScreen(
-    collections: List<Collection>,
-    onBackClick: () -> Unit,
-    onAddClick: () -> Unit,
-    onCollectionClick: (Collection) -> Unit,
+    navController: NavController,
+    viewModel: CollectionViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
+    val favoritesUiState = viewModel.favoritesUiState
+    var addCollectionDialog by remember { mutableStateOf(false) }
+    // Remember to fetch the favorites when the screen launches
+    LaunchedEffect(key1 = Unit) {
+        viewModel.getFavoritesByUserId()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Collections") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(
+                        onClick = {navController.popBackStack()}
+                    ) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = onAddClick) {
+                    IconButton(onClick = {
+                        addCollectionDialog = !addCollectionDialog
+                    }) {
                         Icon(Icons.Default.Add, contentDescription = "Add collection")
                     }
                 },
@@ -53,29 +65,214 @@ fun CollectionsScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            items(collections) { collection ->
-                CollectionCard(
-                    collection = collection,
-                    onClick = { onCollectionClick(collection) }
-                )
+            when (favoritesUiState) {
+                is FavoritesUiState.Loading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                is FavoritesUiState.Success -> {
+                    if (favoritesUiState.favorites.isEmpty()) {
+                        EmptyCollectionsState(
+                            onCreateCollection = {
+                                addCollectionDialog = !addCollectionDialog
+                            },
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(favoritesUiState.favorites) { collection ->
+                                CollectionCard(
+                                    collection = collection,
+                                    onClick = {
+                                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "collectionId", value = collection.id)
+                                        navController.navigate(Screens.CollectionArtworksScreen.route)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                is FavoritesUiState.Error -> {
+                    ErrorState(
+                        message = favoritesUiState.message,
+                        onRetry = { viewModel.getFavoritesByUserId() },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
             }
+        }
+    }
+    if (addCollectionDialog){
+        var isCreating by remember {
+            mutableStateOf(false)
+        }
+        isCreating = when(viewModel.createFavoritesUiState){
+            is CreateFavoritesUiState.Error -> false
+            is CreateFavoritesUiState.Loading -> true
+            is CreateFavoritesUiState.Ideal -> false
+            is CreateFavoritesUiState.Success -> false
+        }
+        AddCollectionDialog(
+            onDismiss = {
+                addCollectionDialog = !addCollectionDialog
+            },
+            onCreateCollection = {
+                viewModel.createNewFavorites(it)
+            },
+            isCreating = isCreating,
+        )
+    }
+}
+@Composable
+fun AddCollectionDialog(
+    onDismiss: () -> Unit,
+    onCreateCollection: (favoritesDTO) -> Unit,
+    isCreating: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Create New Collection") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5
+                )
+
+                if (isCreating) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (title.isNotBlank()) {
+                        onCreateCollection(
+                            favoritesDTO(
+                                title = title,
+                                description = description
+                            )
+                        )
+                        onDismiss()
+                    }
+                },
+                enabled = title.isNotBlank() && !isCreating
+            ) {
+                Text("Create")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        modifier = modifier
+    )
+}
+@Composable
+private fun ErrorState(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Something went wrong",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Text("Retry")
         }
     }
 }
 
+@Composable
+private fun EmptyCollectionsState(
+    onCreateCollection: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "No collections yet",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Create your first collection to save artwork",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onCreateCollection) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Create Collection")
+        }
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CollectionCard(
-    collection: Collection,
+    collection: favoritesDTO,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -99,7 +296,7 @@ private fun CollectionCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = collection.name,
+                    text = collection.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -107,42 +304,11 @@ private fun CollectionCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${collection.items} items",
+                    text = collection.description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
         }
-    }
-}
-
-// Theme setup for dark mode
-@Composable
-fun ModernCollectionsTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(),
-        content = content
-    )
-}
-
-@Preview
-@Composable
-private fun CollectionsScreenPreview() {
-    val sampleCollections = listOf(
-        Collection("1", "Favorites", 12),
-        Collection("2", "Watch Later", 5),
-        Collection("3", "Reading List", 8),
-        Collection("4", "Shopping List", 3),
-        Collection("5", "Travel Plans", 6),
-        Collection("6", "Music", 15)
-    )
-
-    TempleteTheme {
-        CollectionsScreen(
-            collections = sampleCollections,
-            onBackClick = {},
-            onAddClick = {},
-            onCollectionClick = {}
-        )
     }
 }

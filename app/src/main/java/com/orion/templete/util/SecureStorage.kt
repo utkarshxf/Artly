@@ -3,6 +3,7 @@ package com.orion.templete.util
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.orion.templete.data.model.user_model.UserDetails
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -35,5 +36,38 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
     }
     fun getUserId(): String? {
         return sharedPreferences.getString("userID", null)
+    }
+
+    fun saveUserDetails(userDetails: UserDetails) {
+        with(sharedPreferences.edit()) {
+            putString(PreferencesKey.UserId.key, userDetails.id)
+            putString(PreferencesKey.UserName.key, userDetails.name)
+            putString(PreferencesKey.UserDob.key, userDetails.dob)
+            putString(PreferencesKey.UserGender.key, userDetails.gender)
+            putString(PreferencesKey.UserLanguage.key, userDetails.language)
+            putString(PreferencesKey.UserCountryIso2.key, userDetails.countryIso2)
+            putBoolean(PreferencesKey.UserIsArtist.key, userDetails.artist)
+            userDetails.profilePicture?.let { profilePic ->
+                putString(PreferencesKey.UserProfilePicture.key, profilePic)
+            }
+            apply()
+        }
+    }
+    fun getUserDetails(): UserDetails? {
+        val userId = sharedPreferences.getString(PreferencesKey.UserId.key, null) ?: return null
+
+        return UserDetails(
+            id = userId,
+            name = sharedPreferences.getString(PreferencesKey.UserName.key, "") ?: "",
+            dob = sharedPreferences.getString(PreferencesKey.UserDob.key, "") ?: "",
+            gender = sharedPreferences.getString(PreferencesKey.UserGender.key, "") ?: "",
+            language = sharedPreferences.getString(PreferencesKey.UserLanguage.key, "") ?: "",
+            countryIso2 = sharedPreferences.getString(PreferencesKey.UserCountryIso2.key, "") ?: "",
+            artist = sharedPreferences.getBoolean(PreferencesKey.UserIsArtist.key, false),
+            profilePicture = sharedPreferences.getString(PreferencesKey.UserProfilePicture.key, null)
+        )
+    }
+    fun clearSharedPref(){
+        sharedPreferences.edit().clear().apply()
     }
 }

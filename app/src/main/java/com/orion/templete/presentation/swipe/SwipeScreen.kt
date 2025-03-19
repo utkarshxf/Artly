@@ -31,7 +31,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +41,10 @@ import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.swipe.components.Direction
 import com.orion.templete.presentation.swipe.components.rememberSwipeableCardState
 import com.orion.templete.presentation.swipe.components.swipableCard
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.border
+import androidx.compose.runtime.*
+import com.orion.templete.util.extractYear
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,6 +82,7 @@ private fun HeaderRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         AppIcon(icon = R.drawable.artistry, tint = MaterialTheme.colorScheme.primary)
+//        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -129,8 +133,7 @@ fun SwipeCard(
                                     if (state.swipedDirection == Direction.Right) {
                                         Log.d("Swappable-Card", "Swiped ${state.swipedDirection}")
                                         swipeScreenViewModel.likeArtwork(
-                                            artwork?.id.toString(),
-                                            "1"
+                                            artwork?.id.toString()
                                         )
                                     }
                                     currentIndex++
@@ -150,7 +153,7 @@ fun SwipeCard(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.BottomCenter
                         ) {
-                            ArtworkProfileCard(artwork.name, artwork.type, artwork.storageType, artwork.releasedDate)
+                            ArtworkProfileCard(artwork)
                         }
                     }
                 }
@@ -160,18 +163,25 @@ fun SwipeCard(
 }
 
 @Composable
-fun ArtworkProfileCard(
-    name: String?,
-    artistName: String?,
-    artworkGenre: String?,
-    releasedDate: String?
-) {
+fun ArtworkProfileCard(artwork: ArtworkDTO) {
+    // State for expanded/collapsed state
+    var isExpanded by remember { mutableStateOf(false) }
+    // Configure animation specs
+    val cardHeight by animateDpAsState(
+        targetValue = if (isExpanded) 300.dp else 150.dp,
+        label = "cardHeight"
+    )
+
     Card(
         modifier = Modifier
-            .height(150.dp)
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface),
+            .height(cardHeight)
+            .fillMaxWidth()
+            .clickable { isExpanded = !isExpanded },
+        shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
     ) {
         Column(
             modifier = Modifier
@@ -181,23 +191,26 @@ fun ArtworkProfileCard(
         ) {
             Row {
                 // Artwork Name
-                Text(
-                    text = name ?: "No name",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                artwork.title?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.weight(1f))
-                AppIcon(icon = R.drawable.ic_logo_no_bacground , tint = MaterialTheme.colorScheme.onPrimary , modifier = Modifier.size(40.dp))
+                AppIcon(icon = R.drawable.ic_logo_no_bacground, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
             }
 
-
             // Artist Name
-            Text(
-                text = artistName ?: "Unknown Artist",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
+            artwork.artist?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -205,14 +218,28 @@ fun ArtworkProfileCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                artwork.artMovement?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                extractYear(artwork.releasedDate)?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            // Expanded content that only shows when expanded
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = artworkGenre ?: "Unknown Genre",
-                    style = MaterialTheme.typography.bodySmall
+                    text = artwork.description?: "No description",
+                    style = MaterialTheme.typography.bodyMedium
                 )
-                Text(
-                    text = releasedDate ?: "Unknown Date",
-                    style = MaterialTheme.typography.bodySmall
-                )
+
             }
         }
     }
@@ -232,7 +259,7 @@ private fun ProfileCard(
     ) {
         Image(
             modifier = Modifier.fillMaxSize(),
-            painter = rememberAsyncImagePainter(artwork.imageUrl),
+            painter = rememberAsyncImagePainter(artwork.image_url_compressed),
             contentDescription = null
         )
     }

@@ -2,6 +2,7 @@ package com.orion.templete.usecase
 
 import android.util.Log
 import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
 import com.orion.templete.domain.repository.LoginRepository
@@ -24,7 +25,7 @@ class RegisterUseCase @Inject constructor(
             emit(ResponseStates.Error(e.message ?: "An unknown error occurred"))
         }
     }
-    fun signup(user: User): Flow<ResponseStates<LoginResponseDTO>> = flow {
+    fun signup(user: Registration): Flow<ResponseStates<LoginResponseDTO>> = flow {
         emit(ResponseStates.Loading)
         try {
             emit(ResponseStates.Success(loginRepository.signup(user)))
@@ -33,7 +34,7 @@ class RegisterUseCase @Inject constructor(
         } catch (e: HttpException) {
             emit(ResponseStates.Error("Server error: ${e.message}"))
         } catch (e: Exception) {
-            emit(ResponseStates.Error("An unexpected error occurred: ${e.message}"))
+            emit(ResponseStates.Error("${e.message}"))
         }
     }
 

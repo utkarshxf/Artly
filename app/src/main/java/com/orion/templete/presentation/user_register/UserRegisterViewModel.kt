@@ -30,7 +30,10 @@ class UserRegisterScreenViewModel @Inject constructor(
                 .collect { response ->
                     createUserState = when (response) {
                         is ResponseStates.Loading -> createUserState.copy(isLoading = true)
-                        is ResponseStates.Success -> createUserState.copy(data = response.data)
+                        is ResponseStates.Success -> {
+                            secureStorage.saveUserDetails(response.data)
+                            createUserState.copy(data = response.data)
+                        }
                         is ResponseStates.Error -> createUserState.copy(error = response.error.toString())
                     }
                 }

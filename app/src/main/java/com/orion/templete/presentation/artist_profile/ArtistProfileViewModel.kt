@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
@@ -13,6 +14,7 @@ import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.ResponseStates
+import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,6 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ArtistProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
+    private val secureStorage: SecureStorage
 ) : ViewModel() {
 
     // Initialize with Loading state instead of null
@@ -48,22 +51,16 @@ class ArtistProfileViewModel @Inject constructor(
     )
         private set
 
-    var addToFavoritesUiState by mutableStateOf<AddToFavoritesUiState>(AddToFavoritesUiState.Loading)
-        private set
 
     var artWorksUiState by mutableStateOf<ArtWorksUiState>(ArtWorksUiState.Loading)
         private set
 
-    var favoritesUiState by mutableStateOf<FavoritesUiState>(FavoritesUiState.Loading)
-        private set
-
-    var createFavoritesUiState by mutableStateOf<CreateFavoritesUiState>(CreateFavoritesUiState.Loading)
-        private set
+    val currentUserId = secureStorage.getUserDetails()?.id?.toString() ?: ""
 
 
-    fun getUserProfile(userId: String, currentUserId: String) {
+    fun getUserProfile(userId: String) {
         viewModelScope.launch {
-            userRepository.getUserByUserId(userId, currentUserId).collect { response ->
+            userRepository.getArtistByArtistId(userId, currentUserId).collect { response ->
                 artistProfileScreenUiState = when (response) {
                     is ResponseStates.Loading -> ArtistProfileScreenUiState.Loading
                     is ResponseStates.Success -> ArtistProfileScreenUiState.Success(response.data)
@@ -74,9 +71,9 @@ class ArtistProfileViewModel @Inject constructor(
     }
 
     // follow
-    fun followUser(userId: String, artistId: String) {
+    fun followUser(artistId: String) {
         viewModelScope.launch {
-            userRepository.followUser(userId, artistId).collect { response ->
+            userRepository.followUser(currentUserId, artistId).collect { response ->
                 followArtistUiState = when (response) {
                     is ResponseStates.Loading -> FollowArtistUiState.Loading
                     is ResponseStates.Success -> FollowArtistUiState.Success(response.data)
@@ -87,9 +84,9 @@ class ArtistProfileViewModel @Inject constructor(
     }
 
     // unfollow
-    fun unfollowArtist(userId: String, artistId: String) {
+    fun unfollowArtist( artistId: String) {
         viewModelScope.launch {
-            userRepository.unfollowArtist(userId, artistId).collect { response ->
+            userRepository.unfollowArtist(currentUserId, artistId).collect { response ->
                 unFollowArtistUiState = when (response) {
                     is ResponseStates.Loading -> UnFollowArtistUiState.Loading
                     is ResponseStates.Success -> UnFollowArtistUiState.Success(response.data)
@@ -100,9 +97,9 @@ class ArtistProfileViewModel @Inject constructor(
     }
 
     //like
-    fun likeArtwork(userId: String, artworkId: String) {
+    fun likeArtwork(artworkId: String) {
         viewModelScope.launch {
-            userRepository.likeArtwork(userId, artworkId).collect { response ->
+            userRepository.likeArtwork(currentUserId, artworkId).collect { response ->
                 userLikeArtworkUiState = when (response) {
                     is ResponseStates.Loading -> UserLikeArtistUiState.Loading
                     is ResponseStates.Success -> UserLikeArtistUiState.Success(response.data)
@@ -113,9 +110,9 @@ class ArtistProfileViewModel @Inject constructor(
     }
 
     //unlike
-    fun unLikeArtwork(userId: String, artworkId: String) {
+    fun unLikeArtwork(artworkId: String) {
         viewModelScope.launch {
-            userRepository.unLikeArtwork(userId, artworkId).collect { response ->
+            userRepository.unLikeArtwork(currentUserId, artworkId).collect { response ->
                 userUnLikeArtworkUiState = when (response) {
                     is ResponseStates.Loading -> UserUnLikeArtistUiState.Loading
                     is ResponseStates.Success -> UserUnLikeArtistUiState.Success(response.data)
@@ -126,9 +123,9 @@ class ArtistProfileViewModel @Inject constructor(
     }
 
     //comment
-    fun commentOnArtwork(userId: String, artworkId: String, comment: CommentRequest) {
+    fun commentOnArtwork(artworkId: String, comment: CommentRequest) {
         viewModelScope.launch {
-            userRepository.commentOnArtwork(userId, artworkId, comment).collect { response ->
+            userRepository.commentOnArtwork(currentUserId, artworkId, comment).collect { response ->
                 commentByArtistUiState = when (response) {
                     is ResponseStates.Loading -> CommentByArtistUiState.Loading
                     is ResponseStates.Success -> CommentByArtistUiState.Success(response.data)
@@ -151,56 +148,11 @@ class ArtistProfileViewModel @Inject constructor(
         }
     }
 
-    fun getFavoritesByUserId(userId: String){
-        viewModelScope.launch {
-            userRepository.getAllFavorites(userId).collect { response ->
-                favoritesUiState = when (response) {
-                    is ResponseStates.Loading -> FavoritesUiState.Loading
-                    is ResponseStates.Success -> FavoritesUiState.Success(response.data)
-                    is ResponseStates.Error -> FavoritesUiState.Error(response.error)
-                }
-            }
-        }
-    }
-
-    //save to fav
-    fun saveOnFavorites(favoritesId: String, artworkId: String) {
-        viewModelScope.launch {
-            userRepository.saveOnFavorites(favoritesId, artworkId).collect { response ->
-                addToFavoritesUiState = when (response) {
-                    is ResponseStates.Loading -> AddToFavoritesUiState.Loading
-                    is ResponseStates.Success -> {
-                        Log.d("ErrorUser", "saveOnFavorites: ${response.data}")
-                        AddToFavoritesUiState.Success(response.data)
-                    }
-                    is ResponseStates.Error -> {
-                        Log.d("ErrorUser", "saveOnFavorites: ${response.error}")
-                        AddToFavoritesUiState.Error(response.error)
-                    }
-                }
-            }
-        }
-    }
-
-    fun createNewFavorites(userId: String, favorites: favoritesDTO) {
-        viewModelScope.launch {
-            userRepository.createNewFavorites(userId, favorites).collect { response ->
-                createFavoritesUiState = when (response) {
-                    is ResponseStates.Loading -> CreateFavoritesUiState.Loading
-                    is ResponseStates.Success -> {
-                        getFavoritesByUserId(userId)
-                        CreateFavoritesUiState.Success(response.data)
-                    }
-                    is ResponseStates.Error -> CreateFavoritesUiState.Error(response.error)
-                }
-            }
-        }
-    }
 
     //get list of artwork
-    fun getArtistArtworks(userId: String, artistId: String) {
+    fun getArtistArtworks(artistId: String) {
         viewModelScope.launch {
-            userRepository.getArtistArtworks(userId, artistId).collect { response ->
+            userRepository.getArtistArtworks(currentUserId, artistId).collect { response ->
                 artWorksUiState = when (response) {
                     is ResponseStates.Loading -> ArtWorksUiState.Loading
                     is ResponseStates.Success -> ArtWorksUiState.Success(response.data)
@@ -210,8 +162,8 @@ class ArtistProfileViewModel @Inject constructor(
         }
     }
 
-    fun refreshProfile(userId: String, currentUserId: String) {
-        getUserProfile(userId, currentUserId)
+    fun refreshProfile(userId: String) {
+        getUserProfile(userId)
     }
 
     fun refreshComments(artworkId: String) {
@@ -220,7 +172,7 @@ class ArtistProfileViewModel @Inject constructor(
 }
 sealed interface ArtistProfileScreenUiState {
     object Loading : ArtistProfileScreenUiState
-    data class Success(val user: UserDTO) : ArtistProfileScreenUiState
+    data class Success(val artist: ArtistDTO) : ArtistProfileScreenUiState
     data class Error(val message: String) : ArtistProfileScreenUiState
 }
 
@@ -262,26 +214,8 @@ sealed interface GetCommentsOnArtworkUiState {
     data class Error(val message: String) : GetCommentsOnArtworkUiState
 }
 
-sealed interface AddToFavoritesUiState {
-    object Loading : AddToFavoritesUiState
-    data class Success(val unit: Unit) : AddToFavoritesUiState
-    data class Error(val message: String) : AddToFavoritesUiState
-}
-
 sealed interface ArtWorksUiState {
     object Loading : ArtWorksUiState
     data class Success(val artworks: List<ArtworkDTO>) : ArtWorksUiState
     data class Error(val message: String) : ArtWorksUiState
-}
-
-sealed interface FavoritesUiState {
-    object Loading : FavoritesUiState
-    data class Success(val favorites: List<favoritesDTO>) : FavoritesUiState
-    data class Error(val message: String) : FavoritesUiState
-}
-
-sealed interface CreateFavoritesUiState {
-    object Loading : CreateFavoritesUiState
-    data class Success(val favorite: favoritesDTO) : CreateFavoritesUiState
-    data class Error(val message: String) : CreateFavoritesUiState
 }

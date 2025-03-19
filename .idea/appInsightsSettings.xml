@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.orion.templete" />
+                  <option name="mobileSdkAppId" value="1:1068389652785:android:173c9496c5405ef88bb810" />
+                  <option name="projectId" value="artify-8fb6e" />
+                  <option name="projectNumber" value="1068389652785" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

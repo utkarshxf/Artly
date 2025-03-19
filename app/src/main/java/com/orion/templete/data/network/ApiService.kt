@@ -1,12 +1,15 @@
 package com.orion.templete.data.network
 
 
+import com.google.android.gms.common.internal.safeparcel.SafeParcelable.Param
+import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
 import com.orion.templete.data.model.user_model.UserDTO
@@ -27,7 +30,7 @@ interface ApiService {
     suspend fun loginUser(@Body user: User): retrofit2.Response<LoginResponseDTO>
 
     @POST("signup")
-    suspend fun signup(@Body user: User): retrofit2.Response<LoginResponseDTO>
+    suspend fun signup(@Body user: Registration): retrofit2.Response<LoginResponseDTO>
 
     @POST("check")
     suspend fun verifyUser(@Body token: TokenRequest): retrofit2.Response<Boolean>
@@ -47,8 +50,11 @@ interface ApiService {
         @Query("responseSize") artistId: Int = 18
     ): retrofit2.Response<List<SearchArtistResponse>>
 
-    @GET("/users/getUserByUserId/{userId}/{currentUserId}")
-    suspend fun getUserByUserId(@Path("userId") userId: String , @Path("currentUserId") currentUserId: String): retrofit2.Response<UserDTO>
+    @GET("/users/getUserByUserId/{userId}")
+    suspend fun getUserByUserId(@Path("userId") userId: String): retrofit2.Response<UserDTO>
+
+    @GET("/artist/getArtistByArtistId")
+    suspend fun getArtistByArtistId( @Query("userId") currentUserId: String , @Query("artistId") userId: String): retrofit2.Response<ArtistDTO>
 
     @POST("/users")
     suspend fun createUser(@Body request: UserDetails): Response<UserDetails>
@@ -127,8 +133,40 @@ interface ApiService {
     ): Response<favoritesDTO>
 
 
+    @GET("artwork/popular")
+    suspend fun getPopularArtworks(
+        @Query("userId") userId: String,
+        @Query("skip") skip: Int = 0,
+        @Query("limit") limit: Int = 4
+    ): Response<List<ArtworkDTO>>
+
+    @GET("artwork/new-arrivals")
+    suspend fun getNewArtworks(
+        @Query("userId") userId: String,
+        @Query("skip") skip: Int = 0,
+        @Query("limit") limit: Int = 4
+    ): Response<List<ArtworkDTO>>
+
+
+    @GET("artwork/recommended-today")
+    suspend fun getRecommendedForToday(
+        @Query("userId") userId: String,
+        @Query("skip") skip: Int = 0,
+        @Query("limit") limit: Int = 4
+    ): Response<List<ArtworkDTO>>
+
+    @GET("artwork/today-biggest-hit")
+    suspend fun getTodayBiggestHit(
+    ): Response<ArtworkDTO>
+
+    @GET("favorites/artworks/{favoriteId}")
+    suspend fun getArtworkByFavoriteId(
+        @Path("favoriteId") favoriteId: String
+    ): Response<List<ArtworkDTO>>
+
+
     companion object {
-        var baseurl = "https://backend-art.onrender.com"
+        var baseurl = "https://backendart-production.up.railway.app"
 //        var baseurl = "http://10.0.2.2:7040"
     }
     //this is the change before commit to new branch

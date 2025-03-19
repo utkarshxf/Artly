@@ -1,7 +1,11 @@
 package com.orion.templete.presentation.artwork_detail
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.util.Log
+import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
@@ -19,7 +23,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -54,6 +57,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -77,6 +81,7 @@ import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -86,43 +91,50 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
+import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
-import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
-import com.orion.templete.presentation.artist_profile.FavoritesUiState
 import com.orion.templete.presentation.artist_profile.GetCommentsOnArtworkUiState
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.ProfileHeader
+import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.components.GenreSection
+import com.orion.templete.presentation.favorites.AddToFavoritesUiState
+import com.orion.templete.presentation.favorites.CollectionViewModel
+import com.orion.templete.presentation.favorites.FavoritesUiState
 import com.orion.templete.presentation.search.dummyArtworks
 import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
 import com.orion.templete.presentation.ui.theme.SmallSize
-import com.orion.templete.presentation.ui.theme.TempleteTheme
+import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.extractYear
+import com.orion.templete.util.getSourceUrlSiteName
 import kotlin.math.max
 import kotlin.math.min
 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = hiltViewModel()) {
+fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewModel: ArtworkDetailViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
-        viewModel.getArtworkById("test4" ,artworkId)
+
+        viewModel.getArtworkById(artworkId)
     }
     when (val uiState = viewModel.artworkDetailScreenUiState) {
         is ArtworkDetailScreenUiState.Loading -> {
@@ -134,13 +146,14 @@ fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = h
         }
 
         is ArtworkDetailScreenUiState.Success -> {
-            ArtworkDetailContent(uiState.artwork)
+            ArtworkDetailContent(uiState.artwork , navController)
+            Log.d("qwerty" , uiState.artwork.toString())
         }
 
         is ArtworkDetailScreenUiState.Error -> {
             ErrorScreen(
                 message = uiState.message,
-                onRetry = { viewModel.refreshArtwork("test4" ,artworkId) }
+                onRetry = { viewModel.refreshArtwork(artworkId) }
             )
         }
     }
@@ -149,11 +162,11 @@ fun ArtworkDetailScreen(artworkId:String , viewModel: ArtworkDetailViewModel = h
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO) {
+fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavController) {
     val scrollState = rememberLazyListState()
     var isLiked = remember { mutableStateOf(artworkDetailsDTO.liked) }
     Box {
-        Details(artworkDetailsDTO, scrollState , isLiked)
+        Details(artworkDetailsDTO, scrollState , isLiked , navController)
         ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked)
     }
 }
@@ -163,7 +176,8 @@ fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO) {
 private fun Details(
     artworkDetailsDTO: ArtworkDTO,
     scrollState: LazyListState,
-    isLiked: MutableState<Boolean?>
+    isLiked: MutableState<Boolean?>,
+    navController: NavController
 ) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight), state = scrollState
@@ -171,9 +185,10 @@ private fun Details(
         item {
             BasicInfo(artworkDetailsDTO , isLiked)
             Description(artworkDetailsDTO)
+            ArtworkDetails(artworkDetailsDTO)
             AboutTheArtist()
-            RecommendFromArtist()
-            RecommendFromGenre()
+            RecommendFromArtist(navController)
+            RecommendFromGenre(navController)
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -181,16 +196,16 @@ private fun Details(
 
 @Composable
 fun AboutTheArtist() {
-    val user = UserDTO("afsfsdf" , "sfdaffs" , "dfsfdsfd" ,"sdfsfdsfds" , "male" , "english" , "in" , true)
-    ProfileHeader(user)
+    val artist = ArtistDTO("afsfsdf" , "sfdaffs" , "dfsfdsfd" ,"sdfsfdsfds" , "male" , "english" , "in" , "" , "" , "" , "" , "" , false)
+    ProfileHeader(artist)
 }
 
 @Composable
-fun RecommendFromArtist() {
+fun RecommendFromArtist(navController: NavController) {
     Column {
         Text(
             text = "More From Artist",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
         LazyRow(
@@ -198,17 +213,20 @@ fun RecommendFromArtist() {
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
             items(dummyArtworks) { artwork ->
-                ArtworkItem(artwork)
+                ArtworkItem(artwork){ id ->
+                    navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = id )
+                    navController.navigate(Screens.ArtworkDetail.route)
+                }
             }
         }
     }
 }
 @Composable
-fun RecommendFromGenre() {
+fun RecommendFromGenre(navController: NavController) {
     Column {
         Text(
             text = "Similar Genre",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
         LazyRow(
@@ -216,7 +234,10 @@ fun RecommendFromGenre() {
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
             items(dummyArtworks) { artwork ->
-                ArtworkItem(artwork)
+                ArtworkItem(artwork){ id->
+                    navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = id )
+                    navController.navigate(Screens.ArtworkDetail.route)
+                }
             }
         }
     }
@@ -239,7 +260,6 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
     var showComments by remember { mutableStateOf(false) }
     var showSavedFolders by remember { mutableStateOf(false) }
     var showCreateNewCollection by remember { mutableStateOf(false) }
-//    vm.saveOnFavorites("test4" , "051c47a6-e7fc-449a-a7de-e4653d046938")
 
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -249,9 +269,9 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
     ) {
         ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "5" ){
             if(isLiked.value == true){
-                vm.unLikeArtwork("test4" , "4bfde960-4807-421e-b11b-7f5472e848ea")
+                artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
             }else{
-                vm.likeArtwork("test4" , "4bfde960-4807-421e-b11b-7f5472e848ea")
+                artworkDetailsDTO.id?.let { vm.likeArtwork(it) }
             }
             isLiked.value = !isLiked.value!!
         }
@@ -266,13 +286,14 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
         BottomSheet(onDismiss = { showSavedFolders = false }) {
             SaveSection(
                 onAddCollection = { showCreateNewCollection =! showCreateNewCollection },
-                vm = vm
+                dismiss = { showSavedFolders = false },
+                artworkDetailsDTO.id
             )
         }
     }
     if(showComments) {
         LaunchedEffect(Unit) {
-            vm.getAllComments("4bfde960-4807-421e-b11b-7f5472e848ea")
+            artworkDetailsDTO.id?.let { vm.getAllComments(it) }
         }
         BottomSheet(onDismiss = { showComments = false }) {
             when (val uiState = vm.getCommentsOnArtworkUiState) {
@@ -287,18 +308,23 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
 
                 is GetCommentsOnArtworkUiState.Success -> {
                     var comments by remember { mutableStateOf(uiState.data) }
+                    val context = LocalContext.current
+                    val currentUser = SecureStorage(context).getUserDetails()
                     CommentSection(
                         comments = comments,
                         onSendComment = { newComment ->
                             comments = listOf(GetCommentsDTO(
-                                userId = "current_user",
+                                userId = currentUser?.id,
+                                userName = currentUser?.name,
+                                userProfilePicture = currentUser?.profilePicture,
                                 text = newComment
                             )) + comments
-                            vm.commentOnArtwork(
-                                "test4",
-                                "4bfde960-4807-421e-b11b-7f5472e848ea",
-                                CommentRequest(text = newComment)
-                            )
+                            artworkDetailsDTO.id?.let {
+                                vm.commentOnArtwork(
+                                    it,
+                                    CommentRequest(text = newComment)
+                                )
+                            }
                         }
                     )
                 }
@@ -306,7 +332,7 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
                 is GetCommentsOnArtworkUiState.Error -> {
                     ErrorScreen(
                         message = uiState.message,
-                        onRetry = { vm.refreshComments("4bfde960-4807-421e-b11b-7f5472e848ea") }
+                        onRetry = { artworkDetailsDTO.id?.let { vm.refreshComments(artworkId = it) } }
                     )
                 }
             }
@@ -316,8 +342,9 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
         BottomSheet(
             onDismiss = { showCreateNewCollection = false }
         ) {
-            CreateNewCollection(artworkDetailsDTO.imageUrl , onSubmit = {
-                vm.createNewFavorites("test4" , it)
+            val collectionVm : CollectionViewModel = hiltViewModel()
+            CreateNewCollection(artworkDetailsDTO.image_url_compressed , onSubmit = {
+                collectionVm.createNewFavorites( it)
                 showCreateNewCollection = false
             }, onCancel = {
                 showCreateNewCollection = false
@@ -526,10 +553,20 @@ fun CommentSection(
 @Composable
 fun SaveSection(
     onAddCollection: () -> Unit = {},
-    vm: ArtistProfileViewModel = hiltViewModel()
+    dismiss: () -> Unit = {},
+    artworkId: String? = null,
+    vm: CollectionViewModel = hiltViewModel()
 ) {
     LaunchedEffect(Unit) {
-        vm.getFavoritesByUserId("test4")
+        vm.getFavoritesByUserId()
+    }
+    val saveUiState = vm.addToFavoritesUiState
+    if(saveUiState is AddToFavoritesUiState.Success){
+        Toast.makeText(LocalContext.current , "Saved" , Toast.LENGTH_SHORT).show()
+        dismiss()
+    }
+    if(saveUiState is AddToFavoritesUiState.Error){
+        Toast.makeText(LocalContext.current , saveUiState.message , Toast.LENGTH_SHORT).show()
     }
     Column(
         modifier = Modifier
@@ -576,7 +613,9 @@ fun SaveSection(
                         Column {
                             CollectionCard(it.title , ""){
                                 it.id?.let { it1 ->
-                                    vm.saveOnFavorites(favoritesId = it1 , artworkId = "82f64100-ef66-467d-927f-d0ded483e24a" )
+                                    if (artworkId != null) {
+                                        vm.saveOnFavorites(favoritesId = it1 , artworkId =artworkId)
+                                    }
                                 }
                             }
                         }
@@ -587,7 +626,7 @@ fun SaveSection(
             is FavoritesUiState.Error -> {
                 ErrorScreen(
                     message = uiState.message,
-                    onRetry = { vm.refreshComments("4bfde960-4807-421e-b11b-7f5472e848ea") }
+                    onRetry = {  }
                 )
             }
         }
@@ -604,11 +643,7 @@ fun CollectionCard(
         modifier = modifier
             .fillMaxWidth()
             .height(160.dp),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp,
-            pressedElevation = 8.dp
-        )
+        shape = RoundedCornerShape(16.dp)
     ) {
         Box(
             modifier = Modifier
@@ -685,12 +720,6 @@ private fun CommentItem(comment: GetCommentsDTO) {
     }
 }
 
-data class Comment(
-    val username: String,
-    val text: String
-)
-
-
 @Composable
 fun InfoColumn(@DrawableRes iconResource: Int, text: String , onClick: () -> Unit ={}) {
     Row(verticalAlignment = Alignment.CenterVertically , modifier = Modifier.clickable { onClick() }) {
@@ -749,7 +778,7 @@ private fun ParallaxToolbar(
                         alpha = 1f - offsetprogress
                     }) {
                 Image(
-                    painter = rememberAsyncImagePainter(artworkDTO.imageUrl),
+                    painter = rememberAsyncImagePainter(artworkDTO.image_url_compressed),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -767,25 +796,7 @@ private fun ParallaxToolbar(
                         ),
                     contentAlignment = Alignment.BottomStart
                 ){
-                    GenreSection()
-                }
-                artworkDTO?.releasedDate?.let {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .padding(
-                                horizontal = MediumSize, vertical = SmallSize
-                            ), verticalAlignment = Alignment.Bottom
-                    ) {
-                        Text(
-                            it, fontWeight = Medium, modifier = Modifier
-                                .clip(
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(vertical = 6.dp, horizontal = 16.dp)
-                        )
-                    }
+                    GenreSection(artworkDTO.medium)
                 }
             }
             Column(
@@ -795,10 +806,11 @@ private fun ParallaxToolbar(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = artworkDTO.name ?: stringResource(R.string.no_name),
-                    fontSize = 26.sp,
+                    text = artworkDTO.title ?: stringResource(R.string.no_name),
+                    fontSize = 24.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = Bold,
                     modifier = Modifier
                         .padding(horizontal = (16 + 28 * offsetprogress).dp)
                         .scale(1f - 0.25f * offsetprogress)
@@ -819,9 +831,9 @@ private fun ParallaxToolbar(
         CircularButton(R.drawable.ic_arrow_back)
         CircularButton(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite ,  tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else LocalContentColor.current ){
             if(isLiked.value == true){
-                vm.unLikeArtwork("test4" , "4bfde960-4807-421e-b11b-7f5472e848ea")
+                artworkDTO.id?.let { vm.unLikeArtwork(it) }
             }else{
-                vm.likeArtwork("test4" , "4bfde960-4807-421e-b11b-7f5472e848ea")
+                artworkDTO.id?.let { vm.likeArtwork(it) }
             }
             isLiked.value = !isLiked.value!!
         }
@@ -852,17 +864,129 @@ fun CircularButton(
     }
 }
 
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview
 @Composable
-private fun ArtworkPreview() {
-    TempleteTheme() {
-        ArtworkDetailScreen("4bfde960-4807-421e-b11b-7f5472e848ea")
+fun ArtworkDetails(artworkDetailsDTO: ArtworkDTO) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        if (!artworkDetailsDTO.dimensions.isNullOrEmpty()) artworkDetailsDTO.dimensions?.let { DetailItem("Dimensions", it) }
+        if (!artworkDetailsDTO.artMovement.isNullOrEmpty()) DetailItem("Art Movement", artworkDetailsDTO.artMovement)
+        if (!artworkDetailsDTO.periodStyle.isNullOrEmpty())  { DetailItem("Period/Style", artworkDetailsDTO.periodStyle) }
+        if (!artworkDetailsDTO.currentLocation.isNullOrEmpty())  { DetailItem("Currently in", artworkDetailsDTO.currentLocation) }
+        if (! extractYear(artworkDetailsDTO.releasedDate).isNullOrEmpty())  { DetailItem("Release Date", extractYear( artworkDetailsDTO.releasedDate)!!) }
+        if (!artworkDetailsDTO.licenseInfo.isNullOrEmpty())  { DetailItem("License", artworkDetailsDTO.licenseInfo) }
+        // Source URL (if available)
+        if (!artworkDetailsDTO.sourceUrl.isNullOrEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            SourceUrlLink(artworkDetailsDTO.sourceUrl)
+        }
     }
 }
 
+@Composable
+fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
+    HorizontalDivider(
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+}
 
+@Composable
+fun DetailItem(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = "$label:",
+            fontWeight = FontWeight.Normal,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            modifier = Modifier.width(120.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
 
-// fav save not working
-// get fav is not updated after adding new
+@Composable
+fun SourceUrlLink(url: String) {
+    val context = LocalContext.current
+    val intent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(url)) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Source:",
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.width(120.dp)
+        )
+
+        Text(
+            text = getSourceUrlSiteName(url),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline,
+            modifier = Modifier
+                .clickable { context.startActivity(intent) }
+                .weight(1f)
+        )
+    }
+}
+
+@Composable
+fun GenreSection() {
+    // This would be populated based on artwork genre tags
+    // Adding placeholder for demonstration
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        GenreChip("Landscape")
+        Spacer(modifier = Modifier.width(8.dp))
+        GenreChip("Contemporary")
+        // Add more genre chips as needed
+    }
+}
+
+@Composable
+fun GenreChip(genre: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+        modifier = Modifier.height(32.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ) {
+            Text(
+                text = genre,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}

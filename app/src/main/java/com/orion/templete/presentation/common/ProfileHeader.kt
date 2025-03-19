@@ -16,19 +16,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.user_model.UserDTO
 
 @Composable
-fun ProfileHeader(user: UserDTO) {
+fun ProfileHeader(user: ArtistDTO) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
-            model = user.profilePicture,
+            model = user.image_url,
             contentDescription = "Profile picture",
             modifier = Modifier
-                .size(100.dp)
+                .size(80.dp)
                 .clip(CircleShape),
             contentScale = ContentScale.Crop
         )
@@ -40,7 +41,7 @@ fun ProfileHeader(user: UserDTO) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "@${user.name.lowercase().replace(" ", "")}",
+                text = "@${user.id}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

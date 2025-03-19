@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.util.ResponseStates
+import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -15,24 +16,28 @@ import javax.inject.Inject
 @HiltViewModel
 class ArtworkDetailViewModel @Inject constructor(
     private val artworkRepository: ArtworkRepository,
+    private val secureStorage: SecureStorage
 ) : ViewModel() {
     var artworkDetailScreenUiState by mutableStateOf<ArtworkDetailScreenUiState>(ArtworkDetailScreenUiState.Loading)
         private set
 
+    private val currentUserId = secureStorage.getUserDetails()?.id
 
-    fun getArtworkById(userId: String , artworkId: String) {
+    fun getArtworkById(artworkId: String) {
         viewModelScope.launch {
-            artworkRepository.getArtworkById(userId , artworkId).collect { response ->
-                artworkDetailScreenUiState = when (response) {
+            if (currentUserId != null) {
+                artworkRepository.getArtworkById(currentUserId , artworkId).collect { response ->
+                    artworkDetailScreenUiState = when (response) {
                         is ResponseStates.Loading -> ArtworkDetailScreenUiState.Loading
                         is ResponseStates.Success -> ArtworkDetailScreenUiState.Success(response.data)
                         is ResponseStates.Error -> ArtworkDetailScreenUiState.Error(response.error)
                     }
                 }
+            }
         }
     }
-    fun refreshArtwork(userId: String , artworkId: String) {
-        getArtworkById(userId , artworkId)
+    fun refreshArtwork( artworkId: String) {
+        getArtworkById(artworkId)
     }
 }
 

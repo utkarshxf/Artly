@@ -18,6 +18,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,8 +45,6 @@ import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
 import com.orion.templete.presentation.artwork_detail.ArtworkDetailScreen
 import com.orion.templete.presentation.cart.CartScreen
-import com.orion.templete.presentation.favorites.Artwork
-import com.orion.templete.presentation.favorites.Collection
 import com.orion.templete.presentation.favorites.CollectionArtworksScreen
 import com.orion.templete.presentation.favorites.CollectionDetail
 import com.orion.templete.presentation.favorites.CollectionsScreen
@@ -86,12 +85,12 @@ fun BottomAppNev(
     ){
         composable(Screens.Swipe.route) {
             SwipeScreen(navigateToDetailScreen = { data->
-                navController.currentBackStackEntry?.savedStateHandle?.set(key = "data-mapped", value = data)
+                navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
                 navController.navigate(Screens.ArtworkDetail.route)
             })
         }
         composable(Screens.Profile.route) {
-            ProfileScreen(navController = navController)
+            ProfileScreen(navController = navController , logOut = navigateToLoginScreen)
         }
         composable(Screens.Upload.route) {
             UploadScreen()
@@ -105,20 +104,20 @@ fun BottomAppNev(
 //        }
         composable(Screens.ArtworkDetail.route)
         {
-            ArtworkDetailScreen("4bfde960-4807-421e-b11b-7f5472e848ea")
+            val artworkId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("artworkId")
+            if (artworkId != null) {
+                ArtworkDetailScreen(artworkId , navController)
+            }
         }
         composable(Screens.Search.route)
         {
-            SearchScreen(){ it ->
-                navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it)
-                navController.navigate(Screens.UserProfile.route)
-            }
+            SearchScreen(navController)
         }
         composable(Screens.UserProfile.route)
         {
-            ArtistProfileScreen()
             val userID = navController.previousBackStackEntry?.savedStateHandle?.get<String>("UserID")
-            if (userID!=null){
+            if (userID != null){
+                ArtistProfileScreen(userID , navController)
             }
         }
         composable(Screens.ShippingAddress.route){
@@ -196,43 +195,18 @@ fun BottomAppNev(
             )
         }
         composable(Screens.FavoritesScreen.route) {
-            val sampleCollections = listOf(
-                Collection("1", "Favorites", 12),
-                Collection("2", "Watch Later", 5),
-                Collection("3", "Reading List", 8),
-                Collection("4", "Shopping List", 3),
-                Collection("5", "Travel Plans", 6),
-                Collection("6", "Music", 15)
-            )
-            CollectionsScreen(
-                collections = sampleCollections,
-                onBackClick = {},
-                onAddClick = {},
-                onCollectionClick = {
-                    navController.navigate(Screens.CollectionArtworksScreen.route)
-                }
-            )
+            CollectionsScreen(navController)
         }
         composable(Screens.CollectionArtworksScreen.route) {
-            val sampleCollection = CollectionDetail(
-                id = "1",
-                name = "My Favorite Artworks",
-                artworkCount = 6,
-                artworks = listOf(
-                    Artwork("1", "url1", "Starry Night", "Vincent van Gogh"),
-                    Artwork("2", "url2", "Mona Lisa", "Leonardo da Vinci"),
-                    Artwork("3", "url3", "The Scream", "Edvard Munch"),
-                    Artwork("4", "url4", "Girl with a Pearl Earring", "Johannes Vermeer"),
-                    Artwork("5", "url5", "The Persistence of Memory", "Salvador Dalí"),
-                    Artwork("6", "url6", "The Kiss", "Gustav Klimt")
-                )
-            )
-            CollectionArtworksScreen(
-                collection = sampleCollection,
-                onBackClick = {},
-                onArtworkClick = {},
-                onMoreClick = {}
-            )
+            val collectionId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("collectionId")
+            if (collectionId != null){
+                CollectionArtworksScreen(collectionId ,
+                    onBackClick = { navController.popBackStack() },
+                    onArtworkClick = {
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = it.id)
+                        navController.navigate(Screens.ArtworkDetail.route)
+                    })
+            }
         }
         composable(Screens.InAppShippingAddressScreen.route) {
             InAppShippingAddressScreen(onBackClick = {})

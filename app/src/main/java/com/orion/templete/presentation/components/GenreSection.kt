@@ -14,15 +14,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun GenreSection() {
+fun GenreSection(medium: String? = null) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(listOf("Abstract", "Surrealism", "Pop Art")) { genre ->
-            CustomChip(
-                text = genre,
-                onClick = { /* Handle genre click */ }
-            )
+        items(listOf(medium)) { genre ->
+            if (genre != null) {
+                CustomChip(
+                    text = genre,
+                    onClick = { /* Handle genre click */ }
+                )
+            }
         }
     }
 }

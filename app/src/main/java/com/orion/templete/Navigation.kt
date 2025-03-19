@@ -15,14 +15,14 @@ import com.orion.templete.presentation.user_register.UserRegisterScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun Navigation(startDest :String) {
+fun Navigation(startDest :String , activity: MainActivity) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = startDest) {
         composable(Screens.Login.route) {
             Login(navController = navController)
         }
         composable(Screens.Signup.route) {
-            Signup(navController = navController)
+            Signup(navController = navController,activity)
         }
         composable(Screens.UserRegister.route) {
             UserRegisterScreen(onNavigateToHome = {
@@ -39,6 +39,5 @@ fun Navigation(startDest :String) {
                 }
             })
         }
-
     }
 }

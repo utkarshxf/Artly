@@ -1,7 +1,11 @@
 package com.orion.templete.presentation.user_register
 
+import android.net.Uri
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,28 +40,37 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.nameisjayant.composeprojects.components.SpacerHeight
+import com.orion.templete.MainActivity
 import com.orion.templete.R
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.presentation.common.CustomTextField
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.getDefaultProfileUrl
+import com.orion.templete.util.uploadImage
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserRegisterScreen(
@@ -67,25 +80,33 @@ fun UserRegisterScreen(
 ) {
     val context = LocalContext.current
     val uiState = viewModel.createUserState
-    LaunchedEffect(uiState) {
-        uiState.error?.let { error ->
-            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    LaunchedEffect(uiState.data) {
-        uiState.data?.let {
-            onNavigateToHome()
-        }
-    }
-
+    val activity = context as MainActivity
+    val imageCropper = remember { activity.getImageCropper() }
+    val galleryLauncher = remember { activity.getGalleryLauncher() }
     var name by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var language by remember { mutableStateOf("") }
     var countryIso2 by remember { mutableStateOf("") }
     var isArtist by remember { mutableStateOf(false) }
-
+    var pickedImageUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    val croppedImageUri by imageCropper.croppedImageUri.collectAsState(null)
+    LaunchedEffect(key1 = croppedImageUri) {
+        pickedImageUri = croppedImageUri
+    }
+    LaunchedEffect(key1 = Unit, block = {
+        imageCropper.clearCroppedImageUri()
+    })
+    LaunchedEffect(uiState) {
+        uiState.error?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+        }
+    }
+    LaunchedEffect(uiState.data) {
+        uiState.data?.let {
+            onNavigateToHome()
+        }
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -130,44 +151,47 @@ fun UserRegisterScreen(
 
         // Profile Picture Section - Overlapping the gradient
 
-        Box(modifier = Modifier
-            .size(100.dp)
-            .offset(y = (-50).dp)) {
-            Box(
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
                 modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(
-                        width = 4.dp, color = MaterialTheme.colorScheme.surface, shape = CircleShape
-                    )
-                    .shadow(
-                        elevation = 8.dp, shape = CircleShape
-                    )
-                    .clickable { /* Handle image picker */ }, contentAlignment = Alignment.Center
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .size(48.dp)
-                        .align(Alignment.Center),
-                    tint = MaterialTheme.colorScheme.primary
-                )
 
-            }
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Edit Profile Picture",
-                modifier = Modifier
-                    .size(24.dp)
-                    .align(Alignment.BottomEnd)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary, shape = CircleShape
+                Box(modifier = Modifier.padding(start = 8.dp) , contentAlignment = Alignment.BottomEnd)
+                {
+
+                    Box(contentAlignment = Alignment.Center) {
+                        AsyncImage(
+                            model = pickedImageUri?:getDefaultProfileUrl(gender),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    1.dp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_camara),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .align(Alignment.BottomEnd)
+                            .clickable {
+                                galleryLauncher.launchGallery()
+                            }
                     )
-                    .padding(4.dp),
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
+                }
+            }
         }
 
         // Form Content
@@ -259,18 +283,35 @@ fun UserRegisterScreen(
             Button(
                 onClick = {
                     SecureStorage(context).getUserId()?.let {
-                        viewModel.createUser(
-                            UserDetails(
-                                id = it,
-                                name = name,
-                                dob = dob,
-                                gender = gender,
-                                language = language,
-                                countryIso2 = countryIso2,
-                                artist = isArtist,
-                                profilePicture = ""
+                        if (pickedImageUri != null) {
+                            uploadImage(pickedImageUri ,context) { image ->
+                                viewModel.createUser(
+                                    UserDetails(
+                                        id = it,
+                                        name = name,
+                                        dob = dob,
+                                        gender = gender,
+                                        language = language,
+                                        countryIso2 = countryIso2,
+                                        artist = isArtist,
+                                        profilePicture = image
+                                    )
+                                )
+                            }
+                        } else {
+                            viewModel.createUser(
+                                UserDetails(
+                                    id = it,
+                                    name = name,
+                                    dob = dob,
+                                    gender = gender,
+                                    language = language,
+                                    countryIso2 = countryIso2,
+                                    artist = isArtist,
+                                    profilePicture = getDefaultProfileUrl(gender)
+                                )
                             )
-                        )
+                        }
                     }
                 },
                 modifier = Modifier

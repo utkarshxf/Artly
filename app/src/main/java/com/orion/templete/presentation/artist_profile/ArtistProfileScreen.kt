@@ -1,5 +1,7 @@
 package com.orion.templete.presentation.artist_profile
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
@@ -20,11 +22,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -32,14 +32,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -55,33 +53,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
+import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
-import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.ProfileHeader
+import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.components.GenreSection
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
-import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.ImageWithText
+import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.extractYear
 import kotlin.math.max
 import kotlin.math.min
 
 
 @Composable
-fun ArtistProfileScreen(viewModel: ArtistProfileViewModel = hiltViewModel()) {
+fun ArtistProfileScreen(artistId : String ,navController: NavController ,  viewModel: ArtistProfileViewModel = hiltViewModel()) {
     LaunchedEffect(key1 = Unit) {
-        viewModel.getUserProfile("test" , "test4")
+        viewModel.getUserProfile(artistId)
     }
     when (val uiState = viewModel.artistProfileScreenUiState) {
         is ArtistProfileScreenUiState.Loading -> {
@@ -93,22 +95,22 @@ fun ArtistProfileScreen(viewModel: ArtistProfileViewModel = hiltViewModel()) {
         }
 
         is ArtistProfileScreenUiState.Success -> {
-            ProfileContent(user = uiState.user)
+            ProfileContent(artist = uiState.artist , navController)
         }
 
         is ArtistProfileScreenUiState.Error -> {
             ErrorScreen(
                 message = uiState.message,
-                onRetry = { viewModel.refreshProfile("test" , "test4") }
+                onRetry = { viewModel.refreshProfile(artistId ) }
             )
         }
     }
 }
 
 @Composable
-private fun ProfileContent(user: UserDTO ,  viewModel: ArtistProfileViewModel = hiltViewModel()) {
+private fun ProfileContent(artist: ArtistDTO, navController: NavController, viewModel: ArtistProfileViewModel = hiltViewModel()) {
     LaunchedEffect(key1 = Unit) {
-        viewModel.getArtistArtworks(userId = "test4" , artistId = "test")
+        viewModel.getArtistArtworks(artistId = artist.id)
     }
     val scrollGridState = rememberLazyGridState()
     val scrollListState = rememberLazyListState()
@@ -155,6 +157,7 @@ private fun ProfileContent(user: UserDTO ,  viewModel: ArtistProfileViewModel = 
         ),
         label = "offset"
     )
+    val context =  LocalContext.current
 
     Column {
         Column(
@@ -164,26 +167,20 @@ private fun ProfileContent(user: UserDTO ,  viewModel: ArtistProfileViewModel = 
                 .offset { IntOffset(x = 0, y = animatedOffset.value) },
         ) {
             Spacer(modifier = Modifier.height(12.dp))
-            ProfileHeader(user)
+            ProfileHeader(artist)
             Spacer(modifier = Modifier.height(12.dp))
             StatSection()
             Spacer(modifier = Modifier.height(12.dp))
-            GenreSection()
-            Spacer(modifier = Modifier.height(12.dp))
             ProfileDescriptionSection(
-                description = "Passionate artist exploring the boundaries of creativity. Join me on this artistic journey!",
-                url = "https://www.instagram.com/${user.name.lowercase().replace(" ", "")}/",
-                followedBy = listOf("artlover", "gallery123")
+                description = artist.description,
+                url = artist.wikipedia_url,
             )
             Spacer(modifier = Modifier.height(12.dp))
-            ButtonSection(user.follow)
+            ButtonSection(artistId = artist.id , artist.follow)
         }
         ArtworkContent(
             selectedTabIndex = selectedTabIndex
         )
-        LaunchedEffect(key1 = Unit) {
-            viewModel.getArtistArtworks("test4" , "test")
-        }
         when (val uiState = viewModel.artWorksUiState) {
             is ArtWorksUiState.Loading -> {
                 CircularProgressIndicator(
@@ -195,15 +192,21 @@ private fun ProfileContent(user: UserDTO ,  viewModel: ArtistProfileViewModel = 
 
             is ArtWorksUiState.Success -> {
                 when (selectedTabIndex.value) {
-                    0 -> ArtworkGrid(scrollGridState , uiState.artworks)
-                    1 -> ArtworkColumnList(scrollListState , uiState.artworks)
+                    0 -> ArtworkGrid(scrollGridState , uiState.artworks){
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = it)
+                        navController.navigate(Screens.ArtworkDetail.route)
+                    }
+                    1 -> ArtworkColumnList(scrollListState , uiState.artworks){
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = it)
+                        navController.navigate(Screens.ArtworkDetail.route)
+                    }
                 }
             }
 
             is ArtWorksUiState.Error -> {
                 ErrorScreen(
                     message = uiState.message,
-                    onRetry = { viewModel.refreshProfile("test" , "test4") }
+                    onRetry = { viewModel.refreshProfile(artist.id) }
                 )
             }
         }
@@ -212,7 +215,7 @@ private fun ProfileContent(user: UserDTO ,  viewModel: ArtistProfileViewModel = 
 
 
 @Composable
-fun ArtworkColumnList(scrollState: LazyListState, artworks: List<ArtworkDTO>) {
+fun ArtworkColumnList(scrollState: LazyListState, artworks: List<ArtworkDTO>, onItemClick: (String) -> Unit = {}) {
     LazyColumn(
         userScrollEnabled = true,
         state = scrollState,
@@ -221,12 +224,14 @@ fun ArtworkColumnList(scrollState: LazyListState, artworks: List<ArtworkDTO>) {
     ) {
         items(artworks) { index ->
             Image(
-                painter = rememberAsyncImagePainter(model = index.imageUrl),
+                painter = rememberAsyncImagePainter(model = index.image_url_compressed),
                 contentDescription = "Artwork",
                 modifier = Modifier
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { },
+                    .clickable {
+                        index.id?.let { onItemClick(it) }
+                    },
                 contentScale = ContentScale.Crop
             )
         }
@@ -250,7 +255,7 @@ private fun ProfileState(number: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = number,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold
         )
         Text(
@@ -265,27 +270,29 @@ private fun ProfileState(number: String, label: String) {
 private fun ProfileDescriptionSection(
     description: String,
     url: String,
-    followedBy: List<String>
 ) {
+    val context = LocalContext.current
+    val intent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(url)) }
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = description, style = MaterialTheme.typography.bodyMedium)
+        Text(text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 6,
+            overflow  = TextOverflow.Ellipsis
+        )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = url,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Followed by ${followedBy.joinToString(", ")} and 18 others",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline,
+            modifier = Modifier
+                .clickable { context.startActivity(intent) }
         )
     }
 }
 
 @Composable
-private fun ButtonSection( initialFollowState: Boolean , viewModel: ArtistProfileViewModel = hiltViewModel()) {
+private fun ButtonSection(artistId: String, initialFollowState: Boolean , viewModel: ArtistProfileViewModel = hiltViewModel()) {
     var isFollowing by remember { mutableStateOf(initialFollowState) }
     var isLoading by remember { mutableStateOf(false) }
     // Observe follow state
@@ -326,9 +333,9 @@ private fun ButtonSection( initialFollowState: Boolean , viewModel: ArtistProfil
         Button(
             onClick = {
                 if (!isFollowing) {
-                    viewModel.followUser("test4", "test")
+                    viewModel.followUser( artistId)
                 } else {
-                    viewModel.unfollowArtist("test4", "test")
+                    viewModel.unfollowArtist( artistId)
                 }
             },
             modifier = Modifier.weight(1f),
@@ -372,7 +379,7 @@ fun ArtworkContent(selectedTabIndex: MutableState<Int>) {
     }
 }
 @Composable
-private fun ArtworkGrid(scrollState: LazyGridState, artworks: List<ArtworkDTO>) {
+private fun ArtworkGrid(scrollState: LazyGridState, artworks: List<ArtworkDTO> , onItemClick: (String) -> Unit = {}) {
     LazyVerticalGrid(
         userScrollEnabled = true,
         state = scrollState,
@@ -383,24 +390,16 @@ private fun ArtworkGrid(scrollState: LazyGridState, artworks: List<ArtworkDTO>) 
     ) {
         items(artworks) { index ->
             Image(
-                painter = rememberAsyncImagePainter(model = index.imageUrl),
+                painter = rememberAsyncImagePainter(model = index.image_url_compressed),
                 contentDescription = "Artwork",
                 modifier = Modifier
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { },
+                    .clickable {
+                        index.id?.let { onItemClick(it) }
+                    },
                 contentScale = ContentScale.Crop
             )
         }
     }
-}
-
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-private fun prev() {
-    TempleteTheme(darkTheme = false) {
-        ArtistProfileScreen()
-    }
-
 }

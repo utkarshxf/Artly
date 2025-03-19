@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,33 +19,76 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.presentation.ui.theme.TempleteTheme
-
-data class Artwork(
-    val id: String,
-    val imageUrl: String,
-    val title: String,
-    val artist: String
-)
-
-data class CollectionDetail(
-    val id: String,
-    val name: String,
-    val artworkCount: Int,
-    val artworks: List<Artwork>
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionArtworksScreen(
-    collection: CollectionDetail,
-    onBackClick: () -> Unit,
-    onArtworkClick: (Artwork) -> Unit,
-    onMoreClick: () -> Unit,
+    collectionId: String,
+    onBackClick: () -> Unit = {},
+    onArtworkClick: (ArtworkDTO) -> Unit = {},
+    viewModel: CollectionViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.getArtworkByFavoriteId(collectionId)
+    }
+
+    // Observe the UI state from the ViewModel
+    when (val uiState = viewModel.collectionScreenUiState) {
+        is CollectionScreenUiState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        is CollectionScreenUiState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Error: ${uiState.message}")
+                    Button(onClick = { viewModel.refreshArtwork(collectionId) }) {
+                        Text("Retry")
+                    }
+                }
+            }
+        }
+        is CollectionScreenUiState.Success -> {
+            val artworks = uiState.artwork
+            // Create collection detail from the loaded data
+            val collectionDetail = remember(artworks) {
+                // You might want to update this with real data from your ViewModel
+                CollectionDetail(
+                    id = "",
+                    name = "Collection", // This should come from your ViewModel
+                    artworkCount = artworks.size,
+                    artworks = artworks
+                )
+            }
+
+            CollectionContent(
+                collection = collectionDetail,
+                onBackClick = onBackClick,
+                onArtworkClick = onArtworkClick,
+                modifier = modifier
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CollectionContent(
+    collection: CollectionDetail,
+    onBackClick: () -> Unit,
+    onArtworkClick: (ArtworkDTO) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -111,7 +155,7 @@ fun CollectionArtworksScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ArtworkCard(
-    artwork: Artwork,
+    artwork: ArtworkDTO,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -133,7 +177,7 @@ private fun ArtworkCard(
                 contentScale = ContentScale.Crop
             )
 
-            // Gradient overlay for text visibility (optional)
+            // Gradient overlay for text visibility
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -144,45 +188,22 @@ private fun ArtworkCard(
                     modifier = Modifier
                         .padding(8.dp)
                 ) {
-                    Text(
-                        text = artwork.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = artwork.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
+                    artwork.title?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    artwork.artist?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Preview
-@Composable
-private fun CollectionArtworksScreenPreview() {
-    val sampleCollection = CollectionDetail(
-        id = "1",
-        name = "My Favorite Artworks",
-        artworkCount = 6,
-        artworks = listOf(
-            Artwork("1", "url1", "Starry Night", "Vincent van Gogh"),
-            Artwork("2", "url2", "Mona Lisa", "Leonardo da Vinci"),
-            Artwork("3", "url3", "The Scream", "Edvard Munch"),
-            Artwork("4", "url4", "Girl with a Pearl Earring", "Johannes Vermeer"),
-            Artwork("5", "url5", "The Persistence of Memory", "Salvador Dalí"),
-            Artwork("6", "url6", "The Kiss", "Gustav Klimt")
-        )
-    )
-
-    TempleteTheme {
-        CollectionArtworksScreen(
-            collection = sampleCollection,
-            onBackClick = {},
-            onArtworkClick = {},
-            onMoreClick = {}
-        )
     }
 }

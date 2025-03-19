@@ -12,7 +12,7 @@ val LiteGray = Color(0xFFE6E6E6)
 val Blue = Color(0xFF3897F0)
 val Gray = Color(0xFF2F343F)
 val Dark = Color(0xFF262B33)
-
+val OTPBorder = Color(0xffe6e4e8)
 // Additional colors
 val ErrorRed = Color(0xFFF63D68)
 val LighterGray = Color(0xFFDBDBDB)

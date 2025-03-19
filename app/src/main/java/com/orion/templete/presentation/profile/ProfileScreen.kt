@@ -67,7 +67,11 @@ import com.orion.templete.presentation.ui.theme.TempleteTheme
 import kotlinx.coroutines.launch
 
 @Composable
-fun ProfileScreen(navController: NavController , viewModel: ProfileScreenViewModel = hiltViewModel()) {
+fun ProfileScreen(
+    navController: NavController ,
+    logOut: () -> Unit = {},
+    viewModel: ProfileScreenViewModel = hiltViewModel()
+) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -82,6 +86,7 @@ fun ProfileScreen(navController: NavController , viewModel: ProfileScreenViewMod
                     ) {
                         DrawerContent(
                             navController = navController,
+                            logOut = logOut,
                             onClose = {
                                 scope.launch { drawerState.close() }
                             }
@@ -111,7 +116,7 @@ fun ProfileScreen(navController: NavController , viewModel: ProfileScreenViewMod
                     is ProfileScreenUiState.Error -> {
                         ErrorScreen(
                             message = uiState.message,
-                            onRetry = { viewModel.refreshProfile("test4") })
+                            onRetry = { viewModel.refreshProfile() })
                     }
                 }
             }
@@ -139,8 +144,6 @@ private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: ()
         )
         Spacer(modifier = Modifier.height(16.dp))
         ButtonSection(onClick = onClick)
-        Spacer(modifier = Modifier.height(24.dp))
-        ArtworkTabs(user)
     }
 }
 
@@ -289,50 +292,4 @@ private fun ButtonSection(onClick: () -> Unit) {
         }
     }
 
-}
-
-@Composable
-private fun ArtworkTabs(user: UserDTO) {
-    var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = if (true) {
-        listOf("Saved Artwork", "Posted Artwork")
-    } else {
-        listOf("Saved Artwork")
-    }
-
-    Column {
-        TabRow(selectedTabIndex = selectedTabIndex) {
-            tabs.forEachIndexed { index, title ->
-                Tab(selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = { Text(title) })
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        when (selectedTabIndex) {
-            0 -> ArtworkGrid(isPosted = false)
-            1 -> if (true) ArtworkGrid(isPosted = true)
-        }
-    }
-}
-
-@Composable
-private fun ArtworkGrid(isPosted: Boolean) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        items(9) { index ->
-            AsyncImage(
-                model = if (isPosted) "https://example.com/posted_artwork_$index.jpg"
-                else "https://example.com/saved_artwork_$index.jpg",
-                contentDescription = "Artwork",
-                modifier = Modifier
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
-        }
-    }
 }
