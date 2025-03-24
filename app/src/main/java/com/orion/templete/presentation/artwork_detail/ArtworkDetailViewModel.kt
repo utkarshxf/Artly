@@ -21,6 +21,12 @@ class ArtworkDetailViewModel @Inject constructor(
     var artworkDetailScreenUiState by mutableStateOf<ArtworkDetailScreenUiState>(ArtworkDetailScreenUiState.Loading)
         private set
 
+    var artworksScreenUiState by mutableStateOf<ArtworksScreenUiState>(ArtworksScreenUiState.Loading)
+        private set
+
+    var similarArtworks by mutableStateOf<ArtworksScreenUiState>(ArtworksScreenUiState.Loading)
+        private set
+
     private val currentUserId = secureStorage.getUserDetails()?.id
 
     fun getArtworkById(artworkId: String) {
@@ -36,6 +42,35 @@ class ArtworkDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun getArtworkByArtistId(artistId: String , currentArtworkId: String) {
+        viewModelScope.launch {
+            if (currentUserId != null) {
+                artworkRepository.getArtworkByArtistId(currentUserId , artistId , currentArtworkId).collect { response ->
+                    artworksScreenUiState = when (response) {
+                        is ResponseStates.Loading -> ArtworksScreenUiState.Loading
+                        is ResponseStates.Success -> ArtworksScreenUiState.Success(response.data)
+                        is ResponseStates.Error -> ArtworksScreenUiState.Error(response.error)
+                    }
+                }
+            }
+        }
+    }
+
+    fun getSimilarArtwork(artworkId: String) {
+        viewModelScope.launch {
+            if (currentUserId != null) {
+                artworkRepository.getSimilarArtwork(currentUserId , artworkId).collect { response ->
+                    similarArtworks = when (response) {
+                        is ResponseStates.Loading -> ArtworksScreenUiState.Loading
+                        is ResponseStates.Success -> ArtworksScreenUiState.Success(response.data)
+                        is ResponseStates.Error -> ArtworksScreenUiState.Error(response.error)
+                    }
+                }
+            }
+        }
+    }
+
     fun refreshArtwork( artworkId: String) {
         getArtworkById(artworkId)
     }
@@ -45,4 +80,10 @@ sealed interface ArtworkDetailScreenUiState {
     object Loading : ArtworkDetailScreenUiState
     data class Success(val artwork: ArtworkDTO) : ArtworkDetailScreenUiState
     data class Error(val message: String) : ArtworkDetailScreenUiState
+}
+
+sealed interface ArtworksScreenUiState {
+    object Loading : ArtworksScreenUiState
+    data class Success(val artwork: List<ArtworkDTO>) : ArtworksScreenUiState
+    data class Error(val message: String) : ArtworksScreenUiState
 }

@@ -72,6 +72,7 @@ import com.orion.templete.util.SignupUiState
 import com.nearbuck.android.admin.presentation.login_screen.components.OtpView
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.presentation.auth.OTPScreenUiState
+import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.presentation.ui.theme.OTPBorder
 import kotlinx.coroutines.delay
@@ -189,7 +190,7 @@ fun SignupScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(painter = painterResource(id = R.drawable.ic_logo_no_bacground), contentDescription = null)
+        Icon(painter = painterResource(id = R.drawable.ic_logo_no_bacground), contentDescription = null, modifier = Modifier.size(82.dp))
         SpacerHeight(ExtraLargeSpacing)
         CustomTextField(
             value = userName,
@@ -230,11 +231,7 @@ fun SignupScreen(
             shape = MaterialTheme.shapes.medium
         ) {
             if (isOtpSending) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp,
-                    )
+                AnimatedPreloader()
             } else
             Text(text = stringResource(id = R.string.signup_button_label))
         }
@@ -360,11 +357,7 @@ fun OtpVerificationBottomSheet(
                 shape = MaterialTheme.shapes.medium
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
+                    AnimatedPreloader()
                 } else {
                     Text(text = "Verify")
                 }

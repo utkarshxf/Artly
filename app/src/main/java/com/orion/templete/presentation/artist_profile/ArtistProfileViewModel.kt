@@ -70,6 +70,18 @@ class ArtistProfileViewModel @Inject constructor(
         }
     }
 
+    fun getArtistByArtworkId(artworkId: String) {
+        viewModelScope.launch {
+            userRepository.getArtistByArtworkId(artworkId, currentUserId).collect { response ->
+                artistProfileScreenUiState = when (response) {
+                    is ResponseStates.Loading -> ArtistProfileScreenUiState.Loading
+                    is ResponseStates.Success -> ArtistProfileScreenUiState.Success(response.data)
+                    is ResponseStates.Error -> ArtistProfileScreenUiState.Error(response.error)
+                }
+            }
+        }
+    }
+
     // follow
     fun followUser(artistId: String) {
         viewModelScope.launch {

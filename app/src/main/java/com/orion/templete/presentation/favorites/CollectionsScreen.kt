@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.presentation.common.Screens
+import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,7 +36,12 @@ fun CollectionsScreen(
     val favoritesUiState = viewModel.favoritesUiState
     var addCollectionDialog by remember { mutableStateOf(false) }
     // Remember to fetch the favorites when the screen launches
-    LaunchedEffect(key1 = Unit) {
+    LaunchedEffect(key1 = viewModel.createFavoritesUiState) {
+        if (viewModel.createFavoritesUiState is CreateFavoritesUiState.Success) {
+            viewModel.getFavoritesByUserId()
+        }
+    }
+    LaunchedEffect(Unit) {
         viewModel.getFavoritesByUserId()
     }
 
@@ -43,13 +49,13 @@ fun CollectionsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Collections") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {navController.popBackStack()}
-                    ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
+//                navigationIcon = {
+//                    IconButton(
+//                        onClick = {navController.popBackStack()}
+//                    ) {
+//                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+//                    }
+//                },
                 actions = {
                     IconButton(onClick = {
                         addCollectionDialog = !addCollectionDialog
@@ -72,9 +78,7 @@ fun CollectionsScreen(
         ) {
             when (favoritesUiState) {
                 is FavoritesUiState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    AnimatedPreloader()
                 }
                 is FavoritesUiState.Success -> {
                     if (favoritesUiState.favorites.isEmpty()) {
@@ -271,7 +275,7 @@ private fun EmptyCollectionsState(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CollectionCard(
+fun CollectionCard(
     collection: favoritesDTO,
     onClick: () -> Unit,
     modifier: Modifier = Modifier

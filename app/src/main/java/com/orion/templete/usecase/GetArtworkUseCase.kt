@@ -24,4 +24,17 @@ class GetArtworkUseCase @Inject constructor(
             emit(ResponseStates.Error(e.message.toString()))
         }
     }
+    fun disLikeArtwork(artworkId: String, userId: String): Flow<ResponseStates<Boolean>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val isLiked = artworkRepository.disLikeArtwork(artworkId, userId)
+            if (isLiked) {
+                emit(ResponseStates.Success(true))
+            } else {
+                emit(ResponseStates.Error("Failed to disLike artwork"))
+            }
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message.toString()))
+        }
+    }
 }

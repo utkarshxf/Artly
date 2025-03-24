@@ -51,7 +51,6 @@ class SearchScreenViewModel @Inject constructor(
 
     // Function to search for artists
     fun searchArtist(query: String) {
-        Log.e("query", query)
         viewModelScope.launch {
             artistRepository.searchArtist(query)
                 .catch { e ->

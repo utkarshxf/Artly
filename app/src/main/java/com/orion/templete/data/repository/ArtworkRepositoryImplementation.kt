@@ -20,12 +20,17 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
     }
 
     override suspend fun paginationArtwork(userId: String , offset: Int, pageSize: Int): List<ArtworkDTO> {
+        Log.d("Exception" , userId + offset + pageSize)
         val response = safeApiRequest { apiService.paginationArtwork(userId, offset, pageSize) }
         return response
     }
 
     override suspend fun likeArtwork(artworkId: String, userId: String): Boolean {
         val response = apiService.likeArtwork(artworkId, userId)
+        return response.isSuccessful
+    }
+    override suspend fun disLikeArtwork(artworkId: String, userId: String): Boolean {
+        val response = apiService.disLikeArtwork(artworkId, userId)
         return response.isSuccessful
     }
 
@@ -38,6 +43,33 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
                 emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
             }
         }
+
+    override suspend fun getArtworkByArtistId(
+        artworkId: String,
+        artistId: String,
+        currentArtworkId: String
+    ): Flow<ResponseStates<List<ArtworkDTO>>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.moreFromArtist(userId = currentArtworkId, currentArtworkId = currentArtworkId, artistId = artistId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getSimilarArtwork(
+        currentUserId: String,
+        artworkId: String
+    ): Flow<ResponseStates<List<ArtworkDTO>>> = flow{
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.similarGenreArtworks(userId = currentUserId, artworkId = artworkId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
 
     override suspend fun getArtworkByFavoriteId(favoriteId: String): Flow<ResponseStates<List<ArtworkDTO>>> = flow {
         emit(ResponseStates.Loading)

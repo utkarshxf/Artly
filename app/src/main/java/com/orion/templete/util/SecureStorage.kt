@@ -30,6 +30,12 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
             apply()
         }
     }
+    fun saveCurrentUserId(userID: String) {
+        with(sharedPreferences.edit()) {
+            putString(PreferencesKey.UserId.key, userID)
+            apply()
+        }
+    }
 
     fun getToken(): String? {
         return sharedPreferences.getString("token", null)

@@ -36,7 +36,11 @@ import com.orion.templete.presentation.ui.theme.SmallSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArtworkItem(artwork: ArtworkDTO, onArtworkClick: (String) -> Unit = {}) {
+fun ArtworkItem(
+    artwork: ArtworkDTO,
+    showArtistName: Boolean = true,
+    onArtworkClick: (String) -> Unit = {}
+) {
     Card(
         onClick = { onArtworkClick(artwork.id ?: "id") },
         modifier = Modifier
@@ -78,7 +82,7 @@ fun ArtworkItem(artwork: ArtworkDTO, onArtworkClick: (String) -> Unit = {}) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = artwork.artist ?: "Unknown artist",
+                    text = if(showArtistName) artwork.artist ?: "Unknown artist" else artwork.medium?:artwork.artist?:"",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     maxLines = 1,

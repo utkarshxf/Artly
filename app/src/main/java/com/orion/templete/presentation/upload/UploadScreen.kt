@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import android.net.Uri
 import androidx.compose.animation.core.*
+import com.orion.templete.presentation.components.AnimatedPreloader
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -159,10 +160,7 @@ private fun UploadSection(
         contentAlignment = Alignment.Center
     ) {
         if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
+            AnimatedPreloader()
         } else {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

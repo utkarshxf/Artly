@@ -1,6 +1,7 @@
 package com.orion.templete.presentation.common
 
 
+import ArtViewScreen
 import UserEditScreen
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -72,6 +73,7 @@ fun BottomAppNev(
     val screens = listOf(
         Screens.Profile,
         Screens.Search,
+        Screens.FavoritesScreen,
         Screens.Swipe,
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -112,6 +114,12 @@ fun BottomAppNev(
         composable(Screens.Search.route)
         {
             SearchScreen(navController)
+        }
+        composable(Screens.ArtView.route){
+            val url = navController.previousBackStackEntry?.savedStateHandle?.get<String>("url")
+            if (url != null){
+                ArtViewScreen(url)
+            }
         }
         composable(Screens.UserProfile.route)
         {

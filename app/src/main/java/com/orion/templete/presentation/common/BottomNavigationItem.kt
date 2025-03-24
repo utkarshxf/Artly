@@ -17,9 +17,13 @@ data class BottomNavigationItem(
                 route = Screens.Search.route
             ),
             BottomNavigationItem(
-                icon = R.drawable.user,
+                icon = R.drawable.ic_save,
+                route = Screens.FavoritesScreen.route
+            ),
+            BottomNavigationItem(
+                icon = R.drawable.ic_profile,
                 route = Screens.Profile.route
-            )
+            ),
         )
     }
 }

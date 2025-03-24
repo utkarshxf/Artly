@@ -7,8 +7,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -52,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -67,6 +68,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
 import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.ProfileHeader
 import com.orion.templete.presentation.common.Screens
@@ -78,7 +80,17 @@ import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.extractYear
 import kotlin.math.max
 import kotlin.math.min
-
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 @Composable
 fun ArtistProfileScreen(artistId : String ,navController: NavController ,  viewModel: ArtistProfileViewModel = hiltViewModel()) {
@@ -118,6 +130,7 @@ private fun ProfileContent(artist: ArtistDTO, navController: NavController, view
     val maxOffset = with(LocalDensity.current) {
         imageHeight.roundToPx()
     } - WindowInsets.systemBars.getTop(LocalDensity.current)
+    val showImagePopup = remember { mutableStateOf(false) }
 
     // Calculate total offset based on which state is active
     val selectedTabIndex = remember { mutableStateOf(0) }
@@ -158,7 +171,11 @@ private fun ProfileContent(artist: ArtistDTO, navController: NavController, view
         label = "offset"
     )
     val context =  LocalContext.current
-
+    if (showImagePopup.value) {
+        ImagePopup(imageUrl = artist.image_url) {
+            showImagePopup.value = false
+        }
+    }
     Column {
         Column(
             modifier = Modifier
@@ -167,13 +184,12 @@ private fun ProfileContent(artist: ArtistDTO, navController: NavController, view
                 .offset { IntOffset(x = 0, y = animatedOffset.value) },
         ) {
             Spacer(modifier = Modifier.height(12.dp))
-            ProfileHeader(artist)
-            Spacer(modifier = Modifier.height(12.dp))
-            StatSection()
+            ProfileHeader(artist){
+                showImagePopup.value = true
+            }
             Spacer(modifier = Modifier.height(12.dp))
             ProfileDescriptionSection(
-                description = artist.description,
-                url = artist.wikipedia_url,
+                artist = artist,
             )
             Spacer(modifier = Modifier.height(12.dp))
             ButtonSection(artistId = artist.id , artist.follow)
@@ -212,7 +228,29 @@ private fun ProfileContent(artist: ArtistDTO, navController: NavController, view
         }
     }
 }
-
+@Composable
+fun ImagePopup(imageUrl: String, onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(imageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = "Artist Profile Image",
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Fit
+        )
+    }
+}
 
 @Composable
 fun ArtworkColumnList(scrollState: LazyListState, artworks: List<ArtworkDTO>, onItemClick: (String) -> Unit = {}) {
@@ -224,16 +262,38 @@ fun ArtworkColumnList(scrollState: LazyListState, artworks: List<ArtworkDTO>, on
     ) {
         items(artworks) { index ->
             Image(
-                painter = rememberAsyncImagePainter(model = index.image_url_compressed),
+                painter = rememberAsyncImagePainter(model = index.imageUrl,
+                    placeholder = painterResource(id = R.drawable.placeholder),
+                    error = painterResource(id = R.drawable.placeholder),
+                    fallback = painterResource(id = R.drawable.placeholder)),
                 contentDescription = "Artwork",
                 modifier = Modifier
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .padding(4.dp)
                     .clickable {
                         index.id?.let { onItemClick(it) }
                     },
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = index.title ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = index.medium?:index.artist?:"",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -268,20 +328,21 @@ private fun ProfileState(number: String, label: String) {
 
 @Composable
 private fun ProfileDescriptionSection(
-    description: String,
-    url: String,
+    artist: ArtistDTO,
 ) {
     val context = LocalContext.current
-    val intent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(url)) }
+    val intent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(artist.wikipedia_url)) }
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = description,
+        GenreSection(artist.art_movement)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = artist.description,
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 6,
             overflow  = TextOverflow.Ellipsis
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = url,
+            text = artist.wikipedia_url,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
             textDecoration = TextDecoration.Underline,
@@ -377,6 +438,7 @@ fun ArtworkContent(selectedTabIndex: MutableState<Int>) {
             )
         }
     }
+    Spacer(modifier = Modifier.height(8.dp))
 }
 @Composable
 private fun ArtworkGrid(scrollState: LazyGridState, artworks: List<ArtworkDTO> , onItemClick: (String) -> Unit = {}) {
@@ -389,17 +451,20 @@ private fun ArtworkGrid(scrollState: LazyGridState, artworks: List<ArtworkDTO> ,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(artworks) { index ->
-            Image(
-                painter = rememberAsyncImagePainter(model = index.image_url_compressed),
-                contentDescription = "Artwork",
-                modifier = Modifier
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable {
-                        index.id?.let { onItemClick(it) }
-                    },
-                contentScale = ContentScale.Crop
-            )
+//            Image(
+//                painter = rememberAsyncImagePainter(model = index.image_url_compressed),
+//                contentDescription = "Artwork",
+//                modifier = Modifier
+//                    .aspectRatio(1f)
+//                    .clip(RoundedCornerShape(8.dp))
+//                    .clickable {
+//                        index.id?.let { onItemClick(it) }
+//                    },
+//                contentScale = ContentScale.Crop
+//            )
+            ArtworkItem(index , false){
+                index.id?.let { onItemClick(it) }
+            }
         }
     }
 }

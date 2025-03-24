@@ -1,6 +1,10 @@
 package com.orion.templete
 
 import android.app.Application
+import android.graphics.Bitmap
+import coil.Coil
+import coil.ImageLoader
+import coil.util.DebugLogger
 import com.freshchat.consumer.sdk.Freshchat
 import com.freshchat.consumer.sdk.FreshchatConfig
 import dagger.hilt.android.HiltAndroidApp
@@ -19,6 +23,18 @@ class MyApplication: Application(){
         freshchatConfig.setUserEventsTrackingEnabled(true)
         freshchatConfig.setFileSelectionEnabled(true)
         Freshchat.getInstance(applicationContext)?.init(freshchatConfig)
+
+        val imageLoader = ImageLoader.Builder(this)
+            .allowRgb565(false) // Don't use RGB565 which reduces quality
+            .bitmapConfig(Bitmap.Config.ARGB_8888) // Use full quality config
+            .components {
+                // Add custom decoders that preserve quality
+//                add(HighQualityJpegDecoder(this))
+            }
+            .logger(DebugLogger()) // For debugging loading issues
+            .build()
+
+        Coil.setImageLoader(imageLoader)
     }
 
 }

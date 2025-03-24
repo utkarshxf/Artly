@@ -44,6 +44,9 @@ interface ApiService {
     @PUT("artwork/user/unlike/{artworkId}/{userId}")
     suspend fun unLikeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Unit>
 
+    @PUT("artwork/user/dislike/{artworkId}/{userId}")
+    suspend fun disLikeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Unit>
+
     @GET("/artist/search")
     suspend fun getAllArtists(
         @Query("query") artistName: String,
@@ -164,9 +167,31 @@ interface ApiService {
         @Path("favoriteId") favoriteId: String
     ): Response<List<ArtworkDTO>>
 
+    @GET("artist/getArtistByArtworkId")
+    suspend fun getArtistByArtworkId(
+        @Query("userId") userId: String,
+        @Query("artworkId") artworkId: String
+    ): Response<ArtistDTO>
+
+
+    @GET("artwork/similarGenreArtworks")
+    suspend fun similarGenreArtworks(
+        @Query("currentArtworkId") artworkId: String,
+        @Query("userId") userId: String
+    ): Response<List<ArtworkDTO>>
+
+    @GET("artwork/moreFromArtist")
+    suspend fun moreFromArtist(
+        @Query("userId") userId: String,
+        @Query("currentArtworkId") currentArtworkId: String,
+        @Query("artistId") artistId: String
+    ): Response<List<ArtworkDTO>>
+
+
 
     companion object {
-        var baseurl = "https://backendart-production.up.railway.app"
+        var baseurl = "https://backendart-production.up.railway.app/"
+//        var baseurl = "https://backend-art.onrender.com/"
 //        var baseurl = "http://10.0.2.2:7040"
     }
     //this is the change before commit to new branch

@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 
 @Composable
-fun UserSearchCard(
+fun ArtistProfileCard(
     username: String,
     userId: String,
     profilePictureUrl: String,
@@ -47,7 +47,7 @@ fun UserSearchCard(
                 painter = rememberAsyncImagePainter(profilePictureUrl),
                 contentDescription = "Profile picture of $username",
                 modifier = Modifier
-                    .size(60.dp)
+                    .size(52.dp)
                     .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )

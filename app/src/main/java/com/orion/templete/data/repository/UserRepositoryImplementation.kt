@@ -82,6 +82,27 @@ class UserRepositoryImplementation @Inject constructor(
         }
     }
 
+    override suspend fun getArtistByArtworkId(
+        artworkId: String,
+        currentUserId: String
+    ): Flow<ResponseStates<ArtistDTO>> {
+        return flow {
+            emit(ResponseStates.Loading)
+            try {
+                if (isNetworkAvailable(context)) {
+                    val response = safeApiRequest { apiService.getArtistByArtworkId(currentUserId , artworkId) }
+                    emit(ResponseStates.Success(response))
+                } else if (!isNetworkAvailable(context)) {
+                    emit(ResponseStates.Error("No internet connection and no cached data available"))
+                }
+            } catch (e: Exception) {
+                emit(ResponseStates.Error(e.message ?: "Unknown Error Occurred"))
+            }
+        }.catch { e ->
+            emit(ResponseStates.Error(e.message ?: "Error in Flow"))
+        }
+    }
+
     override suspend fun createUser(request: UserDetails): Flow<ResponseStates<UserDetails>> = flow {
         emit(ResponseStates.Loading)
         try {

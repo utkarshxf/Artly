@@ -53,7 +53,6 @@ class CollectionViewModel @Inject constructor(
                 createFavoritesUiState = when (response) {
                     is ResponseStates.Loading -> CreateFavoritesUiState.Loading
                     is ResponseStates.Success -> {
-                        getFavoritesByUserId()
                         CreateFavoritesUiState.Success(response.data)
                     }
                     is ResponseStates.Error -> CreateFavoritesUiState.Error(response.error)

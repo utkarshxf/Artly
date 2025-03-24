@@ -59,15 +59,12 @@ fun CollectionArtworksScreen(
         is CollectionScreenUiState.Success -> {
             val artworks = uiState.artwork
             // Create collection detail from the loaded data
-            val collectionDetail = remember(artworks) {
-                // You might want to update this with real data from your ViewModel
-                CollectionDetail(
-                    id = "",
-                    name = "Collection", // This should come from your ViewModel
-                    artworkCount = artworks.size,
-                    artworks = artworks
-                )
-            }
+            val collectionDetail =  CollectionDetail(
+                id = "",
+                name = "Collection", // This should come from your ViewModel
+                artworkCount = artworks.size,
+                artworks = artworks
+            )
 
             CollectionContent(
                 collection = collectionDetail,

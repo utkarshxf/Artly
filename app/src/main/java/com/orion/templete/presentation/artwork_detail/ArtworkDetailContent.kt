@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +45,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
@@ -91,6 +93,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -101,27 +104,27 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
+import com.orion.templete.presentation.artist_profile.ArtistProfileScreenUiState
 import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
 import com.orion.templete.presentation.artist_profile.GetCommentsOnArtworkUiState
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
-import com.orion.templete.presentation.common.ProfileHeader
 import com.orion.templete.presentation.common.Screens
+import com.orion.templete.presentation.common.ArtistProfileCard
 import com.orion.templete.presentation.components.GenreSection
 import com.orion.templete.presentation.favorites.AddToFavoritesUiState
+import com.orion.templete.presentation.favorites.CollectionCard
 import com.orion.templete.presentation.favorites.CollectionViewModel
+import com.orion.templete.presentation.favorites.CreateFavoritesUiState
 import com.orion.templete.presentation.favorites.FavoritesUiState
 import com.orion.templete.presentation.search.dummyArtworks
 import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
-import com.orion.templete.presentation.ui.theme.MediumSize
-import com.orion.templete.presentation.ui.theme.SmallSize
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.extractYear
 import com.orion.templete.util.getSourceUrlSiteName
@@ -133,7 +136,6 @@ import kotlin.math.min
 @Composable
 fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewModel: ArtworkDetailViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
-
         viewModel.getArtworkById(artworkId)
     }
     when (val uiState = viewModel.artworkDetailScreenUiState) {
@@ -167,7 +169,7 @@ fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavContro
     var isLiked = remember { mutableStateOf(artworkDetailsDTO.liked) }
     Box {
         Details(artworkDetailsDTO, scrollState , isLiked , navController)
-        ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked)
+        ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked ,navController)
     }
 }
 
@@ -180,67 +182,101 @@ private fun Details(
     navController: NavController
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(top = AppBarExpendedHeight), state = scrollState
+        contentPadding = PaddingValues(top = AppBarExpendedHeight),
+        state = scrollState,
+        modifier = Modifier.fillMaxSize()
     ) {
         item {
-            BasicInfo(artworkDetailsDTO , isLiked)
+            BasicInfo(artworkDetailsDTO, isLiked)
             Description(artworkDetailsDTO)
             ArtworkDetails(artworkDetailsDTO)
-            AboutTheArtist()
-            RecommendFromArtist(navController)
-            RecommendFromGenre(navController)
+            AboutTheArtist(navController, artworkDetailsDTO.id)
+            RecommendFromGenre(artworkDetailsDTO, navController)
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-fun AboutTheArtist() {
-    val artist = ArtistDTO("afsfsdf" , "sfdaffs" , "dfsfdsfd" ,"sdfsfdsfds" , "male" , "english" , "in" , "" , "" , "" , "" , "" , false)
-    ProfileHeader(artist)
+fun AboutTheArtist(navController: NavController , id: String? , vm: ArtistProfileViewModel = hiltViewModel()) {
+    LaunchedEffect(Unit) {
+        vm.getArtistByArtworkId(id ?: "")
+    }
+    val artistProfileUiState = vm.artistProfileScreenUiState
+    Log.d("artistProfileUiState" , artistProfileUiState.toString())
+    if(artistProfileUiState is ArtistProfileScreenUiState.Success){
+        val it  = artistProfileUiState.artist
+        ArtistProfileCard(it.name ?: "name", it.id ?: "id", it.image_url ?: "profilePicture") {
+            navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it.id)
+            navController.navigate(Screens.UserProfile.route)
+        }
+        if (id != null) {
+            RecommendFromArtist(id ,it.id , navController)
+        }
+    }
 }
 
 @Composable
-fun RecommendFromArtist(navController: NavController) {
-    Column {
-        Text(
-            text = "More From Artist",
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
-        ) {
-            items(dummyArtworks) { artwork ->
-                ArtworkItem(artwork){ id ->
-                    navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = id )
-                    navController.navigate(Screens.ArtworkDetail.route)
+fun RecommendFromArtist(artworkId: String ,artistId: String? , navController: NavController , vm: ArtworkDetailViewModel = hiltViewModel()) {
+    LaunchedEffect(Unit) {
+        if (artistId != null) {
+            vm.getArtworkByArtistId(artistId =artistId , currentArtworkId = artworkId)
+        }
+    }
+    val state = vm.artworksScreenUiState
+    if(state is ArtworksScreenUiState.Success){
+        Column {
+            if(state.artwork.isNotEmpty())
+                Text(
+                text = "More From Artist",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                items(state.artwork) { artwork ->
+                    ArtworkItem(artwork){ id ->
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = id )
+                        navController.navigate(Screens.ArtworkDetail.route)
+                    }
                 }
             }
         }
     }
 }
 @Composable
-fun RecommendFromGenre(navController: NavController) {
-    Column {
-        Text(
-            text = "Similar Genre",
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
-        ) {
-            items(dummyArtworks) { artwork ->
-                ArtworkItem(artwork){ id->
-                    navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = id )
-                    navController.navigate(Screens.ArtworkDetail.route)
+fun RecommendFromGenre(artworkDetailsDTO: ArtworkDTO  , navController: NavController , vm: ArtworkDetailViewModel = hiltViewModel()) {
+    LaunchedEffect(Unit) {
+        if (artworkDetailsDTO.id != null) {
+            vm.getSimilarArtwork(artworkId =artworkDetailsDTO.id)
+        }
+    }
+    val state = vm.similarArtworks
+
+    if(state is ArtworksScreenUiState.Success){
+        Column {
+            if(state.artwork.isNotEmpty())
+            Text(
+                text = "Similar Genre",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                items(state.artwork) { artwork ->
+                    ArtworkItem(artwork){ id->
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = id )
+                        navController.navigate(Screens.ArtworkDetail.route)
+                    }
                 }
             }
         }
     }
+
 }
 
 @Composable
@@ -259,15 +295,14 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     var showComments by remember { mutableStateOf(false) }
     var showSavedFolders by remember { mutableStateOf(false) }
-    var showCreateNewCollection by remember { mutableStateOf(false) }
-
+    val collectionVm : CollectionViewModel = hiltViewModel()
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "5" ){
+        ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "Like" ){
             if(isLiked.value == true){
                 artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
             }else{
@@ -275,7 +310,7 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
             }
             isLiked.value = !isLiked.value!!
         }
-        InfoColumn(R.drawable.ic_comment, "7"){
+        InfoColumn(R.drawable.ic_comment, "Comment"){
             showComments = true
         }
         InfoColumn(R.drawable.ic_save, "Save"){
@@ -285,9 +320,9 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
     if (showSavedFolders){
         BottomSheet(onDismiss = { showSavedFolders = false }) {
             SaveSection(
-                onAddCollection = { showCreateNewCollection =! showCreateNewCollection },
                 dismiss = { showSavedFolders = false },
-                artworkDetailsDTO.id
+                artworkDetailsDTO.id,
+                vm = collectionVm
             )
         }
     }
@@ -335,148 +370,6 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
                         onRetry = { artworkDetailsDTO.id?.let { vm.refreshComments(artworkId = it) } }
                     )
                 }
-            }
-        }
-    }
-    if(showCreateNewCollection) {
-        BottomSheet(
-            onDismiss = { showCreateNewCollection = false }
-        ) {
-            val collectionVm : CollectionViewModel = hiltViewModel()
-            CreateNewCollection(artworkDetailsDTO.image_url_compressed , onSubmit = {
-                collectionVm.createNewFavorites( it)
-                showCreateNewCollection = false
-            }, onCancel = {
-                showCreateNewCollection = false
-            })
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CreateNewCollection(
-    imageUrl: String?,
-    onSubmit: (favoritesDTO) -> Unit = {},
-    onCancel: () -> Unit = {}
-) {
-    var collectionName by remember { mutableStateOf("") }
-    var isCollaborative by remember { mutableStateOf(false) }
-
-    // Add focus requester
-    val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    // Request focus when the composable is first launched
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-        keyboardController?.show()
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Background Image
-        if (imageUrl != null) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        // Semi-transparent overlay
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.4f))
-        )
-
-        // Content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-        ) {
-            // Top Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = {
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                    onCancel()
-                }) {
-                    Text(
-                        "Cancel",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-
-                Text(
-                    "New collection",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                TextButton(
-                    onClick = {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-                        onSubmit( favoritesDTO(title = collectionName , description = "collection"))
-                    },
-                    enabled = collectionName.isNotBlank()
-                ) {
-                    Text(
-                        "Save",
-                        color = if (collectionName.isNotBlank()) Color.White else Color.White.copy(alpha = 0.5f),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Bottom Section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = collectionName,
-                    onValueChange = { collectionName = it },
-                    placeholder = { Text("Name your collection", color = Color.White.copy(alpha = 0.7f)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        cursorColor = Color.White,
-                        focusedBorderColor = Color.White,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f)
-                    ),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                            if (collectionName.isNotBlank()) {
-                                onSubmit(favoritesDTO(title = collectionName , description = "collection"))
-                            }
-                        }
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
             }
         }
     }
@@ -552,21 +445,18 @@ fun CommentSection(
 
 @Composable
 fun SaveSection(
-    onAddCollection: () -> Unit = {},
     dismiss: () -> Unit = {},
     artworkId: String? = null,
     vm: CollectionViewModel = hiltViewModel()
 ) {
+    val state = vm.favoritesUiState
     LaunchedEffect(Unit) {
         vm.getFavoritesByUserId()
     }
-    val saveUiState = vm.addToFavoritesUiState
-    if(saveUiState is AddToFavoritesUiState.Success){
-        Toast.makeText(LocalContext.current , "Saved" , Toast.LENGTH_SHORT).show()
-        dismiss()
-    }
-    if(saveUiState is AddToFavoritesUiState.Error){
-        Toast.makeText(LocalContext.current , saveUiState.message , Toast.LENGTH_SHORT).show()
+    LaunchedEffect(key1 = vm.createFavoritesUiState) {
+        if (vm.createFavoritesUiState is CreateFavoritesUiState.Success) {
+            vm.getFavoritesByUserId()
+        }
     }
     Column(
         modifier = Modifier
@@ -584,7 +474,7 @@ fun SaveSection(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         )
         Spacer(modifier = Modifier.height(8.dp))
-        when (val uiState = vm.favoritesUiState) {
+        when (state) {
             is FavoritesUiState.Loading -> {
                 CircularProgressIndicator(
                     modifier = Modifier
@@ -595,29 +485,22 @@ fun SaveSection(
             }
 
             is FavoritesUiState.Success -> {
-                val favorites by remember { mutableStateOf(uiState.favorites) }
                 LazyVerticalGrid(
                     userScrollEnabled = true,
                     modifier = Modifier.fillMaxHeight(),
                     columns = GridCells.Fixed(3),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)){
-                    item {
+                    items(state.favorites) {
                         Column {
-                            CollectionCard("Add New Collection" , ""){
-                                onAddCollection()
-                            }
-                        }
-                    }
-                    items(favorites) {
-                        Column {
-                            CollectionCard(it.title , ""){
+                            CollectionCard(it , onClick = {
                                 it.id?.let { it1 ->
                                     if (artworkId != null) {
                                         vm.saveOnFavorites(favoritesId = it1 , artworkId =artworkId)
+                                        dismiss()
                                     }
                                 }
-                            }
+                            })
                         }
                     }
                 }
@@ -625,75 +508,13 @@ fun SaveSection(
 
             is FavoritesUiState.Error -> {
                 ErrorScreen(
-                    message = uiState.message,
+                    message = state.message,
                     onRetry = {  }
                 )
             }
         }
     }
 }
-@Composable
-fun CollectionCard(
-    title: String,
-    imageUrl: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(160.dp),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(onClick = onClick)
-        ) {
-            // Background Image
-            AsyncImage(
-                model = imageUrl,
-                error = painterResource(id = R.drawable.ic_add),
-                contentDescription = title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Gradient Overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f)
-                            )
-                        )
-                    )
-            )
-
-            // Title and Additional Info
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentAlignment = Alignment.BottomStart
-            ) {
-                Column {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun CommentItem(comment: GetCommentsDTO) {
     Row(
@@ -752,7 +573,8 @@ fun ClickableIcon(@DrawableRes iconResource: Int, text: String, tint: Color = Lo
 private fun ParallaxToolbar(
     artworkDTO: ArtworkDTO,
     scrollState: LazyListState,
-    isLiked: MutableState<Boolean?>
+    isLiked: MutableState<Boolean?>,
+    navController: NavController
 ) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     val imageHeight = AppBarExpendedHeight - AppBarCollapsedHeight
@@ -782,21 +604,27 @@ private fun ParallaxToolbar(
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
+                        .clickable {
+                            navController.currentBackStackEntry?.savedStateHandle?.set(key = "url", value = artworkDTO.imageUrl)
+                            navController.navigate(Screens.ArtView.route)
+                        }
                 )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colorStops = arrayOf(
-                                    Pair(0.4f, Transparent),
-                                    Pair(1f, MaterialTheme.colorScheme.surface)
+                if (!artworkDTO.medium.isNullOrEmpty()){
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        Pair(0.4f, Transparent),
+                                        Pair(1f, MaterialTheme.colorScheme.surface)
+                                    )
                                 )
-                            )
-                        ),
-                    contentAlignment = Alignment.BottomStart
-                ){
-                    GenreSection(artworkDTO.medium)
+                            ),
+                        contentAlignment = Alignment.BottomStart
+                    ){
+                        GenreSection(artworkDTO.medium)
+                    }
                 }
             }
             Column(
@@ -828,7 +656,9 @@ private fun ParallaxToolbar(
             .height(AppBarCollapsedHeight)
             .padding(horizontal = 16.dp)
     ) {
-        CircularButton(R.drawable.ic_arrow_back)
+        CircularButton(R.drawable.ic_arrow_back){
+            navController.popBackStack()
+        }
         CircularButton(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite ,  tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else LocalContentColor.current ){
             if(isLiked.value == true){
                 artworkDTO.id?.let { vm.unLikeArtwork(it) }
@@ -871,6 +701,7 @@ fun ArtworkDetails(artworkDetailsDTO: ArtworkDTO) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
+        if (!artworkDetailsDTO.artist.isNullOrEmpty()) DetailItem("Artist", artworkDetailsDTO.artist)
         if (!artworkDetailsDTO.dimensions.isNullOrEmpty()) artworkDetailsDTO.dimensions?.let { DetailItem("Dimensions", it) }
         if (!artworkDetailsDTO.artMovement.isNullOrEmpty()) DetailItem("Art Movement", artworkDetailsDTO.artMovement)
         if (!artworkDetailsDTO.periodStyle.isNullOrEmpty())  { DetailItem("Period/Style", artworkDetailsDTO.periodStyle) }
@@ -951,23 +782,6 @@ fun SourceUrlLink(url: String) {
                 .clickable { context.startActivity(intent) }
                 .weight(1f)
         )
-    }
-}
-
-@Composable
-fun GenreSection() {
-    // This would be populated based on artwork genre tags
-    // Adding placeholder for demonstration
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.Start
-    ) {
-        GenreChip("Landscape")
-        Spacer(modifier = Modifier.width(8.dp))
-        GenreChip("Contemporary")
-        // Add more genre chips as needed
     }
 }
 

@@ -26,7 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.orion.templete.presentation.common.CustomSearchBar
-import com.orion.templete.presentation.common.UserSearchCard
+import com.orion.templete.presentation.common.ArtistProfileCard
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -48,17 +48,19 @@ fun SearchScreen(navController: NavController , viewModel: SearchScreenViewModel
         header = {},
         search = {
             CustomSearchBar(
-                onQueryChange = { query = it },
+                onQueryChange = {
+                    query = it
+                    viewModel.searchArtist(it.replaceFirstChar { char -> char.uppercase() }) },
                 query = query,
                 active = active,
                 onActiveChange = {
-                    active = it
-                    viewModel.searchArtist(query) },
+                    viewModel.searchArtist("")
+                    active = it },
                 placeholder = "Search",
                 content = {
                     LazyColumn {
                         items(searchResults.value) {
-                            UserSearchCard(it.name ?: "name", it.id ?: "id", it.imageUrl ?: "profilePicture") {
+                            ArtistProfileCard(it.name ?: "name", it.id ?: "id", it.imageUrl ?: "profilePicture") {
                                 navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it.id)
                                 navController.navigate(Screens.UserProfile.route)
                             }

@@ -1,4 +1,5 @@
 package com.orion.templete.presentation.common
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +21,7 @@ import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.user_model.UserDTO
 
 @Composable
-fun ProfileHeader(user: ArtistDTO) {
+fun ProfileHeader(user: ArtistDTO , onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -30,7 +31,7 @@ fun ProfileHeader(user: ArtistDTO) {
             contentDescription = "Profile picture",
             modifier = Modifier
                 .size(80.dp)
-                .clip(CircleShape),
+                .clip(CircleShape).clickable { onClick() },
             contentScale = ContentScale.Crop
         )
         Spacer(modifier = Modifier.width(16.dp))

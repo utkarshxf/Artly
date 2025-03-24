@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,20 +25,29 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -63,12 +73,18 @@ import coil.compose.AsyncImage
 import com.nameisjayant.composeprojects.components.SpacerHeight
 import com.orion.templete.MainActivity
 import com.orion.templete.R
+import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.presentation.common.CustomTextField
+import com.orion.templete.presentation.components.AnimatedPreloader
+import com.orion.templete.presentation.favorites.CollectionViewModel
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.getDefaultProfileUrl
 import com.orion.templete.util.uploadImage
+import java.time.Instant
+import java.time.ZoneId
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,288 +94,213 @@ fun UserRegisterScreen(
     modifier: Modifier = Modifier,
     onNavigateToHome: () -> Unit
 ) {
+    val collectionViewModel:CollectionViewModel = hiltViewModel()
     val context = LocalContext.current
     val uiState = viewModel.createUserState
     val activity = context as MainActivity
     val imageCropper = remember { activity.getImageCropper() }
     val galleryLauncher = remember { activity.getGalleryLauncher() }
+
+    // State variables
     var name by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("") }
-    var language by remember { mutableStateOf("") }
-    var countryIso2 by remember { mutableStateOf("") }
-    var isArtist by remember { mutableStateOf(false) }
+    var selectedGender by remember { mutableStateOf("") }
     var pickedImageUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     val croppedImageUri by imageCropper.croppedImageUri.collectAsState(null)
+
+    // Hardcoded values
+    val language = "EN"
+    val countryIso2 = "IN"
+
+    // Date picker state
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    // Effects
     LaunchedEffect(key1 = croppedImageUri) {
         pickedImageUri = croppedImageUri
     }
-    LaunchedEffect(key1 = Unit, block = {
+
+    LaunchedEffect(key1 = Unit) {
         imageCropper.clearCroppedImageUri()
-    })
+    }
+
+    LaunchedEffect(datePickerState.selectedDateMillis) {
+        datePickerState.selectedDateMillis?.let {
+            val localDate = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+            dob = "${localDate.year}-${localDate.monthValue.toString().padStart(2, '0')}-${localDate.dayOfMonth.toString().padStart(2, '0')}"
+        }
+    }
+
     LaunchedEffect(uiState) {
         uiState.error?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
         }
-    }
-    LaunchedEffect(uiState.data) {
+
         uiState.data?.let {
+            collectionViewModel.createNewFavorites(favoritesDTO("collection" , "saved_${it.id}" , "Swiped"))
             onNavigateToHome()
         }
     }
+
+    // Date Picker Dialog
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .background(
-                color = if (isSystemInDarkTheme()) {
-                    MaterialTheme.colorScheme.background
-                } else {
-                    MaterialTheme.colorScheme.surface
-                }
-            ), horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Header Section with Gradient
-        Box(
+        // Header
+        Text(
+            text = "Complete Your Profile",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Text(
+            text = "Let's get to know you better",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        // Profile Picture
+        AsyncImage(
+            model = pickedImageUri ?: getDefaultProfileUrl(selectedGender),
+            contentDescription = "Profile Picture",
             modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primary
-                )
+                .size(120.dp)
+                .clip(CircleShape)
+                .clickable { galleryLauncher.launchGallery() },
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Form Fields
+        CustomTextField(
+            value = name,
+            onValueChange = { name = it },
+            hint = R.string.name_hint,
+            keyboardType = KeyboardType.Text,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Date of Birth Field
+        OutlinedTextField(
+            value = dob,
+            onValueChange = { },
+            readOnly = true,
+            label = { Text(stringResource(id = R.string.dob_hint)) },
+            trailingIcon = {
+                IconButton(onClick = { showDatePicker = true }) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Select Date"
+                    )
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Gender Selection
+        Text(
+            text = "Gender",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier
+                .align(Alignment.Start)
+                .padding(bottom = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Complete Your Profile",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                SpacerHeight(8.dp)
-                Text(
-                    text = "Let's get to know you better",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+            val genderOptions = listOf("Male", "Female", "Others")
+
+            genderOptions.forEach { gender ->
+                FilterChip(
+                    selected = gender == selectedGender,
+                    onClick = { selectedGender = gender },
+                    label = { Text(gender) },
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
 
-        // Profile Picture Section - Overlapping the gradient
+        Spacer(modifier = Modifier.height(32.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                Box(modifier = Modifier.padding(start = 8.dp) , contentAlignment = Alignment.BottomEnd)
-                {
-
-                    Box(contentAlignment = Alignment.Center) {
-                        AsyncImage(
-                            model = pickedImageUri?:getDefaultProfileUrl(gender),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    1.dp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                ),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_camara),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .align(Alignment.BottomEnd)
-                            .clickable {
-                                galleryLauncher.launchGallery()
-                            }
-                    )
-                }
-            }
-        }
-
-        // Form Content
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .offset(y = (-30).dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Input Fields with Card Background
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    CustomTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        hint = R.string.name_hint,
-                        keyboardType = KeyboardType.Text,
-                    )
-
-                    CustomTextField(
-                        value = dob,
-                        onValueChange = { dob = it },
-                        hint = R.string.dob_hint,
-                        keyboardType = KeyboardType.Text,
-                    )
-
-                    CustomDropdownField(
-                        value = gender,
-                        onValueChange = { gender = it },
-                        hint = R.string.gender_hint,
-                        options = listOf("Male", "Female", "Other")
-                    )
-
-                    CustomDropdownField(
-                        value = language,
-                        onValueChange = { language = it },
-                        hint = R.string.language_hint,
-                        options = listOf("English", "Spanish", "French")
-                    )
-
-                    CustomDropdownField(
-                        value = countryIso2,
-                        onValueChange = { countryIso2 = it },
-                        hint = R.string.country_hint,
-                        options = listOf("US", "UK", "IN")
-                    )
-
-                    // Artist Switch with enhanced styling
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.medium),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Artist Profile",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = "Enable if you're a content creator",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                            Switch(checked = isArtist, onCheckedChange = { isArtist = it })
-                        }
-                    }
-                }
-            }
-
-            // Submit Button with gradient background
-            Button(
-                onClick = {
-                    SecureStorage(context).getUserId()?.let {
-                        if (pickedImageUri != null) {
-                            uploadImage(pickedImageUri ,context) { image ->
-                                viewModel.createUser(
-                                    UserDetails(
-                                        id = it,
-                                        name = name,
-                                        dob = dob,
-                                        gender = gender,
-                                        language = language,
-                                        countryIso2 = countryIso2,
-                                        artist = isArtist,
-                                        profilePicture = image
-                                    )
-                                )
-                            }
-                        } else {
+        // Submit Button
+        Button(
+            onClick = {
+                SecureStorage(context).getUserId()?.let { userId ->
+                    if (pickedImageUri != null) {
+                        uploadImage(pickedImageUri, context) { imageUrl ->
                             viewModel.createUser(
                                 UserDetails(
-                                    id = it,
+                                    id = userId,
                                     name = name,
                                     dob = dob,
-                                    gender = gender,
+                                    gender = selectedGender,
                                     language = language,
                                     countryIso2 = countryIso2,
-                                    artist = isArtist,
-                                    profilePicture = getDefaultProfileUrl(gender)
+                                    artist = false,
+                                    profilePicture = imageUrl
                                 )
                             )
                         }
+                    } else {
+                        viewModel.createUser(
+                            UserDetails(
+                                id = userId,
+                                name = name,
+                                dob = dob,
+                                gender = selectedGender,
+                                language = language,
+                                countryIso2 = countryIso2,
+                                artist = false,
+                                profilePicture = getDefaultProfileUrl(selectedGender)
+                            )
+                        )
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                shape = MaterialTheme.shapes.medium
-            ) {
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = MaterialTheme.shapes.medium,
+            enabled = !uiState.isLoading
+        ) {
+            if (uiState.isLoading) { AnimatedPreloader()
+            }
+            else
                 Text(
                     text = stringResource(id = R.string.save_button_label),
                     style = MaterialTheme.typography.titleMedium
                 )
-            }
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CustomDropdownField(
-    value: String, onValueChange: (String) -> Unit, hint: Int, options: List<String>
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        CustomTextField(
-            value = value,
-            onValueChange = onValueChange,
-            hint = hint,
-            keyboardType = KeyboardType.Text,
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(text = { Text(option) }, onClick = {
-                    onValueChange(option)
-                    expanded = false
-                })
-            }
-        }
-    }
-}
-
-@Preview
-@Composable
-private fun LoginScreenPrev() {
-    TempleteTheme {
-        UserRegisterScreen(){}
     }
 }

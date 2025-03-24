@@ -24,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,8 +41,11 @@ import com.orion.templete.presentation.swipe.components.Direction
 import com.orion.templete.presentation.swipe.components.rememberSwipeableCardState
 import com.orion.templete.presentation.swipe.components.swipableCard
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.border
-import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import com.orion.templete.presentation.components.AnimatedPreloader
+import com.orion.templete.presentation.favorites.CollectionViewModel
+import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.extractYear
 
 
@@ -82,7 +84,6 @@ private fun HeaderRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         AppIcon(icon = R.drawable.artistry, tint = MaterialTheme.colorScheme.primary)
-//        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -95,10 +96,12 @@ fun SwipeCard(
     val stateOfCards = swipeScreenViewModel.state
     val scope = rememberCoroutineScope()
     var isSwipedLeft by remember { mutableStateOf(false) }
+    val collectionViewModel: CollectionViewModel = hiltViewModel()
+    val userId = SecureStorage(LocalContext.current).getUserDetails()?.id
     when {
         stateOfCards.isLoading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                AnimatedPreloader(R.raw.loading_app)
             }
         }
 
@@ -115,9 +118,8 @@ fun SwipeCard(
         }
 
         else -> {
-            val artworkList = stateOfCards.items
+            val artworkList = stateOfCards.items as ArrayList<ArtworkDTO>
             val states = artworkList.reversed().map { it to rememberSwipeableCardState() }
-            var currentIndex by remember { mutableIntStateOf(0) }
             Box {
                 states.forEach { (artwork, state) ->
                     LaunchedEffect(state.swipedDirection) {
@@ -131,13 +133,22 @@ fun SwipeCard(
                                 blockedDirections = listOf(Direction.Down),
                                 onSwiped = {
                                     if (state.swipedDirection == Direction.Right) {
-                                        Log.d("Swappable-Card", "Swiped ${state.swipedDirection}")
                                         swipeScreenViewModel.likeArtwork(
                                             artwork?.id.toString()
                                         )
                                     }
-                                    currentIndex++
-                                    if (currentIndex >= artworkList.size && !stateOfCards.isLoading) {
+                                    if (state.swipedDirection == Direction.Left) {
+                                        swipeScreenViewModel.disLikeArtwork(
+                                            artwork?.id.toString()
+                                        )
+                                    }
+                                    if(state.swipedDirection == Direction.Up){
+                                        artwork.id?.let { it1 -> collectionViewModel.saveOnFavorites("saved_${userId}" , artworkId = it1) }
+                                    }
+                                    if(artworkList.isNotEmpty()){
+                                        artworkList.remove(artwork)
+                                    }
+                                    if (artworkList.isEmpty()) {
                                         swipeScreenViewModel.loadNextItems()
                                     }
                                     isSwipedLeft = state.swipedDirection == Direction.Left
@@ -211,6 +222,15 @@ fun ArtworkProfileCard(artwork: ArtworkDTO) {
                     fontWeight = FontWeight.Medium
                 )
             }
+            artwork.currentLocation?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -218,7 +238,7 @@ fun ArtworkProfileCard(artwork: ArtworkDTO) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                artwork.artMovement?.let {
+                artwork.medium?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall
@@ -259,7 +279,7 @@ private fun ProfileCard(
     ) {
         Image(
             modifier = Modifier.fillMaxSize(),
-            painter = rememberAsyncImagePainter(artwork.image_url_compressed),
+            painter = rememberAsyncImagePainter(artwork.imageUrl),
             contentDescription = null
         )
     }

@@ -17,24 +17,36 @@ fun Modifier.swipableCard(
     onSwiped: (Direction) -> Unit,
     onSwipeCancel: () -> Unit = {},
     blockedDirections: List<Direction> = listOf(Direction.Up, Direction.Down),
-) = pointerInput(Unit) {
+) = pointerInput(state) { // Add state as a key to recreate the gesture detector when state changes
     coroutineScope {
+        // Add a small threshold before starting to recognize drag
+        val dragThreshold = 5f
+        var dragStarted = false
+        var initialDragOffset = Offset.Zero
+
         detectDragGestures(
+            onDragStart = { offset ->
+                dragStarted = true
+                initialDragOffset = offset
+            },
             onDragCancel = {
                 launch {
                     state.reset()
                     onSwipeCancel()
+                    dragStarted = false
                 }
             },
             onDrag = { change, dragAmount ->
                 launch {
+                    // Always consume the gesture to prevent it from propagating
+                    change.consume()
+
                     val original = state.offset.targetValue
                     val summed = original + dragAmount
                     val newValue = Offset(
                         x = summed.x.coerceIn(-state.maxWidth, state.maxWidth),
                         y = summed.y.coerceIn(-state.maxHeight, state.maxHeight)
                     )
-                    if (change.positionChange() != Offset.Zero) change.consume()
                     state.drag(newValue.x, newValue.y)
                 }
             },
@@ -70,6 +82,9 @@ fun Modifier.swipableCard(
                             }
                         }
                     }
+
+                    // Reset drag started flag
+                    dragStarted = false
                 }
             }
         )
@@ -116,6 +131,6 @@ private fun hasNotTravelledEnough(
     state: SwipeableCardState,
     offset: Offset,
 ): Boolean {
-    return abs(offset.x) < state.maxWidth / 4 &&
-            abs(offset.y) < state.maxHeight / 4
+    return abs(offset.x) < state.maxWidth / 8.5 &&
+            abs(offset.y) < state.maxHeight / 8.5
 }

@@ -21,6 +21,11 @@ interface UserRepository {
         currentUserId: String
     ): Flow<ResponseStates<ArtistDTO>>
 
+    suspend fun getArtistByArtworkId(
+        artworkId: String,
+        currentUserId: String
+    ): Flow<ResponseStates<ArtistDTO>>
+
     suspend fun createUser(userDetails: UserDetails): Flow<ResponseStates<UserDetails>>
     suspend fun followUser(userId: String, artistId: String): Flow<ResponseStates<Unit>>
     suspend fun unfollowArtist(userId: String, artistId: String): Flow<ResponseStates<Unit>>

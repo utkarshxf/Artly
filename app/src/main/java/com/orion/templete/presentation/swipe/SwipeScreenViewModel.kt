@@ -28,6 +28,8 @@ class SwipeScreenViewModel @Inject constructor(
         private set
     var likeArtworkState by mutableStateOf<ResponseStates<Boolean>>(ResponseStates.Loading)
         private set
+    var disLikeArtworkState by mutableStateOf<ResponseStates<Boolean>>(ResponseStates.Loading)
+        private set
 
     private val pagination: DefaultPaginator<Int, ArtworkDTO> = DefaultPaginator(
         initialKey = state.page,
@@ -76,6 +78,13 @@ class SwipeScreenViewModel @Inject constructor(
         viewModelScope.launch {
             likeArtworkUseCase.likeArtwork(artworkId, userId).collect { resource ->
                 likeArtworkState = resource
+            }
+        }
+    }
+    fun disLikeArtwork(artworkId: String) {
+        viewModelScope.launch {
+            likeArtworkUseCase.disLikeArtwork(artworkId, userId).collect { resource ->
+                disLikeArtworkState = resource
             }
         }
     }
