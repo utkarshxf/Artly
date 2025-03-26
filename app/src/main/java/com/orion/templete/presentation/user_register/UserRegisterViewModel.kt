@@ -20,7 +20,7 @@ class UserRegisterScreenViewModel @Inject constructor(
     private val secureStorage: SecureStorage
 ) : ViewModel() {
 
-    var createUserState by mutableStateOf<UserDetailsUiState>(UserDetailsUiState(isLoading = true))
+    var createUserState by mutableStateOf<UserDetailsUiState>(UserDetailsUiState(isLoading = false))
         private set
     fun createUser(
         request:UserDetails
@@ -32,9 +32,9 @@ class UserRegisterScreenViewModel @Inject constructor(
                         is ResponseStates.Loading -> createUserState.copy(isLoading = true)
                         is ResponseStates.Success -> {
                             secureStorage.saveUserDetails(response.data)
-                            createUserState.copy(data = response.data)
+                            createUserState.copy(data = response.data , isLoading = false)
                         }
-                        is ResponseStates.Error -> createUserState.copy(error = response.error.toString())
+                        is ResponseStates.Error -> createUserState.copy(error = response.error.toString(), isLoading = false)
                     }
                 }
         }

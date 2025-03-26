@@ -3,7 +3,7 @@ package com.orion.templete.presentation.common
 import com.orion.templete.R
 
 data class BottomNavigationItem(
-    val icon : Int = R.drawable.user,
+    val icon : Int = R.drawable.ic_profile,
     val route : String = ""
 ) {
     fun bottomNavigationItems() : List<BottomNavigationItem> {

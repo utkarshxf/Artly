@@ -12,13 +12,14 @@
     <string name="gender_hint">gender</string>
     <string name="language_hint">your language</string>
     <string name="country_hint">enter your country</string>
-    <string name="save_button_label">create</string>
+    <string name="save_button_label">Create</string>
     <string name="loggedInUsers">Logged In Users</string>
     <string name="userNotLoggedIn">No Users Logged In</string>
     <string name="otpSendSuccessfully">Otp Send Successfully</string>
     <string name="otpVerified">Otp Verified</string>
     <string name="otp_hint">Enter Otp</string>
-    <string name="mobile_hint">Enter Moblie Number</string>
+    <string name="mobile_hint">Enter Mobile Number</string>
     <string name="username_hint">Enter User Name</string>
     <string name="no_info">unknown</string>
+    <string name="update">update</string>
 </resources>

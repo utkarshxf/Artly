@@ -56,7 +56,10 @@ class AuthViewModel @Inject constructor(
                     _authState.value = when (result) {
                         is AuthResultState.Loading -> AuthScreenUiState.Loading
                         is AuthResultState.Success -> AuthScreenUiState.Success(result.data)
-                        is AuthResultState.Failure ->  AuthScreenUiState.Error(result.msg.message.toString())
+                        is AuthResultState.Failure ->  {
+                            Log.d("Failure to send otp" ,result.msg.message.toString() )
+                            AuthScreenUiState.Error(result.msg.message.toString())
+                        }
                     }
                 }
         }

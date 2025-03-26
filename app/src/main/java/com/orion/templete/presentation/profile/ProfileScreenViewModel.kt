@@ -35,7 +35,10 @@ class ProfileScreenViewModel @Inject constructor(
                 .collect { response ->
                     userData = when (response) {
                         is ResponseStates.Loading -> ProfileScreenUiState.Loading
-                        is ResponseStates.Success -> ProfileScreenUiState.Success(response.data)
+                        is ResponseStates.Success -> {
+                            secureStorage.saveUserDto(response.data)
+                            ProfileScreenUiState.Success(response.data)
+                        }
                         is ResponseStates.Error -> ProfileScreenUiState.Error(response.error)
                     }
                 }

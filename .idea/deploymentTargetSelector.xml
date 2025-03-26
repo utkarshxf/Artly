@@ -16,9 +16,6 @@
       <SelectionState runConfigName="myPrev (2)">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="CollectionArtworksScreenPreview">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
       <SelectionState runConfigName="myprv">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>

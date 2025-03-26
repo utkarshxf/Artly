@@ -450,9 +450,6 @@ fun SaveSection(
     vm: CollectionViewModel = hiltViewModel()
 ) {
     val state = vm.favoritesUiState
-    LaunchedEffect(Unit) {
-        vm.getFavoritesByUserId()
-    }
     LaunchedEffect(key1 = vm.createFavoritesUiState) {
         if (vm.createFavoritesUiState is CreateFavoritesUiState.Success) {
             vm.getFavoritesByUserId()

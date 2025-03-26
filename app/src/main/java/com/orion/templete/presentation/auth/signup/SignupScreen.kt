@@ -156,7 +156,7 @@ fun SignupScreen(
         when (otpState.value) {
             is OTPScreenUiState.Error -> {
                 isOtpSending = false
-                Toast.makeText(context, (otpState.value as AuthScreenUiState.Error).message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Fail to create an account", Toast.LENGTH_SHORT).show()
             }
             is OTPScreenUiState.Initial -> {
 

@@ -3,6 +3,7 @@ package com.orion.templete.util
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -53,6 +54,20 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
             putString(PreferencesKey.UserLanguage.key, userDetails.language)
             putString(PreferencesKey.UserCountryIso2.key, userDetails.countryIso2)
             putBoolean(PreferencesKey.UserIsArtist.key, userDetails.artist)
+            userDetails.profilePicture?.let { profilePic ->
+                putString(PreferencesKey.UserProfilePicture.key, profilePic)
+            }
+            apply()
+        }
+    }
+    fun saveUserDto(userDetails: UserDTO) {
+        with(sharedPreferences.edit()) {
+            putString(PreferencesKey.UserId.key, userDetails.id)
+            putString(PreferencesKey.UserName.key, userDetails.name)
+            putString(PreferencesKey.UserDob.key, userDetails.dob)
+            putString(PreferencesKey.UserGender.key, userDetails.gender)
+            putString(PreferencesKey.UserLanguage.key, userDetails.language)
+            putString(PreferencesKey.UserCountryIso2.key, userDetails.countryIso2)
             userDetails.profilePicture?.let { profilePic ->
                 putString(PreferencesKey.UserProfilePicture.key, profilePic)
             }

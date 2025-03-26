@@ -39,6 +39,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -78,6 +82,7 @@ import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.presentation.common.CustomTextField
 import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.favorites.CollectionViewModel
+import com.orion.templete.presentation.ui.theme.LighterGray
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.getDefaultProfileUrl
@@ -138,7 +143,6 @@ fun UserRegisterScreen(
         }
 
         uiState.data?.let {
-            collectionViewModel.createNewFavorites(favoritesDTO("collection" , "saved_${it.id}" , "Swiped"))
             onNavigateToHome()
         }
     }
@@ -184,15 +188,27 @@ fun UserRegisterScreen(
         )
 
         // Profile Picture
-        AsyncImage(
-            model = pickedImageUri ?: getDefaultProfileUrl(selectedGender),
-            contentDescription = "Profile Picture",
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .clickable { galleryLauncher.launchGallery() },
-            contentScale = ContentScale.Crop
-        )
+        Box(modifier = Modifier.padding(start = 8.dp) , contentAlignment = Alignment.BottomEnd) {
+            AsyncImage(
+                model = pickedImageUri ?: getDefaultProfileUrl(selectedGender),
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .clickable { galleryLauncher.launchGallery() },
+                contentScale = ContentScale.Crop
+            )
+            Image(
+                painter = painterResource(id = R.drawable.ic_camara),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(60.dp)
+                    .align(Alignment.BottomEnd)
+                    .clickable {
+                        galleryLauncher.launchGallery()
+                    }
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -208,11 +224,9 @@ fun UserRegisterScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Date of Birth Field
-        OutlinedTextField(
-            value = dob,
+        TextField(value = dob,
             onValueChange = { },
             readOnly = true,
-            label = { Text(stringResource(id = R.string.dob_hint)) },
             trailingIcon = {
                 IconButton(onClick = { showDatePicker = true }) {
                     Icon(
@@ -221,7 +235,16 @@ fun UserRegisterScreen(
                     )
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = if (isSystemInDarkTheme()){
+                    MaterialTheme.colorScheme.surface
+                }else{
+                    LighterGray
+                },
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent
+            ),
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -245,6 +268,10 @@ fun UserRegisterScreen(
                 FilterChip(
                     selected = gender == selectedGender,
                     onClick = { selectedGender = gender },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    ),
                     label = { Text(gender) },
                     modifier = Modifier.weight(1f)
                 )

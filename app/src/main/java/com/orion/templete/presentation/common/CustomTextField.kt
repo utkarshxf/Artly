@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import com.orion.templete.R
+import com.orion.templete.presentation.ui.theme.LighterGray
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,11 +59,16 @@ fun CustomTextField(
             }
         },
         singleLine = isSingleLine,
-        colors = TextFieldDefaults.textFieldColors(
-            containerColor = if (isSystemInDarkTheme()){
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = if (isSystemInDarkTheme()){
                 MaterialTheme.colorScheme.surface
             }else{
-                Gray
+                LighterGray
+            },
+            unfocusedContainerColor = if (isSystemInDarkTheme()){
+                MaterialTheme.colorScheme.surface
+            }else{
+                LighterGray
             },
             unfocusedIndicatorColor = Color.Transparent,
             focusedIndicatorColor = Color.Transparent

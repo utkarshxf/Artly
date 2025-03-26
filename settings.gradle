@@ -15,5 +15,5 @@ dependencyResolutionManagement {
         }
     }
 }
-rootProject.name = "Artly"
+rootProject.name = "Artistry"
 include ':app'

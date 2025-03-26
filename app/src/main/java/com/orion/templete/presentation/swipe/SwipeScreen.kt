@@ -51,11 +51,11 @@ import com.orion.templete.util.extractYear
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeScreen(navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit = {}) {
+fun SwipeScreen(vm:SwipeScreenViewModel = hiltViewModel() , navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit = {}) {
     ArtCardRow(header = {
         HeaderRow()
     }, content = {
-        SwipeCard(navigateToDetailScreen)
+        SwipeCard(navigateToDetailScreen , vm)
     })
 }
 

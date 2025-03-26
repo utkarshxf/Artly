@@ -1,6 +1,5 @@
 package com.orion.templete.presentation.profile
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,13 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,31 +32,22 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -116,7 +103,8 @@ fun ProfileScreen(
                         ProfileContent(
                             user = uiState.user,
                             onMenuClick = { scope.launch { drawerState.open() } },
-                            onClick = { navController.navigate(Screens.UserEditScreen.route) }
+                            onClick = { navController.navigate(Screens.UserEditScreen.route) },
+                            navController
                         )
                     }
 
@@ -132,7 +120,7 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: () -> Unit) {
+private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: () -> Unit , navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -144,45 +132,69 @@ private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: ()
         )
         Spacer(modifier = Modifier.height(16.dp))
         ButtonSection(onClick = onClick , onMenuClick = onMenuClick)
+        Spacer(modifier = Modifier.height(16.dp))
+        ExploreMoreArtistsCard(navController = navController)
     }
 }
-
 @Composable
-private fun ProfileHeader(user: UserDTO, onMenuClick: () -> Unit = {}) {
-    Row(
-        modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+fun ExploreMoreArtistsCard(navController: NavController) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF6A11CB),  // Deep Purple
+                        Color(0xFF2575FC)   // Vibrant Blue
+                    )
+                )
+            )
+            .clickable {
+                navController.navigate(Screens.Search.route)
+            }
+            .padding(16.dp)
     ) {
-        AsyncImage(
-            model = user.profilePicture,
-            contentDescription = "Profile picture",
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = user.name,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "@${user.name.lowercase().replace(" ", "")}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Spacer(modifier = Modifier.weight(1f))
-        IconButton(onClick = onMenuClick) {
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = "Menu"
-            )
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+
+            Column(
+                modifier = Modifier.weight(0.7f)
+            ) {
+                Text(
+                    text = "Explore More Artists",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Discover new artist and fresh artworks",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 14.sp
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(25.dp))
+                    .background(Color.White.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowForward,
+                    contentDescription = "Explore More",
+                    tint = Color.White,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
         }
     }
 }
-
 @Composable
 private fun ButtonSection(onClick: () -> Unit , onMenuClick: () -> Unit = {}) {
     TempleteTheme {

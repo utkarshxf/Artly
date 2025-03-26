@@ -106,18 +106,20 @@ class UserRepositoryImplementation @Inject constructor(
     override suspend fun createUser(request: UserDetails): Flow<ResponseStates<UserDetails>> = flow {
         emit(ResponseStates.Loading)
         try {
-            val temp = UserDetails(
-                artist = false,
-                id = "string1",
-                name = "string1",
-                profilePicture = "string1",
-                dob = "2024-10-30",
-                gender = "string",
-                language = "string",
-                countryIso2 = "string"
-            )
-            Log.d("Exception" , request.toString())
             val response = safeApiRequest { apiService.createUser(request) }
+            val response2 = safeApiRequest { apiService.createNewFavorites(response.id , favoritesDTO("collection" , "saved_${response.id}" , "Swiped")) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun updateUser(userDetails: UserDetails): Flow<ResponseStates<UserDetails>> = flow{
+        emit(ResponseStates.Loading)
+        try {
+
+            Log.d("Exception" , userDetails.toString())
+            val response = safeApiRequest { apiService.updateUser(userId = userDetails.id , userDetails) }
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))

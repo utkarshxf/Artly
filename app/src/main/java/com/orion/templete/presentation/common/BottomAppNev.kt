@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -48,6 +49,7 @@ import com.orion.templete.presentation.artwork_detail.ArtworkDetailScreen
 import com.orion.templete.presentation.cart.CartScreen
 import com.orion.templete.presentation.favorites.CollectionArtworksScreen
 import com.orion.templete.presentation.favorites.CollectionDetail
+import com.orion.templete.presentation.favorites.CollectionViewModel
 import com.orion.templete.presentation.favorites.CollectionsScreen
 import com.orion.templete.presentation.order_state.OrderConfirmationDetails
 import com.orion.templete.presentation.order_state.OrderFailedScreen
@@ -57,9 +59,13 @@ import com.orion.templete.presentation.order_tracking.OrderStatus
 import com.orion.templete.presentation.order_tracking.OrderTrackingScreen
 import com.orion.templete.presentation.order_tracking.StatusUpdate
 import com.orion.templete.presentation.orders.YourOrdersScreen
+import com.orion.templete.presentation.profile.ProfileScreenViewModel
+import com.orion.templete.presentation.search.SearchScreenViewModel
+import com.orion.templete.presentation.swipe.SwipeScreenViewModel
 import com.orion.templete.presentation.ui.theme.ButtonHeight
 import com.orion.templete.presentation.ui.theme.MediumSize
 import com.orion.templete.presentation.upload.UploadScreen
+import com.orion.templete.util.SecureStorage
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,19 +86,23 @@ fun BottomAppNev(
     val currentDestination = navBackStackEntry?.destination
     val bottomBarDestination = screens.any { it.route == currentDestination?.route }
     val bottomPadding = if (!bottomBarDestination) 0.dp else ButtonHeight
+    val collectionViewModel: CollectionViewModel = hiltViewModel()
+    val swipeViewModel: SwipeScreenViewModel = hiltViewModel()
+    val searchScreenViewModel: SearchScreenViewModel = hiltViewModel()
+    val profileScreenViewModel: ProfileScreenViewModel = hiltViewModel()
     NavHost (
         navController = navController,
         startDestination = Screens.Swipe.route,
         modifier = Modifier.padding(bottom = bottomPadding)
     ){
         composable(Screens.Swipe.route) {
-            SwipeScreen(navigateToDetailScreen = { data->
+            SwipeScreen(swipeViewModel , navigateToDetailScreen = { data->
                 navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
                 navController.navigate(Screens.ArtworkDetail.route)
             })
         }
         composable(Screens.Profile.route) {
-            ProfileScreen(navController = navController , logOut = navigateToLoginScreen)
+            ProfileScreen(navController = navController , logOut = navigateToLoginScreen ,profileScreenViewModel)
         }
         composable(Screens.Upload.route) {
             UploadScreen()
@@ -113,7 +123,7 @@ fun BottomAppNev(
         }
         composable(Screens.Search.route)
         {
-            SearchScreen(navController)
+            SearchScreen(navController , searchScreenViewModel)
         }
         composable(Screens.ArtView.route){
             val url = navController.previousBackStackEntry?.savedStateHandle?.get<String>("url")
@@ -203,7 +213,7 @@ fun BottomAppNev(
             )
         }
         composable(Screens.FavoritesScreen.route) {
-            CollectionsScreen(navController)
+            CollectionsScreen(navController , collectionViewModel)
         }
         composable(Screens.CollectionArtworksScreen.route) {
             val collectionId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("collectionId")
@@ -223,19 +233,13 @@ fun BottomAppNev(
 //            SettingsScreen()
         }
         composable(Screens.UserEditScreen.route) {
-            UserEditScreen(
-                userDetails = UserDetails(
-                    name = "John Doe",
-                    dob = "1990-01-01",
-                    gender = "Male",
-                    language = "English",
-                    countryIso2 = "US",
-                    artist = true,
-                    profilePicture = null,
-                    id = "1",
-                ),
-                onSave = { },
-            )
+            val userDetails = SecureStorage(LocalContext.current).getUserDetails()
+            if (userDetails != null) {
+                UserEditScreen(
+                    userDetails = userDetails,
+                   navController = navController
+                )
+            }
         }
     }
     if (bottomBarDestination){
@@ -266,7 +270,7 @@ fun BottomAppNev(
                             Icon(
                                 painterResource(id = navigationItem.icon),
                                 contentDescription = null,
-                                tint = if (index == navigationSelectedItem){
+                                tint = if (navigationItem.route == currentDestination?.route){
                                     if(isSystemInDarkTheme()) Color.White else Color.Black
                                 } else
                                     Color.Gray,

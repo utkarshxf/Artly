@@ -12,6 +12,7 @@ import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,6 +35,10 @@ class CollectionViewModel @Inject constructor(
 
     val currentUserId = secureStorage.getUserDetails()?.id?:""
 
+    init {
+        getFavoritesByUserId()
+    }
+
 
     fun getArtworkByFavoriteId(favoriteId: String) {
         viewModelScope.launch {
@@ -51,14 +56,23 @@ class CollectionViewModel @Inject constructor(
         viewModelScope.launch {
             artworkRepository.createNewFavorites(currentUserId, favorites).collect { response ->
                 createFavoritesUiState = when (response) {
-                    is ResponseStates.Loading -> CreateFavoritesUiState.Loading
+                    is ResponseStates.Loading -> {
+                        CreateFavoritesUiState.Loading
+                    }
                     is ResponseStates.Success -> {
                         CreateFavoritesUiState.Success(response.data)
                     }
-                    is ResponseStates.Error -> CreateFavoritesUiState.Error(response.error)
+                    is ResponseStates.Error -> {
+                        CreateFavoritesUiState.Error(response.error)
+                    }
                 }
             }
         }
+    }
+
+    fun resetState(){
+        createFavoritesUiState = CreateFavoritesUiState.Ideal
+        addToFavoritesUiState = AddToFavoritesUiState.Ideal
     }
 
     fun getFavoritesByUserId(){

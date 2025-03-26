@@ -25,7 +25,6 @@ fun BottomSheet(
         sheetState = modalBottomSheetState,
         dragHandle = null,
         shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-        windowInsets = WindowInsets(0.dp),
         modifier = Modifier.height(height.dp)
     ) {
         content()

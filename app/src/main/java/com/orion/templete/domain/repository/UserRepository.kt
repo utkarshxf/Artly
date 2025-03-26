@@ -27,6 +27,7 @@ interface UserRepository {
     ): Flow<ResponseStates<ArtistDTO>>
 
     suspend fun createUser(userDetails: UserDetails): Flow<ResponseStates<UserDetails>>
+    suspend fun updateUser(userDetails: UserDetails): Flow<ResponseStates<UserDetails>>
     suspend fun followUser(userId: String, artistId: String): Flow<ResponseStates<Unit>>
     suspend fun unfollowArtist(userId: String, artistId: String): Flow<ResponseStates<Unit>>
     suspend fun likeArtwork(userId: String, artworkId: String): Flow<ResponseStates<Unit>>
@@ -42,4 +43,6 @@ interface UserRepository {
         userId: String,
         artistId: String
     ): Flow<ResponseStates<List<ArtworkDTO>>>
+
+
 }

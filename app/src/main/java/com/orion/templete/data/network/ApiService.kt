@@ -62,6 +62,12 @@ interface ApiService {
     @POST("/users")
     suspend fun createUser(@Body request: UserDetails): Response<UserDetails>
 
+    @PUT("/users/{userId}")
+    suspend fun updateUser(
+        @Path("userId") userId: String,
+        @Body request: UserDetails
+    ): Response<UserDetails>
+
     /**
      * Follow an artist
      */

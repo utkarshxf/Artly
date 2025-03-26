@@ -56,7 +56,7 @@ fun SearchScreen(navController: NavController , viewModel: SearchScreenViewModel
                 onActiveChange = {
                     viewModel.searchArtist("")
                     active = it },
-                placeholder = "Search",
+                placeholder = "Search your favorite artists",
                 content = {
                     LazyColumn {
                         items(searchResults.value) {

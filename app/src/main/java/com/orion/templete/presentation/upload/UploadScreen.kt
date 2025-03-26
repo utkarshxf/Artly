@@ -71,7 +71,7 @@ fun UploadScreen(
                         style = MaterialTheme.typography.headlineMedium
                     )
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {

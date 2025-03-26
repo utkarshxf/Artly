@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.favorites
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -37,12 +38,10 @@ fun CollectionsScreen(
     var addCollectionDialog by remember { mutableStateOf(false) }
     // Remember to fetch the favorites when the screen launches
     LaunchedEffect(key1 = viewModel.createFavoritesUiState) {
-        if (viewModel.createFavoritesUiState is CreateFavoritesUiState.Success) {
+        if (viewModel.createFavoritesUiState is CreateFavoritesUiState.Success || viewModel.createFavoritesUiState is CreateFavoritesUiState.Error) {
             viewModel.getFavoritesByUserId()
+            viewModel.resetState()
         }
-    }
-    LaunchedEffect(Unit) {
-        viewModel.getFavoritesByUserId()
     }
 
     Scaffold(
