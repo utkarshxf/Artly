@@ -107,8 +107,13 @@ class UserRepositoryImplementation @Inject constructor(
         emit(ResponseStates.Loading)
         try {
             val response = safeApiRequest { apiService.createUser(request) }
-            val response2 = safeApiRequest { apiService.createNewFavorites(response.id , favoritesDTO("collection" , "saved_${response.id}" , "Swiped")) }
-            emit(ResponseStates.Success(response))
+            try{
+                val response2 = safeApiRequest { apiService.createNewFavorites(response.id , favoritesDTO("collection" , "saved_${response.id}" , "Swiped")) }
+            } catch (e:Exception){
+                Log.d("Exception" , e.message.toString())
+            }finally {
+                emit(ResponseStates.Success(response))
+            }
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }

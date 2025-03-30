@@ -55,7 +55,7 @@ class ArtistProfileViewModel @Inject constructor(
     var artWorksUiState by mutableStateOf<ArtWorksUiState>(ArtWorksUiState.Loading)
         private set
 
-    val currentUserId = secureStorage.getUserDetails()?.id?.toString() ?: ""
+    val currentUserId = secureStorage.getUserId()?:""
 
 
     fun getUserProfile(userId: String) {

@@ -33,7 +33,7 @@ class CollectionViewModel @Inject constructor(
     var createFavoritesUiState by mutableStateOf<CreateFavoritesUiState>(CreateFavoritesUiState.Ideal)
         private set
 
-    val currentUserId = secureStorage.getUserDetails()?.id?:""
+    val currentUserId = secureStorage.getUserId()?:""
 
     init {
         getFavoritesByUserId()

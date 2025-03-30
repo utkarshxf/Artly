@@ -27,7 +27,7 @@ class ArtworkDetailViewModel @Inject constructor(
     var similarArtworks by mutableStateOf<ArtworksScreenUiState>(ArtworksScreenUiState.Loading)
         private set
 
-    private val currentUserId = secureStorage.getUserDetails()?.id
+    private val currentUserId = secureStorage.getUserId()
 
     fun getArtworkById(artworkId: String) {
         viewModelScope.launch {

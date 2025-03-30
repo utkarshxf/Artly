@@ -59,6 +59,7 @@ import com.orion.templete.presentation.order_tracking.OrderStatus
 import com.orion.templete.presentation.order_tracking.OrderTrackingScreen
 import com.orion.templete.presentation.order_tracking.StatusUpdate
 import com.orion.templete.presentation.orders.YourOrdersScreen
+import com.orion.templete.presentation.profile.ProfileScreenUiState
 import com.orion.templete.presentation.profile.ProfileScreenViewModel
 import com.orion.templete.presentation.search.SearchScreenViewModel
 import com.orion.templete.presentation.swipe.SwipeScreenViewModel
@@ -72,6 +73,7 @@ import com.orion.templete.util.SecureStorage
 @Composable
 fun BottomAppNev(
     navigateToLoginScreen: () -> Unit = {} ,
+    registrationScreen:() -> Unit = {}
 ) {
     val navController = rememberNavController()
     var navigationSelectedItem by remember { mutableIntStateOf(0) }
@@ -82,6 +84,7 @@ fun BottomAppNev(
         Screens.FavoritesScreen,
         Screens.Swipe,
     )
+    val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val bottomBarDestination = screens.any { it.route == currentDestination?.route }
@@ -89,7 +92,14 @@ fun BottomAppNev(
     val collectionViewModel: CollectionViewModel = hiltViewModel()
     val swipeViewModel: SwipeScreenViewModel = hiltViewModel()
     val searchScreenViewModel: SearchScreenViewModel = hiltViewModel()
-    val profileScreenViewModel: ProfileScreenViewModel = hiltViewModel()
+    val profileScreenViewModel = hiltViewModel<ProfileScreenViewModel>()
+
+    if (profileScreenViewModel.userData is ProfileScreenUiState.Error){
+        LaunchedEffect(Unit){
+            SecureStorage(context).saveCurrentUserId("null")
+            registrationScreen()
+        }
+    }
     NavHost (
         navController = navController,
         startDestination = Screens.Swipe.route,

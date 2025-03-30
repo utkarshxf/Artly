@@ -75,11 +75,7 @@ fun LoginScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .background(
-                color = if (isSystemInDarkTheme()) {
-                    MaterialTheme.colorScheme.background
-                } else {
-                    MaterialTheme.colorScheme.surface
-                }
+                color = MaterialTheme.colorScheme.surface
             )
             .padding(
                 top = ExtraLargeSpacing + LargeSize,

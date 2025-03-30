@@ -40,7 +40,7 @@ class SearchScreenViewModel @Inject constructor(
     private val _todayBiggestHit = MutableStateFlow<TodayBiggestHitUiState>(TodayBiggestHitUiState.Loading)
     val todayBiggestHit: StateFlow<TodayBiggestHitUiState> = _todayBiggestHit
     init {
-        val currentUserId = secureStorage.getUserDetails()?.id
+        val currentUserId = secureStorage.getUserId()
         currentUserId?.let {
             getPopularArtworks(it)
             getNewArtworks(it)

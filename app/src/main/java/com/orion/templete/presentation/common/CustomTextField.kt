@@ -61,12 +61,12 @@ fun CustomTextField(
         singleLine = isSingleLine,
         colors = TextFieldDefaults.colors(
             focusedContainerColor = if (isSystemInDarkTheme()){
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.background
             }else{
                 LighterGray
             },
             unfocusedContainerColor = if (isSystemInDarkTheme()){
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.background
             }else{
                 LighterGray
             },

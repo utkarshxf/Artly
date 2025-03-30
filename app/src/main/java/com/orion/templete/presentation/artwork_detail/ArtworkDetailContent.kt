@@ -229,7 +229,7 @@ fun RecommendFromArtist(artworkId: String ,artistId: String? , navController: Na
             if(state.artwork.isNotEmpty())
                 Text(
                 text = "More From Artist",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
             LazyRow(
@@ -260,7 +260,7 @@ fun RecommendFromGenre(artworkDetailsDTO: ArtworkDTO  , navController: NavContro
             if(state.artwork.isNotEmpty())
             Text(
                 text = "Similar Genre",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
             LazyRow(
@@ -758,16 +758,11 @@ fun SourceUrlLink(url: String) {
     val intent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(url)) }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Source:",
+            text = "Learn more about the artwork on ",
             fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.width(120.dp)
         )
 
         Text(

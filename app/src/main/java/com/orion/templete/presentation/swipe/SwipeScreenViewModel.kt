@@ -23,7 +23,7 @@ class SwipeScreenViewModel @Inject constructor(
     private val likeArtworkUseCase: GetArtworkUseCase,
     private val secureStorage: SecureStorage
 ) : ViewModel() {
-    val userId = secureStorage.getUserDetails()?.id?:""
+    val userId = secureStorage.getUserId()?:""
     var state by mutableStateOf(ScreenState())
         private set
     var likeArtworkState by mutableStateOf<ResponseStates<Boolean>>(ResponseStates.Loading)

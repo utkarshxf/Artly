@@ -83,7 +83,8 @@ private fun HeaderRow(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppIcon(icon = R.drawable.artistry, tint = MaterialTheme.colorScheme.primary)
+//        AppIcon(icon = R.drawable.artistry, tint = MaterialTheme.colorScheme.primary)
+        AppIcon(icon = R.drawable.ic_logo_no_bacground, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
     }
 }
 
@@ -97,7 +98,7 @@ fun SwipeCard(
     val scope = rememberCoroutineScope()
     var isSwipedLeft by remember { mutableStateOf(false) }
     val collectionViewModel: CollectionViewModel = hiltViewModel()
-    val userId = SecureStorage(LocalContext.current).getUserDetails()?.id
+    val userId = SecureStorage(LocalContext.current).getUserId()
     when {
         stateOfCards.isLoading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -128,7 +129,7 @@ fun SwipeCard(
                     if (state.swipedDirection == null) {
                         ProfileCard(modifier = Modifier
                             .padding(16.dp)
-                            .aspectRatio(3f / 4f)
+                            .aspectRatio(3f / 4.5f)
                             .swipableCard(state = state,
                                 blockedDirections = listOf(Direction.Down),
                                 onSwiped = {
@@ -142,10 +143,15 @@ fun SwipeCard(
                                             artwork?.id.toString()
                                         )
                                     }
-                                    if(state.swipedDirection == Direction.Up){
-                                        artwork.id?.let { it1 -> collectionViewModel.saveOnFavorites("saved_${userId}" , artworkId = it1) }
+                                    if (state.swipedDirection == Direction.Up) {
+                                        artwork.id?.let { it1 ->
+                                            collectionViewModel.saveOnFavorites(
+                                                "saved_${userId}",
+                                                artworkId = it1
+                                            )
+                                        }
                                     }
-                                    if(artworkList.isNotEmpty()){
+                                    if (artworkList.isNotEmpty()) {
                                         artworkList.remove(artwork)
                                     }
                                     if (artworkList.isEmpty()) {
@@ -200,18 +206,13 @@ fun ArtworkProfileCard(artwork: ArtworkDTO) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row {
-                // Artwork Name
-                artwork.title?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                AppIcon(icon = R.drawable.ic_logo_no_bacground, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
+            artwork.title?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
             }
 
             // Artist Name
@@ -226,7 +227,7 @@ fun ArtworkProfileCard(artwork: ArtworkDTO) {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Light,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

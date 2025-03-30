@@ -157,7 +157,7 @@ fun PopularArtworks(state: PopularArtworksUiState , navController  :NavControlle
             is PopularArtworksUiState.Error -> Text("Error: ${state.message}")
             is PopularArtworksUiState.Success -> {
                 if(state.artworks.isNotEmpty()){
-                    Text(text = "Popular Artworks", style = MaterialTheme.typography.labelLarge)
+                    Text(text = "Popular Artworks", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 LazyRow(
@@ -182,7 +182,7 @@ fun NewArtworks(state: NewArtworksUiState, navController: NavController) {
             is NewArtworksUiState.Error -> Text("Error: ${state.message}")
             is NewArtworksUiState.Success -> {
                 if(state.listArtwork.isNotEmpty()){
-                    Text(text = "New Arrival", style = MaterialTheme.typography.labelLarge)
+                    Text(text = "New Arrival", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 LazyRow(
@@ -206,7 +206,7 @@ fun RecommendedForToday(state: RecommendedForTodayUiState, navController: NavCon
             is RecommendedForTodayUiState.Error -> Text("Error: ${state.message}")
             is RecommendedForTodayUiState.Success -> {
                 if(state.listArtwork.isNotEmpty()){
-                    Text(text = "Recommended for Today", style = MaterialTheme.typography.labelLarge)
+                    Text(text = "Recommended for Today", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 LazyRow() {
@@ -228,7 +228,7 @@ fun TodaysBiggestHit(state: TodayBiggestHitUiState, navController: NavController
             is TodayBiggestHitUiState.Loading -> {}
             is TodayBiggestHitUiState.Error -> Text("Error: ${state.message}")
             is TodayBiggestHitUiState.Success -> {
-                Text(text = "Today's Biggest Hit", style = MaterialTheme.typography.labelLarge)
+                Text(text = "Today's Biggest Hit", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(modifier = Modifier.fillMaxSize()
                     .height(200.dp)

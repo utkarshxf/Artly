@@ -22,7 +22,7 @@ class ProfileScreenViewModel @Inject constructor(
     // Initialize with Loading state instead of null
     var userData by mutableStateOf<ProfileScreenUiState>(ProfileScreenUiState.Loading)
         private set
-    val currentUserId = secureStorage.getUserDetails()?.id
+    val currentUserId = secureStorage.getUserId()
     init {
         currentUserId?.let {
             getUserProfile(currentUserId)

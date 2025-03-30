@@ -7,22 +7,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.orion.templete.presentation.auth.login.Login
-import com.orion.templete.presentation.common.BottomAppNev
-import com.orion.templete.presentation.auth.login.LoginScreen
 import com.orion.templete.presentation.auth.signup.Signup
+import com.orion.templete.presentation.common.BottomAppNev
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.user_register.UserRegisterScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun Navigation(startDest :String , activity: MainActivity) {
+fun Navigation(startDest: String, activity: MainActivity) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = startDest) {
         composable(Screens.Login.route) {
             Login(navController = navController)
         }
         composable(Screens.Signup.route) {
-            Signup(navController = navController,activity)
+            Signup(navController = navController, activity)
         }
         composable(Screens.UserRegister.route) {
             UserRegisterScreen(onNavigateToHome = {
@@ -32,9 +31,12 @@ fun Navigation(startDest :String , activity: MainActivity) {
             })
         }
         composable(Screens.Home.route) {
-            BottomAppNev(
-                navigateToLoginScreen = {
+            BottomAppNev(navigateToLoginScreen = {
                 navController.navigate(Screens.Login.route) {
+                    popUpTo(Screens.Home.route) { inclusive = true }
+                }
+            }, registrationScreen = {
+                navController.navigate(Screens.UserRegister.route) {
                     popUpTo(Screens.Home.route) { inclusive = true }
                 }
             })

@@ -77,7 +77,7 @@ fun ArtworkItem(
             ) {
                 Text(
                     text = artwork.title ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
