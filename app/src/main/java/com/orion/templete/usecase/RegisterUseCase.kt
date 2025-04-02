@@ -1,42 +1,50 @@
 package com.orion.templete.usecase
 
+import android.util.Log
 import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
-import com.orion.templete.domain.repository.UserRepository
-import com.orion.templete.util.Resource
+import com.orion.templete.domain.repository.LoginRepository
+import com.orion.templete.util.ResponseStates
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import retrofit2.HttpException
+import java.io.IOException
 import javax.inject.Inject
 
 class RegisterUseCase @Inject constructor(
-    private val userRepository: UserRepository
+    private val loginRepository: LoginRepository
 ) {
 
-    fun signin(user: User): Flow<Resource<LoginResponseDTO>> = flow {
-        emit(Resource.Loading(null))
+    fun signin(user: User): Flow<ResponseStates<LoginResponseDTO>> = flow {
+        emit(ResponseStates.Loading)
         try {
-            emit(Resource.Success(userRepository.loginUserDetail(user)))
+            emit(ResponseStates.Success(loginRepository.loginUserDetail(user)))
         } catch (e: Exception) {
-            emit(Resource.Error(e.message ?: "An unknown error occurred"))
+            emit(ResponseStates.Error(e.message ?: "An unknown error occurred"))
         }
     }
-    fun signup(user: User): Flow<Resource<User>> = flow {
-        emit(Resource.Loading(null))
+    fun signup(user: Registration): Flow<ResponseStates<LoginResponseDTO>> = flow {
+        emit(ResponseStates.Loading)
         try {
-            emit(Resource.Success(userRepository.signup(user)))
+            emit(ResponseStates.Success(loginRepository.signup(user)))
+        } catch (e: IOException) {
+            emit(ResponseStates.Error("Network error: ${e.message}"))
+        } catch (e: HttpException) {
+            emit(ResponseStates.Error("Server error: ${e.message}"))
         } catch (e: Exception) {
-            emit(Resource.Error(e.message ?: "An unknown error occurred"))
-            }
+            emit(ResponseStates.Error("${e.message}"))
+        }
     }
 
-    operator fun invoke(token: String): Flow<Resource<Boolean>> = flow {
-        emit(Resource.Loading(null))
+    operator fun invoke(token: String): Flow<ResponseStates<Boolean>> = flow {
+        emit(ResponseStates.Loading)
         try {
-            val response = userRepository.verifyUser(TokenRequest(token))
-            emit(Resource.Success(response))
+            val response = loginRepository.verifyUser(TokenRequest(token))
+            emit(ResponseStates.Success(response))
         } catch (e: Exception) {
-            emit(Resource.Error(e.message ?: "An unknown error occurred"))
+            emit(ResponseStates.Error(e.message ?: "An unknown error occurred"))
         }
     }
 }

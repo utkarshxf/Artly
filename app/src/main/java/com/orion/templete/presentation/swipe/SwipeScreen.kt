@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,20 +35,27 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
-import com.orion.templete.data.model.artwork_model.RecommendedArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.swipe.components.Direction
 import com.orion.templete.presentation.swipe.components.rememberSwipeableCardState
 import com.orion.templete.presentation.swipe.components.swipableCard
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import com.orion.templete.presentation.components.AnimatedPreloader
+import com.orion.templete.presentation.favorites.CollectionViewModel
+import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.extractYear
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeScreen(navigateToDetailScreen: (artwork: RecommendedArtworkDTO) -> Unit = {}) {
+fun SwipeScreen(vm:SwipeScreenViewModel = hiltViewModel() , navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit = {}) {
     ArtCardRow(header = {
         HeaderRow()
     }, content = {
-        SwipeCard(navigateToDetailScreen)
+        SwipeCard(navigateToDetailScreen , vm)
     })
 }
 
@@ -76,23 +83,26 @@ private fun HeaderRow(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppIcon(icon = R.drawable.artistry, tint = MaterialTheme.colorScheme.primary)
+//        AppIcon(icon = R.drawable.artistry, tint = MaterialTheme.colorScheme.primary)
+        AppIcon(icon = R.drawable.ic_logo_no_bacground, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeCard(
-    navigateToDetailScreen: (artwork: RecommendedArtworkDTO) -> Unit,
+    navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit,
     swipeScreenViewModel: SwipeScreenViewModel = hiltViewModel()
 ) {
     val stateOfCards = swipeScreenViewModel.state
     val scope = rememberCoroutineScope()
     var isSwipedLeft by remember { mutableStateOf(false) }
+    val collectionViewModel: CollectionViewModel = hiltViewModel()
+    val userId = SecureStorage(LocalContext.current).getUserId()
     when {
         stateOfCards.isLoading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                AnimatedPreloader(R.raw.loading_app)
             }
         }
 
@@ -109,9 +119,8 @@ fun SwipeCard(
         }
 
         else -> {
-            val artworkList = stateOfCards.items
+            val artworkList = stateOfCards.items as ArrayList<ArtworkDTO>
             val states = artworkList.reversed().map { it to rememberSwipeableCardState() }
-            var currentIndex by remember { mutableIntStateOf(0) }
             Box {
                 states.forEach { (artwork, state) ->
                     LaunchedEffect(state.swipedDirection) {
@@ -120,17 +129,32 @@ fun SwipeCard(
                     if (state.swipedDirection == null) {
                         ProfileCard(modifier = Modifier
                             .padding(16.dp)
-                            .aspectRatio(3f / 4f)
+                            .aspectRatio(3f / 4.5f)
                             .swipableCard(state = state,
                                 blockedDirections = listOf(Direction.Down),
                                 onSwiped = {
-                                    if(state.swipedDirection == Direction.Right)
-                                    {
-                                        Log.d("Swappable-Card", "Swiped ${state.swipedDirection}")
-                                        swipeScreenViewModel.likeArtwork(artwork.artwork?.id.toString(), "1")
+                                    if (state.swipedDirection == Direction.Right) {
+                                        swipeScreenViewModel.likeArtwork(
+                                            artwork?.id.toString()
+                                        )
                                     }
-                                    currentIndex++
-                                    if (currentIndex >= artworkList.size && !stateOfCards.isLoading) {
+                                    if (state.swipedDirection == Direction.Left) {
+                                        swipeScreenViewModel.disLikeArtwork(
+                                            artwork?.id.toString()
+                                        )
+                                    }
+                                    if (state.swipedDirection == Direction.Up) {
+                                        artwork.id?.let { it1 ->
+                                            collectionViewModel.saveOnFavorites(
+                                                "saved_${userId}",
+                                                artworkId = it1
+                                            )
+                                        }
+                                    }
+                                    if (artworkList.isNotEmpty()) {
+                                        artworkList.remove(artwork)
+                                    }
+                                    if (artworkList.isEmpty()) {
                                         swipeScreenViewModel.loadNextItems()
                                     }
                                     isSwipedLeft = state.swipedDirection == Direction.Left
@@ -146,7 +170,7 @@ fun SwipeCard(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.BottomCenter
                         ) {
-                            ArtworkProfileCard(artwork.artwork?.name, artwork.artistName, artwork.artworkGenre, artwork.artwork?.releasedDate)
+                            ArtworkProfileCard(artwork)
                         }
                     }
                 }
@@ -156,18 +180,25 @@ fun SwipeCard(
 }
 
 @Composable
-fun ArtworkProfileCard(
-    name: String?,
-    artistName: String?,
-    artworkGenre: String?,
-    releasedDate: String?
-) {
+fun ArtworkProfileCard(artwork: ArtworkDTO) {
+    // State for expanded/collapsed state
+    var isExpanded by remember { mutableStateOf(false) }
+    // Configure animation specs
+    val cardHeight by animateDpAsState(
+        targetValue = if (isExpanded) 300.dp else 150.dp,
+        label = "cardHeight"
+    )
+
     Card(
         modifier = Modifier
-            .height(150.dp)
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+            .height(cardHeight)
+            .fillMaxWidth()
+            .clickable { isExpanded = !isExpanded },
+        shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
     ) {
         Column(
             modifier = Modifier
@@ -175,20 +206,32 @@ fun ArtworkProfileCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Artwork Name
-            Text(
-                text = name ?: "No name",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            artwork.title?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
 
             // Artist Name
-            Text(
-                text = artistName ?: "Unknown Artist",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
+            artwork.artist?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            artwork.currentLocation?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Light,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -196,14 +239,28 @@ fun ArtworkProfileCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                artwork.medium?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                extractYear(artwork.releasedDate)?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            // Expanded content that only shows when expanded
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = artworkGenre ?: "Unknown Genre",
-                    style = MaterialTheme.typography.bodySmall
+                    text = artwork.description?: "No description",
+                    style = MaterialTheme.typography.bodyMedium
                 )
-                Text(
-                    text = releasedDate ?: "Unknown Date",
-                    style = MaterialTheme.typography.bodySmall
-                )
+
             }
         }
     }
@@ -214,7 +271,7 @@ fun ArtworkProfileCard(
 @Composable
 private fun ProfileCard(
     modifier: Modifier,
-    artwork: RecommendedArtworkDTO,
+    artwork: ArtworkDTO,
 ) {
     Card(
         shape = RoundedCornerShape(0.dp),
@@ -223,7 +280,7 @@ private fun ProfileCard(
     ) {
         Image(
             modifier = Modifier.fillMaxSize(),
-            painter = rememberAsyncImagePainter(artwork.artwork?.imageUrl),
+            painter = rememberAsyncImagePainter(artwork.imageUrl),
             contentDescription = null
         )
     }

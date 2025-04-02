@@ -1,270 +1,347 @@
 package com.orion.templete.presentation.profile
 
-
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-
-import androidx.compose.ui.text.font.FontWeight.Companion.Medium
-
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.orion.templete.presentation.components.AppIconButton
-import com.orion.templete.data.model.UserDTO
-import com.orion.templete.presentation.ui.theme.TempleteTheme
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.google.android.material.chip.Chip
+import com.orion.templete.R
+import com.orion.templete.data.model.user_model.UserDTO
+import com.orion.templete.presentation.common.ErrorScreen
+import com.orion.templete.presentation.common.Screens
+import com.orion.templete.presentation.components.AppIcon
+import com.orion.templete.presentation.profile.common.DrawerContent
+import com.orion.templete.presentation.ui.theme.TempleteTheme
+import kotlinx.coroutines.launch
 
 @Composable
-fun ProfileScreen() {
-    val user = UserDTO(
-        artist = true,
-        id = "12345",
-        name = "John Doe",
-        profilePicture = "https://example.com/profile.jpg",
-        dob = "2024-09-03",
-        gender = "Male",
-        language = "English",
-        countryIso2 = "US"
-    )
-    ProfileContent(user = user)
+fun ProfileScreen(
+    navController: NavController ,
+    logOut: () -> Unit = {},
+    viewModel: ProfileScreenViewModel = hiltViewModel()
+) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    ModalDrawerSheet(
+                        drawerContainerColor = MaterialTheme.colorScheme.background,
+                        windowInsets = WindowInsets(0)
+                    ) {
+                        DrawerContent(
+                            navController = navController,
+                            logOut = logOut,
+                            onClose = {
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                    }
+                }
+            }
+        ) {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                when (val uiState = viewModel.userData) {
+                    is ProfileScreenUiState.Loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .wrapContentSize(Alignment.Center)
+                        )
+                    }
+
+                    is ProfileScreenUiState.Success -> {
+                        ProfileContent(
+                            user = uiState.user,
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            onClick = { navController.navigate(Screens.UserEditScreen.route) },
+                            navController
+                        )
+                    }
+
+                    is ProfileScreenUiState.Error -> {
+                        ErrorScreen(
+                            message = uiState.message,
+                            onRetry = { viewModel.refreshProfile() })
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun ProfileContent(user: UserDTO) {
+private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: () -> Unit , navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        ProfileHeader(user)
-        Spacer(modifier = Modifier.height(16.dp))
-        StatSection()
-        Spacer(modifier = Modifier.height(16.dp))
-        GenreSection()
-        Spacer(modifier = Modifier.height(16.dp))
-        ProfileDescriptionSection(
-            description = "Passionate artist exploring the boundaries of creativity. Join me on this artistic journey!",
-            url = "https://www.instagram.com/${user.name.lowercase().replace(" ", "")}/",
-            followedBy = listOf("artlover", "gallery123")
+        UserCreditCard(
+            user = user,
+            modifier = Modifier.padding(vertical = 16.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        ButtonSection()
-        Spacer(modifier = Modifier.height(24.dp))
-        ArtworkTabs(user)
+        ButtonSection(onClick = onClick , onMenuClick = onMenuClick)
+        Spacer(modifier = Modifier.height(16.dp))
+        ExploreMoreArtistsCard(navController = navController)
     }
 }
-
 @Composable
-private fun ProfileHeader(user: UserDTO) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = user.profilePicture,
-            contentDescription = "Profile picture",
-            modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = user.name,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+fun ExploreMoreArtistsCard(navController: NavController) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF6A11CB),  // Deep Purple
+                        Color(0xFF2575FC)   // Vibrant Blue
+                    )
+                )
             )
-            Text(
-                text = "@${user.name.lowercase().replace(" ", "")}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatSection() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .clickable {
+                navController.navigate(Screens.Search.route)
+            }
+            .padding(16.dp)
     ) {
-        ProfileStat("32", "Artworks")
-        ProfileStat("1.2K", "Followers")
-        ProfileStat("723", "Following")
-    }
-}
-
-@Composable
-private fun ProfileStat(number: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = number,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun GenreSection() {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(listOf("Abstract", "Surrealism", "Pop Art")) { genre ->
-            CustomChip(
-                text = genre,
-                onClick = { /* Handle genre click */ }
-            )
-        }
-    }
-}
-@Composable
-private fun CustomChip(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = modifier.clip(RoundedCornerShape(16.dp))
-    ) {
-        Text(
-            text = text,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-    }
-}
-
-@Composable
-private fun ProfileDescriptionSection(
-    description: String,
-    url: String,
-    followedBy: List<String>
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = description, style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = url,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Followed by ${followedBy.joinToString(", ")} and 18 others",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun ButtonSection() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Button(
-            onClick = { /* Handle follow */ },
-            modifier = Modifier.weight(1f)
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Follow")
-        }
-    }
-}
 
-@Composable
-private fun ArtworkTabs(user: UserDTO) {
-    var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = if (user.artist) {
-        listOf("Saved Artwork", "Posted Artwork")
-    } else {
-        listOf("Saved Artwork")
-    }
-
-    Column {
-        TabRow(selectedTabIndex = selectedTabIndex) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = { Text(title) }
+            Column(
+                modifier = Modifier.weight(0.7f)
+            ) {
+                Text(
+                    text = "Explore More Artists",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Discover new artist and fresh artworks",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 14.sp
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(25.dp))
+                    .background(Color.White.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowForward,
+                    contentDescription = "Explore More",
+                    tint = Color.White,
+                    modifier = Modifier.size(30.dp)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        when (selectedTabIndex) {
-            0 -> ArtworkGrid(isPosted = false)
-            1 -> if (user.artist) ArtworkGrid(isPosted = true)
-        }
     }
 }
-
 @Composable
-private fun ArtworkGrid(isPosted: Boolean) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        items(9) { index ->
-            AsyncImage(
-                model = if (isPosted) "https://example.com/posted_artwork_$index.jpg"
-                else "https://example.com/saved_artwork_$index.jpg",
-                contentDescription = "Artwork",
+private fun ButtonSection(onClick: () -> Unit , onMenuClick: () -> Unit = {}) {
+    TempleteTheme {
+        Row(
+            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
                 modifier = Modifier
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clickable { onClick() }
+                    .background(
+                        color = Color.Transparent, shape = RoundedCornerShape(10.dp)
+                    )
+                    .border(
+                        1.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .clip(shape = RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Edit",
+                    modifier = Modifier.padding(12.dp),
+                    color = LocalContentColor.current,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Menu"
+                )
+            }
+        }
+    }
+}
+@Composable
+fun UserCreditCard(user: UserDTO, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(200.dp)
+    ) {
+        // Glossy card with gradient background
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
             )
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row {
+                        AsyncImage(
+                            model = user.profilePicture,
+                            contentDescription = "Profile picture",
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = user.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "ID: ${user.id.take(8)}...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    AppIcon(icon = R.drawable.ic_logo_no_bacground, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.15f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(12.dp)
+                ) {
+                    UserInfoRow(
+                        title = "DOB",
+                        value = user.dob
+                    )
+                    UserInfoRow(
+                        title = "Gender",
+                        value = user.gender
+                    )
+                    UserInfoRow(
+                        title = "Country",
+                        value = user.countryIso2
+                    )
+                    Row {
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "@${user.name.lowercase().replace(" ", "")}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color =  MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+            }
+
         }
     }
 }
 
-
-@Preview(showBackground = true , showSystemUi = true , )
 @Composable
-private fun prev() {
-    TempleteTheme(darkTheme = true) {
-        ProfileScreen()
+private fun UserInfoRow(title: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color =  MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color =  MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
+        )
     }
-    
 }

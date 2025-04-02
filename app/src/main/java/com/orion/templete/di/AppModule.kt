@@ -1,13 +1,19 @@
 package com.orion.templete.di
 
 import android.content.Context
+import androidx.room.Room
+import com.orion.templete.data.local.AppDatabase
+import com.flashcall.me.data.local.dao.UserDao
+import com.google.firebase.auth.FirebaseAuth
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
 import com.orion.templete.data.repository.ArtistRepositoryImplementation
 import com.orion.templete.data.repository.ArtworkRepositoryImplementation
+import com.orion.templete.data.repository.LoginRepositoryImplementation
 import com.orion.templete.data.repository.UserRepositoryImplementation
 import com.orion.templete.domain.repository.ArtistRepository
 import com.orion.templete.domain.repository.ArtworkRepository
+import com.orion.templete.domain.repository.LoginRepository
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.SecureStorage
 import dagger.Module
@@ -44,6 +50,13 @@ object  AppModule {
             }
             .build()
     }
+
+    @Provides
+    @Singleton
+    fun providesFirebaseAuth(): FirebaseAuth {
+        return FirebaseAuth.getInstance()
+    }
+
     @Provides
     @Singleton
     fun provideApiService(okHttpClient: OkHttpClient): ApiService {
@@ -55,15 +68,32 @@ object  AppModule {
             .create(ApiService::class.java)
     }
     @Provides
+    @Singleton
+    fun provideDatabase(
+        @ApplicationContext context: Context
+    ): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            AppDatabase.DATABASE_NAME
+        )
+            .fallbackToDestructiveMigration() // Remove this in production
+            .build()
+    }
+    @Provides
     fun provideArtWorkRepository(apiService: ApiService): ArtworkRepository {
         return ArtworkRepositoryImplementation(apiService = apiService)
     }
     @Provides
     fun provideUserRepository(
         apiService: ApiService,
-    ): UserRepository {
-        return UserRepositoryImplementation(
+        firebaseAuth: FirebaseAuth,
+        @ApplicationContext context: Context
+    ): LoginRepository {
+        return LoginRepositoryImplementation(
             apiService = apiService,
+            db = firebaseAuth,
+            context = context
         )
     }
     @Provides
@@ -73,5 +103,19 @@ object  AppModule {
         return ArtistRepositoryImplementation(
             apiService = apiService,
         )
+    }
+    @Provides
+    fun userRepository(
+        apiService: ApiService,
+        userDao: UserDao,
+        context: Context
+    ): UserRepository {
+        return UserRepositoryImplementation(apiService ,userDao ,context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserDao(database: AppDatabase): UserDao {
+        return database.userDao()
     }
 }

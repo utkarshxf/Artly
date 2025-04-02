@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import com.orion.templete.R
+import com.orion.templete.presentation.ui.theme.LighterGray
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,12 +53,22 @@ fun CustomTextField(
         keyboardOptions = KeyboardOptions.Default.copy(
             keyboardType = keyboardType
         ),
+        prefix = {
+            if (keyboardType == KeyboardType.Phone){
+                Text(text = "+91 -  ", style = MaterialTheme.typography.bodyMedium)
+            }
+        },
         singleLine = isSingleLine,
-        colors = TextFieldDefaults.textFieldColors(
-            containerColor = if (isSystemInDarkTheme()){
-                MaterialTheme.colorScheme.surface
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = if (isSystemInDarkTheme()){
+                MaterialTheme.colorScheme.background
             }else{
-                Gray
+                LighterGray
+            },
+            unfocusedContainerColor = if (isSystemInDarkTheme()){
+                MaterialTheme.colorScheme.background
+            }else{
+                LighterGray
             },
             unfocusedIndicatorColor = Color.Transparent,
             focusedIndicatorColor = Color.Transparent
