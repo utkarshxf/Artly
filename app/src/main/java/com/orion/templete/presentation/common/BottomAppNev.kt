@@ -9,11 +9,16 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +46,7 @@ import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.presentation.address.Address
 import com.orion.templete.presentation.address.InAppShippingAddressScreen
 import com.orion.templete.presentation.address.ShippingAddressScreen
+import com.orion.templete.presentation.ai.AIGeneratorScreen
 import com.orion.templete.presentation.artist_profile.ArtistProfileScreen
 import com.orion.templete.presentation.profile.ProfileScreen
 import com.orion.templete.presentation.search.SearchScreen
@@ -81,6 +87,7 @@ fun BottomAppNev(
     val screens = listOf(
         Screens.Profile,
         Screens.Search,
+        Screens.AIGeneratorScreen,
         Screens.FavoritesScreen,
         Screens.Swipe,
     )
@@ -95,7 +102,7 @@ fun BottomAppNev(
     val profileScreenViewModel = hiltViewModel<ProfileScreenViewModel>()
 
     if (profileScreenViewModel.userData is ProfileScreenUiState.Error){
-        LaunchedEffect(Unit){
+        LaunchedEffect(Unit) {
             SecureStorage(context).saveCurrentUserId("null")
             registrationScreen()
         }
@@ -124,15 +131,13 @@ fun BottomAppNev(
 //                ArtworkDetailContent(artworkDetailsDTO)
 //            }
 //        }
-        composable(Screens.ArtworkDetail.route)
-        {
+        composable(Screens.ArtworkDetail.route) {
             val artworkId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("artworkId")
             if (artworkId != null) {
                 ArtworkDetailScreen(artworkId , navController)
             }
         }
-        composable(Screens.Search.route)
-        {
+        composable(Screens.Search.route) {
             SearchScreen(navController , searchScreenViewModel)
         }
         composable(Screens.ArtView.route){
@@ -141,18 +146,20 @@ fun BottomAppNev(
                 ArtViewScreen(url)
             }
         }
-        composable(Screens.UserProfile.route)
-        {
+        composable(Screens.UserProfile.route) {
             val userID = navController.previousBackStackEntry?.savedStateHandle?.get<String>("UserID")
             if (userID != null){
                 ArtistProfileScreen(userID , navController)
             }
         }
+        composable(Screens.AIGeneratorScreen.route) {
+            AIGeneratorScreen(navController)
+        }
         composable(Screens.ShippingAddress.route){
             ShippingAddressScreen(onBackClick = {}, onContinueClick = {})
         }
         composable(Screens.Cart.route){
-            CartScreen({} , {})
+            CartScreen( {} , {} )
         }
         composable(Screens.OrderSuccess.route) {
             OrderSuccessScreen(
@@ -176,7 +183,7 @@ fun BottomAppNev(
             )
         }
         composable(Screens.OrderFailed.route) {
-            OrderFailedScreen("error" , {} ,{} , {})
+            OrderFailedScreen("Error" , {} ,{} , {})
         }
         composable(Screens.OrderTracking.route) {
             val orderStatus = OrderStatus(
@@ -253,42 +260,78 @@ fun BottomAppNev(
         }
     }
     if (bottomBarDestination){
-        Box(modifier = Modifier.fillMaxSize() , contentAlignment = Alignment.BottomCenter) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            // Main navigation bar
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = MediumSize,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.height(ButtonHeight)
             ) {
-                BottomNavigationItem().bottomNavigationItems().forEachIndexed { index, navigationItem ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        IconButton(
-                            onClick = {
-                                navigationSelectedItem = index
-                                navController.navigate(navigationItem.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    restoreState = true
-                                }
-                            }
+                val navigationItems = BottomNavigationItem().bottomNavigationItems()
+                navigationItems.forEachIndexed { index, navigationItem ->
+                    // Skip the middle item as we'll place a FAB there
+                    if (index != navigationItems.size / 2) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                painterResource(id = navigationItem.icon),
-                                contentDescription = null,
-                                tint = if (navigationItem.route == currentDestination?.route){
-                                    if(isSystemInDarkTheme()) Color.White else Color.Black
-                                } else
-                                    Color.Gray,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            IconButton(
+                                onClick = {
+                                    navigationSelectedItem = index
+                                    navController.navigate(navigationItem.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        restoreState = true
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    painterResource(id = navigationItem.icon),
+                                    contentDescription = null,
+                                    tint = if (navigationItem.route == currentDestination?.route) {
+                                        if (isSystemInDarkTheme()) Color.White else Color.Black
+                                    } else Color.Gray,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
+                    } else {
+                        // Empty space for the FAB
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
+            }
+
+            // Floating Action Button for the middle item
+            val middleItemIndex = BottomNavigationItem().bottomNavigationItems().size / 2
+            val middleItem = BottomNavigationItem().bottomNavigationItems()[middleItemIndex]
+
+            FloatingActionButton(
+                onClick = {
+                    navigationSelectedItem = middleItemIndex
+                    navController.navigate(middleItem.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        restoreState = true
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(6.dp),
+                modifier = Modifier
+                    .size(60.dp)
+                    .offset(y = (-8).dp)
+            ) {
+                Icon(
+                    painterResource(id = middleItem.icon),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(32.dp)
+                )
             }
         }
     }

@@ -50,7 +50,6 @@ fun DrawerContent(navController: NavController ,logOut:()->Unit ,  onClose: () -
             .width(300.dp)
             .padding(16.dp)
     ) {
-        val dividerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
         val context = LocalContext.current
         val drawerItemColor = NavigationDrawerItemDefaults.colors(
             unselectedBadgeColor = Color.Transparent,
@@ -68,7 +67,7 @@ fun DrawerContent(navController: NavController ,logOut:()->Unit ,  onClose: () -
             Icon(
                 painter = painterResource(id = R.drawable.ic_logo_no_bacground),
                 contentDescription = "app_icon",
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .padding(8.dp)
                     .size(40.dp)

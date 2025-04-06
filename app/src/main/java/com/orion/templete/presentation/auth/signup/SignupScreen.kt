@@ -237,7 +237,7 @@ fun SignupScreen(
         }
     }
 
-    if (showOtpBottomSheet) {
+    if (true) {
         OtpVerificationBottomSheet(
             onDismiss = {
                 showOtpBottomSheet = false

@@ -82,6 +82,8 @@ import kotlin.math.max
 import kotlin.math.min
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -423,7 +425,17 @@ fun ArtworkContent(selectedTabIndex: MutableState<Int>) {
         ImageWithText(R.drawable.ic_gird, "Posted Artwork"),
         ImageWithText(R.drawable.ic_list, "Posted Artwork")
     )
-    TabRow(selectedTabIndex = selectedTabIndex.value) {
+    TabRow(
+        selectedTabIndex = selectedTabIndex.value,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        indicator = { tabPositions ->
+            TabRowDefaults.Indicator(
+                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex.value]),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    ) {
         tabs.forEachIndexed { index, imageWithText ->
             Tab(
                 selected = selectedTabIndex.value == index,
@@ -432,7 +444,7 @@ fun ArtworkContent(selectedTabIndex: MutableState<Int>) {
                     Icon(
                         painter = painterResource(id = imageWithText.image),
                         contentDescription = imageWithText.text,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             )

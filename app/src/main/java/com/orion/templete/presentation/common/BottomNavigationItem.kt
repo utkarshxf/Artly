@@ -17,6 +17,10 @@ data class BottomNavigationItem(
                 route = Screens.Search.route
             ),
             BottomNavigationItem(
+                icon = R.drawable.ic_generateimg,
+                route = Screens.AIGeneratorScreen.route
+            ),
+            BottomNavigationItem(
                 icon = R.drawable.ic_save,
                 route = Screens.FavoritesScreen.route
             ),
