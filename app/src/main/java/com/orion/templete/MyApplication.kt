@@ -7,6 +7,7 @@ import coil.ImageLoader
 import coil.util.DebugLogger
 import com.freshchat.consumer.sdk.Freshchat
 import com.freshchat.consumer.sdk.FreshchatConfig
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
@@ -23,7 +24,7 @@ class MyApplication: Application(){
         freshchatConfig.setUserEventsTrackingEnabled(true)
         freshchatConfig.setFileSelectionEnabled(true)
         Freshchat.getInstance(applicationContext)?.init(freshchatConfig)
-
+        TrackEvents(this).trackAppOpened()
         val imageLoader = ImageLoader.Builder(this)
             .allowRgb565(false) // Don't use RGB565 which reduces quality
             .bitmapConfig(Bitmap.Config.ARGB_8888) // Use full quality config
@@ -36,5 +37,4 @@ class MyApplication: Application(){
 
         Coil.setImageLoader(imageLoader)
     }
-
 }

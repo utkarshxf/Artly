@@ -222,8 +222,8 @@ interface ApiService {
     ): Response<GeneratedImageResponse>
 
     companion object {
-        var baseurl = "https://backendart-production.up.railway.app/"
-//        var baseurl = "https://backend-art.onrender.com/"
+//        var baseurl = "https://backendart-production.up.railway.app/"
+        var baseurl = "https://hammerhead-app-zgpcv.ondigitalocean.app/"
 //        var baseurl = "http://10.0.2.2:7040"
     }
     // this is the change before commit to new branch

@@ -4,6 +4,7 @@ package com.orion.templete.presentation.common
 import ArtViewScreen
 import UserEditScreen
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -102,9 +103,10 @@ fun BottomAppNev(
     val profileScreenViewModel = hiltViewModel<ProfileScreenViewModel>()
 
     if (profileScreenViewModel.userData is ProfileScreenUiState.Error){
-        LaunchedEffect(Unit) {
-            SecureStorage(context).saveCurrentUserId("null")
-            registrationScreen()
+        if (((profileScreenViewModel.userData as ProfileScreenUiState.Error).message) == "End of input at line 1 column 1 path $"){
+            LaunchedEffect(Unit) {
+                registrationScreen()
+            }
         }
     }
     NavHost (

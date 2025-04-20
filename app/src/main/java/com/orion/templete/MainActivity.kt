@@ -18,6 +18,7 @@ import com.nearbuck.android.admin.presentation.add_screen.components.ImageCroppe
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.AndroidEntryPoint
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -49,5 +50,9 @@ class MainActivity : ComponentActivity() {
     }
     fun getImageCropper(): ImageCropper = imageCropper
     fun getGalleryLauncher(): GalleryLauncher = galleryLauncher
+    override fun onDestroy() {
+        super.onDestroy()
+        TrackEvents(this).trackAppClosed()
+    }
 }
 

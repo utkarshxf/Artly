@@ -15,6 +15,7 @@ import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,10 +23,11 @@ import javax.inject.Inject
 @HiltViewModel
 class ArtistProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val trackEvents: TrackEvents // Add TrackEvents dependency
 ) : ViewModel() {
 
-    // Initialize with Loading state instead of null
+    // State variables remain the same
     var artistProfileScreenUiState by mutableStateOf<ArtistProfileScreenUiState>(
         ArtistProfileScreenUiState.Loading
     )
@@ -51,19 +53,21 @@ class ArtistProfileViewModel @Inject constructor(
     )
         private set
 
-
     var artWorksUiState by mutableStateOf<ArtWorksUiState>(ArtWorksUiState.Loading)
         private set
 
     val currentUserId = secureStorage.getUserId()?:""
-
 
     fun getUserProfile(userId: String) {
         viewModelScope.launch {
             userRepository.getArtistByArtistId(userId, currentUserId).collect { response ->
                 artistProfileScreenUiState = when (response) {
                     is ResponseStates.Loading -> ArtistProfileScreenUiState.Loading
-                    is ResponseStates.Success -> ArtistProfileScreenUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artist profile is viewed successfully
+                        trackEvents.trackArtistProfileViewed(userId)
+                        ArtistProfileScreenUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> ArtistProfileScreenUiState.Error(response.error)
                 }
             }
@@ -75,7 +79,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.getArtistByArtworkId(artworkId, currentUserId).collect { response ->
                 artistProfileScreenUiState = when (response) {
                     is ResponseStates.Loading -> ArtistProfileScreenUiState.Loading
-                    is ResponseStates.Success -> ArtistProfileScreenUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when viewing artist profile through artwork
+                        trackEvents.trackArtistProfileViewed(response.data.id)
+                        ArtistProfileScreenUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> ArtistProfileScreenUiState.Error(response.error)
                 }
             }
@@ -88,7 +96,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.followUser(currentUserId, artistId).collect { response ->
                 followArtistUiState = when (response) {
                     is ResponseStates.Loading -> FollowArtistUiState.Loading
-                    is ResponseStates.Success -> FollowArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artist is followed successfully
+                        trackEvents.trackArtistFollowed(artistId)
+                        FollowArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> FollowArtistUiState.Error(response.error)
                 }
             }
@@ -96,12 +108,16 @@ class ArtistProfileViewModel @Inject constructor(
     }
 
     // unfollow
-    fun unfollowArtist( artistId: String) {
+    fun unfollowArtist(artistId: String) {
         viewModelScope.launch {
             userRepository.unfollowArtist(currentUserId, artistId).collect { response ->
                 unFollowArtistUiState = when (response) {
                     is ResponseStates.Loading -> UnFollowArtistUiState.Loading
-                    is ResponseStates.Success -> UnFollowArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artist is unfollowed
+                        trackEvents.trackArtistUnfollowed(artistId)
+                        UnFollowArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> UnFollowArtistUiState.Error(response.error)
                 }
             }
@@ -114,7 +130,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.likeArtwork(currentUserId, artworkId).collect { response ->
                 userLikeArtworkUiState = when (response) {
                     is ResponseStates.Loading -> UserLikeArtistUiState.Loading
-                    is ResponseStates.Success -> UserLikeArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artwork is liked
+                        trackEvents.trackArtworkLiked(artworkId)
+                        UserLikeArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> UserLikeArtistUiState.Error(response.error)
                 }
             }
@@ -127,7 +147,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.unLikeArtwork(currentUserId, artworkId).collect { response ->
                 userUnLikeArtworkUiState = when (response) {
                     is ResponseStates.Loading -> UserUnLikeArtistUiState.Loading
-                    is ResponseStates.Success -> UserUnLikeArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artwork is unliked
+                        trackEvents.trackArtworkUnliked(artworkId)
+                        UserUnLikeArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> UserUnLikeArtistUiState.Error(response.error)
                 }
             }
@@ -140,7 +164,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.commentOnArtwork(currentUserId, artworkId, comment).collect { response ->
                 commentByArtistUiState = when (response) {
                     is ResponseStates.Loading -> CommentByArtistUiState.Loading
-                    is ResponseStates.Success -> CommentByArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when comment is posted
+                        trackEvents.trackArtworkCommented(artworkId)
+                        CommentByArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> CommentByArtistUiState.Error(response.error)
                 }
             }
@@ -160,7 +188,6 @@ class ArtistProfileViewModel @Inject constructor(
         }
     }
 
-
     //get list of artwork
     fun getArtistArtworks(artistId: String) {
         viewModelScope.launch {
@@ -172,6 +199,11 @@ class ArtistProfileViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    // Track when specific artwork is viewed
+    fun viewArtwork(artworkId: String) {
+        trackEvents.trackArtworkViewed(artworkId)
     }
 
     fun refreshProfile(userId: String) {

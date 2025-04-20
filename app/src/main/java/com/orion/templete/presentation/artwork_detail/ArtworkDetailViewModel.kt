@@ -9,6 +9,7 @@ import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ArtworkDetailViewModel @Inject constructor(
     private val artworkRepository: ArtworkRepository,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val trackEvents: TrackEvents // Add TrackEvents dependency
 ) : ViewModel() {
     var artworkDetailScreenUiState by mutableStateOf<ArtworkDetailScreenUiState>(ArtworkDetailScreenUiState.Loading)
         private set
@@ -32,10 +34,14 @@ class ArtworkDetailViewModel @Inject constructor(
     fun getArtworkById(artworkId: String) {
         viewModelScope.launch {
             if (currentUserId != null) {
-                artworkRepository.getArtworkById(currentUserId , artworkId).collect { response ->
+                artworkRepository.getArtworkById(currentUserId, artworkId).collect { response ->
                     artworkDetailScreenUiState = when (response) {
                         is ResponseStates.Loading -> ArtworkDetailScreenUiState.Loading
-                        is ResponseStates.Success -> ArtworkDetailScreenUiState.Success(response.data)
+                        is ResponseStates.Success -> {
+                            // Track when artwork is viewed
+                            trackEvents.trackArtworkViewed(artworkId)
+                            ArtworkDetailScreenUiState.Success(response.data)
+                        }
                         is ResponseStates.Error -> ArtworkDetailScreenUiState.Error(response.error)
                     }
                 }
@@ -43,13 +49,17 @@ class ArtworkDetailViewModel @Inject constructor(
         }
     }
 
-    fun getArtworkByArtistId(artistId: String , currentArtworkId: String) {
+    fun getArtworkByArtistId(artistId: String, currentArtworkId: String) {
         viewModelScope.launch {
             if (currentUserId != null) {
-                artworkRepository.getArtworkByArtistId(currentUserId , artistId , currentArtworkId).collect { response ->
+                artworkRepository.getArtworkByArtistId(currentUserId, artistId, currentArtworkId).collect { response ->
                     artworksScreenUiState = when (response) {
                         is ResponseStates.Loading -> ArtworksScreenUiState.Loading
-                        is ResponseStates.Success -> ArtworksScreenUiState.Success(response.data)
+                        is ResponseStates.Success -> {
+                            // Track artist profile view indirectly through artwork
+                            trackEvents.trackArtistProfileViewed(artistId)
+                            ArtworksScreenUiState.Success(response.data)
+                        }
                         is ResponseStates.Error -> ArtworksScreenUiState.Error(response.error)
                     }
                 }
@@ -60,10 +70,20 @@ class ArtworkDetailViewModel @Inject constructor(
     fun getSimilarArtwork(artworkId: String) {
         viewModelScope.launch {
             if (currentUserId != null) {
-                artworkRepository.getSimilarArtwork(currentUserId , artworkId).collect { response ->
+                artworkRepository.getSimilarArtwork(currentUserId, artworkId).collect { response ->
                     similarArtworks = when (response) {
                         is ResponseStates.Loading -> ArtworksScreenUiState.Loading
-                        is ResponseStates.Success -> ArtworksScreenUiState.Success(response.data)
+                        is ResponseStates.Success -> {
+                            // Track similar artwork recommendations
+                            response.data.forEach { similarArtwork ->
+                                similarArtwork.id?.let {
+                                    trackEvents.trackSimilarArtworkViewed(artworkId,
+                                        it
+                                    )
+                                }
+                            }
+                            ArtworksScreenUiState.Success(response.data)
+                        }
                         is ResponseStates.Error -> ArtworksScreenUiState.Error(response.error)
                     }
                 }
@@ -71,8 +91,34 @@ class ArtworkDetailViewModel @Inject constructor(
         }
     }
 
-    fun refreshArtwork( artworkId: String) {
+    // Additional functions to track specific user interactions
+    fun likeArtwork(artworkId: String) {
+        trackEvents.trackArtworkLiked(artworkId)
+    }
+
+    fun unlikeArtwork(artworkId: String) {
+        trackEvents.trackArtworkUnliked(artworkId)
+    }
+
+    fun viewArtistProfile(artistId: String) {
+        trackEvents.trackArtistProfileViewed(artistId)
+    }
+
+    fun saveArtworkToFavorites(artworkId: String) {
+        trackEvents.trackArtworkSavedToFavorites(artworkId)
+    }
+
+    fun commentOnArtwork(artworkId: String) {
+        trackEvents.trackArtworkCommented(artworkId)
+    }
+
+    fun refreshArtwork(artworkId: String) {
         getArtworkById(artworkId)
+    }
+
+    // Track when a recommended artwork is viewed from a specific source
+    fun viewRecommendedArtwork(artworkId: String, source: String) {
+        trackEvents.trackRecommendedArtworkViewed(artworkId, source)
     }
 }
 

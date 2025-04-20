@@ -22,4 +22,5 @@
     <string name="username_hint">Enter User Name</string>
     <string name="no_info">unknown</string>
     <string name="update">update</string>
+    <string name="MIXPANEL_TOKEN">a7178ade19a58e42d1f0939288df5765</string>
 </resources>

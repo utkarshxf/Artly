@@ -61,6 +61,7 @@ fun SearchScreen(navController: NavController , viewModel: SearchScreenViewModel
                     LazyColumn {
                         items(searchResults.value) {
                             ArtistProfileCard(it.name ?: "name", it.id ?: "id", it.imageUrl ?: "profilePicture") {
+                                viewModel.artistSearched(it.name)
                                 navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it.id)
                                 navController.navigate(Screens.UserProfile.route)
                             }

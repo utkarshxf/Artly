@@ -91,4 +91,14 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
     fun clearSharedPref(){
         sharedPreferences.edit().clear().apply()
     }
+
+    fun isFirstTime(): Boolean {
+        return sharedPreferences.getBoolean(PreferencesKey.UserFirstTimeLogin.key, true)
+    }
+    fun setFirstTime(value: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean(PreferencesKey.UserFirstTimeLogin.key, value)
+            apply()
+        }
+    }
 }

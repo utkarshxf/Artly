@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +43,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import com.orion.templete.presentation.components.AnimatedPreloader
+import com.orion.templete.presentation.components.ImageCarouselBottomSheet
 import com.orion.templete.presentation.favorites.CollectionViewModel
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.extractYear
@@ -98,7 +98,10 @@ fun SwipeCard(
     val scope = rememberCoroutineScope()
     var isSwipedLeft by remember { mutableStateOf(false) }
     val collectionViewModel: CollectionViewModel = hiltViewModel()
-    val userId = SecureStorage(LocalContext.current).getUserId()
+    val context = LocalContext.current
+    val userId = SecureStorage(context).getUserId()
+    val firstTime = SecureStorage(context).isFirstTime()
+    var showUserHint by remember { mutableStateOf(firstTime) }
     when {
         stateOfCards.isLoading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -129,7 +132,6 @@ fun SwipeCard(
                     if (state.swipedDirection == null) {
                         ProfileCard(modifier = Modifier
                             .padding(16.dp)
-                            .aspectRatio(3f / 4.5f)
                             .swipableCard(state = state,
                                 blockedDirections = listOf(Direction.Down),
                                 onSwiped = {
@@ -144,7 +146,9 @@ fun SwipeCard(
                                         )
                                     }
                                     if (state.swipedDirection == Direction.Up) {
+
                                         artwork.id?.let { it1 ->
+                                            swipeScreenViewModel.trackArtworkSavedToFavorites(it1)
                                             collectionViewModel.saveOnFavorites(
                                                 "saved_${userId}",
                                                 artworkId = it1
@@ -163,16 +167,19 @@ fun SwipeCard(
                                     Log.d("Swappable-Card", "Cancelled swipe")
                                 })
                             .clickable {
+                                artwork.id?.let { swipeScreenViewModel.trackArtworkView(it) }
                                 navigateToDetailScreen(artwork)
                             }, artwork = artwork
                         )
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            ArtworkProfileCard(artwork)
-                        }
                     }
+                }
+                if (showUserHint) {
+                    ImageCarouselBottomSheet(
+                        onDismiss = {
+                            showUserHint = false
+                            SecureStorage(context).setFirstTime(false)
+                        }
+                    )
                 }
             }
         }
@@ -203,7 +210,7 @@ fun ArtworkProfileCard(artwork: ArtworkDTO) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(vertical = 16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             artwork.title?.let {
@@ -258,7 +265,9 @@ fun ArtworkProfileCard(artwork: ArtworkDTO) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = artwork.description?: "No description",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Light,
+                    overflow = TextOverflow.Ellipsis
                 )
 
             }
@@ -283,5 +292,11 @@ private fun ProfileCard(
             painter = rememberAsyncImagePainter(artwork.imageUrl),
             contentDescription = null
         )
+    }
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        ArtworkProfileCard(artwork)
     }
 }

@@ -12,6 +12,7 @@ import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.usecase.GetArtworkUseCase
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,7 +22,8 @@ import javax.inject.Inject
 class SwipeScreenViewModel @Inject constructor(
     private val repository: ArtworkRepository,
     private val likeArtworkUseCase: GetArtworkUseCase,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val trackEvents: TrackEvents // Add TrackEvents dependency
 ) : ViewModel() {
     val userId = secureStorage.getUserId()?:""
     var state by mutableStateOf(ScreenState())
@@ -37,7 +39,7 @@ class SwipeScreenViewModel @Inject constructor(
             state = state.copy(isLoading = isLoading)
         },
         onRequest = { nextPage ->
-            repository.paginationArtwork(userId =userId , nextPage, 10)
+            repository.paginationArtwork(userId = userId, nextPage, 10)
         },
         getNextKey = {
             state.page + 1
@@ -46,6 +48,11 @@ class SwipeScreenViewModel @Inject constructor(
             state = state.copy(error = throwable?.localizedMessage)
         },
         onSuccess = { items, newKey ->
+            // Track when new artworks are loaded for recommendation views
+            if (items.isNotEmpty()) {
+                trackEvents.trackScreenViewed("Swipe Screen - Page ${newKey}")
+            }
+
             state = state.copy(
                 items = items,
                 page = newKey,
@@ -56,6 +63,8 @@ class SwipeScreenViewModel @Inject constructor(
 
     init {
         loadNextItems()
+        // Track when app swipe screen is opened
+        trackEvents.trackAppOpened()
     }
 
     fun loadNextItems() {
@@ -78,18 +87,51 @@ class SwipeScreenViewModel @Inject constructor(
         viewModelScope.launch {
             likeArtworkUseCase.likeArtwork(artworkId, userId).collect { resource ->
                 likeArtworkState = resource
+
+                // Track when artwork is liked successfully
+                if (resource is ResponseStates.Success && resource.data) {
+                    trackEvents.trackArtworkLiked(artworkId)
+                }
             }
         }
     }
+
     fun disLikeArtwork(artworkId: String) {
         viewModelScope.launch {
             likeArtworkUseCase.disLikeArtwork(artworkId, userId).collect { resource ->
                 disLikeArtworkState = resource
+
+                // Track when artwork is disliked successfully
+                if (resource is ResponseStates.Success && resource.data) {
+                    trackEvents.trackArtworkDisliked(artworkId)
+                }
             }
         }
     }
-}
 
+    // Additional tracking methods for specific user interactions
+    fun trackArtworkView(artworkId: String) {
+        trackEvents.trackArtworkViewed(artworkId)
+    }
+
+    fun trackRecommendedArtworkView(artworkId: String) {
+        trackEvents.trackRecommendedArtworkViewed(artworkId, "Swipe Card")
+    }
+
+    fun trackArtworkSavedToFavorites(artworkId: String) {
+        trackEvents.trackArtworkSavedToFavorites(artworkId)
+    }
+
+    fun trackArtistProfileView(artistId: String) {
+        trackEvents.trackArtistProfileViewed(artistId)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Track when user leaves the swipe screen
+        trackEvents.trackAppClosed()
+    }
+}
 
 data class ScreenState(
     val isLoading: Boolean = false,

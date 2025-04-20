@@ -10,6 +10,7 @@ import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class UserRegisterScreenViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val trackEvents: TrackEvents
 ) : ViewModel() {
 
     var createUserState by mutableStateOf<UserDetailsUiState>(UserDetailsUiState(isLoading = false))
@@ -31,6 +33,7 @@ class UserRegisterScreenViewModel @Inject constructor(
                     createUserState = when (response) {
                         is ResponseStates.Loading -> createUserState.copy(isLoading = true)
                         is ResponseStates.Success -> {
+                            trackEvents.trackOnboardingCompleted()
                             secureStorage.saveUserDetails(response.data)
                             createUserState.copy(data = response.data , isLoading = false)
                         }

@@ -73,8 +73,6 @@ import com.nearbuck.android.admin.presentation.login_screen.components.OtpView
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.presentation.auth.OTPScreenUiState
 import com.orion.templete.presentation.components.AnimatedPreloader
-import com.orion.templete.presentation.swipe.components.BottomSheet
-import com.orion.templete.presentation.ui.theme.OTPBorder
 import kotlinx.coroutines.delay
 
 @Composable
@@ -237,7 +235,7 @@ fun SignupScreen(
         }
     }
 
-    if (true) {
+    if (showOtpBottomSheet) {
         OtpVerificationBottomSheet(
             onDismiss = {
                 showOtpBottomSheet = false
@@ -302,7 +300,7 @@ fun OtpVerificationBottomSheet(
 //                )
                 OtpView(
                     otpText = otp,
-                    charColor = MaterialTheme.colorScheme.primary,
+                    charColor = MaterialTheme.colorScheme.onSurface,
                     charBackground = Color.Transparent,
                     charSize = 20.sp,
                     containerSize = 46.dp,

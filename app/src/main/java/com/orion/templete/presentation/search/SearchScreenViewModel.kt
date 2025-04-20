@@ -8,6 +8,7 @@ import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.domain.repository.ArtistRepository
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SearchScreenViewModel @Inject constructor(
     private val artistRepository: ArtistRepository,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val trackEvents: TrackEvents
 ) : ViewModel() {
 
     // Flow to hold search results
@@ -103,6 +105,12 @@ class SearchScreenViewModel @Inject constructor(
                 }.collect { result ->
                     _todayBiggestHit.value = TodayBiggestHitUiState.Success(result)
                 }
+        }
+    }
+
+    fun artistSearched(name: String?) {
+        if (name != null) {
+            trackEvents.trackArtistSearched(name)
         }
     }
 }
