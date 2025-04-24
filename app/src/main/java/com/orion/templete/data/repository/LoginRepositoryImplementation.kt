@@ -72,7 +72,7 @@ class LoginRepositoryImplementation @Inject constructor(
             }
         }
         val options = PhoneAuthOptions.newBuilder(db)
-            .setPhoneNumber("+91$phone")
+            .setPhoneNumber(phone)
             .setTimeout(60L, TimeUnit.SECONDS)
             .setActivity(activity)
             .setCallbacks(onVerificationCallback)

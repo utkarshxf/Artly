@@ -114,6 +114,7 @@ fun SignupScreen(
     var showOtpBottomSheet by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf("") }
     var mobileNumber by remember { mutableStateOf("") }
+    var countryCode by remember { mutableStateOf("+91") }
     var password by remember { mutableStateOf("") }
     var isOtpSending by remember { mutableStateOf(false) }
     val authState = viewModel.authState.collectAsState()
@@ -163,7 +164,7 @@ fun SignupScreen(
                 isOtpSending = true
             }
             is OTPScreenUiState.Success -> {
-                signupUser(Registration(userName, password , mobileNumber))
+                signupUser(Registration(userName, password , countryCode + mobileNumber))
                 showOtpBottomSheet = false
             }
         }
@@ -197,7 +198,10 @@ fun SignupScreen(
             value = mobileNumber,
             onValueChange = { mobileNumber = it },
             hint = R.string.mobile_hint,
-            keyboardType = KeyboardType.Phone
+            keyboardType = KeyboardType.Phone,
+            countrySelected = {
+                countryCode = it.code
+            }
         )
         SpacerHeight(LargeSize)
         CustomTextField(
