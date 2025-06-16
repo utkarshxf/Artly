@@ -26,7 +26,8 @@ fun UserEntity.toDto(): UserDTO {
         gender = this.gender,
         language = this.language,
         countryIso2 = this.countryIso2,
-        follow = this.follow
+        follow = this.follow,
+        artist = true // fix is needed currently not working perfectly.
     )
 }
 

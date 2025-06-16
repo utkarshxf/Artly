@@ -1,7 +1,4 @@
 package com.orion.templete.data.network
-
-
-import com.google.android.gms.common.internal.safeparcel.SafeParcelable.Param
 import com.orion.templete.data.model.ai_model.GeneratedImageResponse
 import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
@@ -38,6 +35,12 @@ interface ApiService {
 
     @POST("check")
     suspend fun verifyUser(@Body token: TokenRequest): retrofit2.Response<Boolean>
+
+    @GET("users/isUserIsArtistByUserId/{userId}")
+    suspend fun isUserArtist(@Path("userId") userId: String): Response<Boolean>
+
+    @POST("artist")
+    suspend fun registerAsArtist(@Body artist: ArtistDTO): Response<ArtistDTO>
 
     @GET("artwork/recommend")
     suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int):retrofit2.Response<List<ArtworkDTO>>

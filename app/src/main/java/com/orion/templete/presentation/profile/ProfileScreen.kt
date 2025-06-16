@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,11 +35,19 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,23 +59,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.orion.templete.R
+import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.user_model.UserDTO
+import com.orion.templete.di.AppModule.userRepository
+import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.profile.common.DrawerContent
 import com.orion.templete.presentation.ui.theme.TempleteTheme
+import com.orion.templete.util.ResponseStates
 import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
     navController: NavController ,
     logOut: () -> Unit = {},
-    viewModel: ProfileScreenViewModel = hiltViewModel()
+    viewModel: ProfileScreenViewModel = hiltViewModel(),
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -104,7 +120,8 @@ fun ProfileScreen(
                             user = uiState.user,
                             onMenuClick = { scope.launch { drawerState.open() } },
                             onClick = { navController.navigate(Screens.UserEditScreen.route) },
-                            navController
+                            navController = navController,
+                            viewModel = viewModel
                         )
                     }
 
@@ -120,7 +137,15 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: () -> Unit , navController: NavController) {
+private fun ProfileContent(
+    user: UserDTO, 
+    onMenuClick: () -> Unit, 
+    onClick: () -> Unit, 
+    navController: NavController,
+    viewModel: ProfileScreenViewModel
+) {
+    var showBecomeArtistDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -131,9 +156,202 @@ private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: ()
             modifier = Modifier.padding(vertical = 16.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        ButtonSection(onClick = onClick , onMenuClick = onMenuClick)
+        ButtonSection(
+            onClick = onClick, 
+            onMenuClick = onMenuClick,
+            user = user,
+            onBecomeArtistClick = { showBecomeArtistDialog = true }
+        )
         Spacer(modifier = Modifier.height(16.dp))
         ExploreMoreArtistsCard(navController = navController)
+    }
+
+    if (showBecomeArtistDialog) {
+        Dialog(onDismissRequest = { showBecomeArtistDialog = false }) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Become an Artist",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    var name by remember { mutableStateOf(user.name) }
+                    var birthDate by remember { mutableStateOf(user.dob) }
+                    var deathDate by remember { mutableStateOf("") }
+                    var nationality by remember { mutableStateOf(user.countryIso2) }
+                    var notableWorks by remember { mutableStateOf("") }
+                    var artMovement by remember { mutableStateOf("") }
+                    var education by remember { mutableStateOf("") }
+                    var awards by remember { mutableStateOf("") }
+                    var imageUrl by remember { mutableStateOf(user.profilePicture ?: "") }
+                    var wikipediaUrl by remember { mutableStateOf("") }
+                    var description by remember { mutableStateOf("") }
+
+                    var isLoading by remember { mutableStateOf(false) }
+                    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+                    val coroutineScope = rememberCoroutineScope()
+
+                    // Observe artistRegistrationState changes
+                    LaunchedEffect(viewModel.artistRegistrationState) {
+                        when (val state = viewModel.artistRegistrationState) {
+                            is ArtistRegistrationState.Loading -> {
+                                isLoading = true
+                            }
+                            is ArtistRegistrationState.Success -> {
+                                isLoading = false
+                                showBecomeArtistDialog = false
+                                // Refresh the profile to show the user as an artist
+                                navController.navigate(Screens.Profile.route) {
+                                    popUpTo(Screens.Profile.route) { inclusive = true }
+                                }
+                            }
+                            is ArtistRegistrationState.Error -> {
+                                isLoading = false
+                                errorMessage = state.message
+                            }
+                            is ArtistRegistrationState.Initial -> {
+                                // Initial state, do nothing
+                            }
+                        }
+                    }
+
+                    // Form fields
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = birthDate,
+                        onValueChange = { birthDate = it },
+                        label = { Text("Birth Date") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = nationality,
+                        onValueChange = { nationality = it },
+                        label = { Text("Nationality") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = notableWorks,
+                        onValueChange = { notableWorks = it },
+                        label = { Text("Notable Works") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = artMovement,
+                        onValueChange = { artMovement = it },
+                        label = { Text("Art Movement") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Description") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Error message
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TextButton(onClick = { showBecomeArtistDialog = false }) {
+                            Text("Cancel")
+                        }
+
+                        Button(
+                            onClick = {
+                                if (name.isBlank() || birthDate.isBlank() || nationality.isBlank()) {
+                                    errorMessage = "Name, birth date, and nationality are required"
+                                    return@Button
+                                }
+
+                                isLoading = true
+                                errorMessage = null
+
+                                val artist = ArtistDTO(
+                                    id = user.id,
+                                    name = name,
+                                    birth_date = birthDate,
+                                    death_date = deathDate,
+                                    nationality = nationality,
+                                    notable_works = notableWorks,
+                                    art_movement = artMovement,
+                                    education = education,
+                                    awards = awards,
+                                    image_url = imageUrl,
+                                    wikipedia_url = wikipediaUrl,
+                                    description = description,
+                                    follow = false
+                                )
+
+                                // Call registerAsArtist without collecting the response
+                                viewModel.registerAsArtist(artist)
+
+                                // The UI will be updated based on artistRegistrationState changes
+                                // which is observed in the LaunchedEffect below
+                            },
+                            enabled = !isLoading
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Submit")
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 @Composable
@@ -196,38 +414,71 @@ fun ExploreMoreArtistsCard(navController: NavController) {
     }
 }
 @Composable
-private fun ButtonSection(onClick: () -> Unit , onMenuClick: () -> Unit = {}) {
+private fun ButtonSection(
+    onClick: () -> Unit, 
+    onMenuClick: () -> Unit = {}, 
+    user: UserDTO? = null, 
+    onBecomeArtistClick: () -> Unit = {},
+    viewModel: ProfileScreenViewModel = hiltViewModel()
+) {
     TempleteTheme {
-        Row(
-            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .clickable { onClick() }
-                    .background(
-                        color = Color.Transparent, shape = RoundedCornerShape(10.dp)
-                    )
-                    .border(
-                        1.dp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    .clip(shape = RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    "Edit",
-                    modifier = Modifier.padding(12.dp),
-                    color = LocalContentColor.current,
-                    style = MaterialTheme.typography.labelLarge
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .clickable { onClick() }
+                        .background(
+                            color = Color.Transparent, shape = RoundedCornerShape(10.dp)
+                        )
+                        .border(
+                            1.dp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clip(shape = RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Edit",
+                        modifier = Modifier.padding(12.dp),
+                        color = LocalContentColor.current,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Menu"
+                    )
+                }
             }
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu"
-                )
+
+            // Only show "Become an Artist" button if user is not already an artist
+            if (user != null && !user.artist) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onBecomeArtistClick() }
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clip(shape = RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Become an Artist",
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
         }
     }

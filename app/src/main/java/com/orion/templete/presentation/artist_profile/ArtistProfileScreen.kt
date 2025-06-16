@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -391,7 +392,8 @@ private fun ButtonSection(artistId: String, initialFollowState: Boolean , viewMo
     }
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Button(
             onClick = {
@@ -412,8 +414,22 @@ private fun ButtonSection(artistId: String, initialFollowState: Boolean , viewMo
                         color = LocalContentColor.current
                     )
                 }
-                isFollowing -> Text("Following")
+                isFollowing -> {
+                    Text("Following")
+                }
                 else -> Text("Follow")
+            }
+        }
+        if (isFollowing && true){
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = {
+
+                },
+                modifier = Modifier
+                    .weight(1f)
+            ){
+                Text("Message")
             }
         }
     }

@@ -224,4 +224,34 @@ class UserRepositoryImplementation @Inject constructor(
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
     }
+
+    override suspend fun isUserArtist(userId: String): Flow<ResponseStates<Boolean>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            if (isNetworkAvailable(context)) {
+                val response = safeApiRequest { apiService.isUserArtist(userId) }
+                emit(ResponseStates.Success(response))
+            } else {
+                emit(ResponseStates.Error("No internet connection"))
+            }
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun registerAsArtist(artist: ArtistDTO): Flow<ResponseStates<ArtistDTO>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            if (isNetworkAvailable(context)) {
+                val response = safeApiRequest { apiService.registerAsArtist(artist) }
+                emit(ResponseStates.Success(response))
+            } else {
+                emit(ResponseStates.Error("No internet connection"))
+            }
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
 }
