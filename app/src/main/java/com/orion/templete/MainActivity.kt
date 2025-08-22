@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val startDestination = if (token.isNullOrBlank() || userId.isNullOrBlank() || userId != currentUserId) {
                 SecureStorage(this).clearSharedPref()
-                Screens.Login.route
+                Screens.Signup.route
             } else {
                 Screens.Home.route
             }

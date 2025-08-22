@@ -273,7 +273,7 @@ fun BottomAppNev(
                 val navigationItems = BottomNavigationItem().bottomNavigationItems()
                 navigationItems.forEachIndexed { index, navigationItem ->
                     // Skip the middle item as we'll place a FAB there
-                    if (index != navigationItems.size / 2) {
+//                    if (index != navigationItems.size / 2) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
@@ -300,10 +300,10 @@ fun BottomAppNev(
                                 )
                             }
                         }
-                    } else {
-                        // Empty space for the FAB
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+//                    } else {
+//                        // Empty space for the FAB
+//                        Spacer(modifier = Modifier.weight(1f))
+//                    }
                 }
             }
 
@@ -311,30 +311,30 @@ fun BottomAppNev(
             val middleItemIndex = BottomNavigationItem().bottomNavigationItems().size / 2
             val middleItem = BottomNavigationItem().bottomNavigationItems()[middleItemIndex]
 
-            FloatingActionButton(
-                onClick = {
-                    navigationSelectedItem = middleItemIndex
-                    navController.navigate(middleItem.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        restoreState = true
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                shape = CircleShape,
-                elevation = FloatingActionButtonDefaults.elevation(6.dp),
-                modifier = Modifier
-                    .size(60.dp)
-                    .offset(y = (-8).dp)
-            ) {
-                Icon(
-                    painterResource(id = middleItem.icon),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
+//            FloatingActionButton(
+//                onClick = {
+//                    navigationSelectedItem = middleItemIndex
+//                    navController.navigate(middleItem.route) {
+//                        popUpTo(navController.graph.findStartDestination().id) {
+//                            saveState = true
+//                        }
+//                        restoreState = true
+//                    }
+//                },
+//                containerColor = MaterialTheme.colorScheme.primary,
+//                shape = CircleShape,
+//                elevation = FloatingActionButtonDefaults.elevation(6.dp),
+//                modifier = Modifier
+//                    .size(60.dp)
+//                    .offset(y = (-8).dp)
+//            ) {
+//                Icon(
+//                    painterResource(id = middleItem.icon),
+//                    contentDescription = null,
+//                    tint = MaterialTheme.colorScheme.onPrimary,
+//                    modifier = Modifier.size(32.dp)
+//                )
+//            }
         }
     }
 }

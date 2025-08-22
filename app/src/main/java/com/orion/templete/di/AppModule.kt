@@ -1,6 +1,7 @@
 package com.orion.templete.di
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import com.orion.templete.data.local.AppDatabase
 import com.flashcall.me.data.local.dao.UserDao
@@ -41,11 +42,13 @@ object  AppModule {
         return OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val token = SecureStorage(context).getToken()
+                Log.d("AppModule", "Token: $token")
                 val originalRequest = chain.request()
                 val newRequestBuilder = originalRequest.newBuilder()
                 // Add the Authorization header only if the token is not null
                 token?.let {
                     newRequestBuilder.header("Authorization", "Bearer $it")
+                    Log.d("AppModule", "Token: $it")
                 }
                 val newRequest = newRequestBuilder.build()
                 chain.proceed(newRequest)

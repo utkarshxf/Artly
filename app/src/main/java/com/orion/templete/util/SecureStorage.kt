@@ -45,6 +45,16 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
         return sharedPreferences.getString("userID", null)
     }
 
+    fun getLayout(): Boolean {
+        return sharedPreferences.getBoolean("layout", true)
+    }
+    fun setLayout(value: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean("layout", value)
+            apply()
+        }
+    }
+
     fun saveUserDetails(userDetails: UserDetails) {
         with(sharedPreferences.edit()) {
             putString(PreferencesKey.UserId.key, userDetails.id)

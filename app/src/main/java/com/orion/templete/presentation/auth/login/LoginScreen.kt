@@ -56,6 +56,7 @@ fun LoginScreen(
     loginUser: (User) -> Unit,
     onNavigateToHome: () -> Unit,
     onNavigateToSignup: () -> Unit,
+    onNavigateToForgetPassword: () -> Unit = {},
 ) {
     val context = LocalContext.current
     LaunchedEffect(uiState.error) {
@@ -126,6 +127,13 @@ fun LoginScreen(
         GoToSignup(modifier) {
             onNavigateToSignup()
         }
+        SpacerHeight(LargeSize)
+        Text(
+            text = "Forgot Password?",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = modifier.clickable { onNavigateToForgetPassword() }
+        )
     }
 
 }
@@ -152,6 +160,6 @@ fun GoToSignup(
 @Composable
 private fun LoginScreenPrev() {
     TempleteTheme {
-        LoginScreen(Modifier,LoginUiState() , {} , {} , {})
+        LoginScreen(Modifier, LoginUiState(), {}, {}, {}, {})
     }
 }

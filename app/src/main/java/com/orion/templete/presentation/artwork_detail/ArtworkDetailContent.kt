@@ -45,6 +45,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -126,6 +127,7 @@ import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.ShareUtils
 import com.orion.templete.util.extractYear
 import com.orion.templete.util.getSourceUrlSiteName
 import kotlin.math.max
@@ -296,6 +298,8 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
     var showComments by remember { mutableStateOf(false) }
     var showSavedFolders by remember { mutableStateOf(false) }
     val collectionVm : CollectionViewModel = hiltViewModel()
+    val context = LocalContext.current
+
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
@@ -580,6 +584,7 @@ private fun ParallaxToolbar(
     } - WindowInsets.systemBars.getTop(LocalDensity.current)
     val offset = min(scrollState.firstVisibleItemScrollOffset, maxOffset)
     val offsetprogress = max(0f, offset * 3f - 2f * maxOffset) / maxOffset
+    val context = LocalContext.current
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -621,6 +626,29 @@ private fun ParallaxToolbar(
                         contentAlignment = Alignment.BottomStart
                     ){
                         GenreSection(artworkDTO.medium)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .clickable {
+                                ShareUtils.shareArtwork(context, artworkDTO)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share",
+                            )
+                            Text(
+                                text = "Share",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }

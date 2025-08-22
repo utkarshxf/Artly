@@ -25,6 +25,11 @@ fun Login(
             navController.navigate(Screens.Home.route) {
                 popUpTo(Screens.Login.route) { inclusive = true }
             }
+        },
+        onNavigateToForgetPassword = {
+            navController.navigate(Screens.ForgetPassword.route){
+//                popUpTo(Screens.Login.route){inclusive = true}
+            }
         }
     )
 }

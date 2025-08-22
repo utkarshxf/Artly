@@ -215,7 +215,7 @@ fun SignupScreen(
         Button(
             onClick = {
                 if (userName.isNotBlank() && mobileNumber.isNotBlank() && password.isNotBlank()) {
-                    viewModel.createUserWithPhone(mobileNumber, activity)
+                    viewModel.createUserWithPhone(countryCode+mobileNumber, activity)
                 } else {
                     Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 }

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.User
 import com.orion.templete.domain.repository.LoginRepository
@@ -17,6 +18,7 @@ import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.LoginUiState
 import com.orion.templete.util.UserCheckStateHolder
 import com.orion.templete.util.SignupUiState
+import com.orion.templete.util.ForgetPasswordUiState
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +37,7 @@ class AuthViewModel @Inject constructor(
 
     var signingData by mutableStateOf(LoginUiState())
     var signupData by mutableStateOf(SignupUiState())
+    var forgetPasswordData by mutableStateOf(ForgetPasswordUiState())
     var checkUser by mutableStateOf(UserCheckStateHolder())
     private val _authState = MutableStateFlow<AuthScreenUiState>(AuthScreenUiState.Initial)
     val authState: StateFlow<AuthScreenUiState> = _authState
@@ -190,6 +193,31 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
+    fun forgetPassword(phoneNumber: String, newPassword: String) {
+        // Create the request object
+        val request = ForgetPasswordRequest(phoneNumber, newPassword)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Set loading state
+                forgetPasswordData = ForgetPasswordUiState(isLoading = true)
+
+                // Call the repository method
+                val response = authRepository.forgetPassword(request)
+
+                // Save the token and user ID
+                secureStorage.saveToken(response.jwtToken)
+                secureStorage.saveUserId(response.username)
+
+                // Update the UI state with success
+                forgetPasswordData = ForgetPasswordUiState(data = response)
+            } catch (e: Exception) {
+                // Update the UI state with error
+                forgetPasswordData = ForgetPasswordUiState(error = e.message)
+            }
+        }
+    }
 }
 sealed interface AuthScreenUiState {
     object Initial : AuthScreenUiState
@@ -203,5 +231,3 @@ sealed interface OTPScreenUiState {
     data class Success(val value: String) : OTPScreenUiState
     data class Error(val message: String) : OTPScreenUiState
 }
-
-

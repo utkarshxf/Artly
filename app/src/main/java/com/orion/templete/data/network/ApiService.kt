@@ -9,6 +9,7 @@ import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
+import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
@@ -38,6 +39,9 @@ interface ApiService {
 
     @POST("check")
     suspend fun verifyUser(@Body token: TokenRequest): retrofit2.Response<Boolean>
+
+    @PUT("forgetPassword")
+    suspend fun forgetPassword(@Body request: ForgetPasswordRequest): retrofit2.Response<LoginResponseDTO>
 
     @GET("artwork/recommend")
     suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int):retrofit2.Response<List<ArtworkDTO>>

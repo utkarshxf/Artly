@@ -9,6 +9,7 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.orion.templete.R
+import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
@@ -103,5 +104,9 @@ class LoginRepositoryImplementation @Inject constructor(
 
     override suspend fun verifyUser(token: TokenRequest): Boolean {
         return safeApiRequest { apiService.verifyUser(token) }
+    }
+
+    override suspend fun forgetPassword(request: ForgetPasswordRequest): LoginResponseDTO {
+        return safeApiRequest { apiService.forgetPassword(request) }
     }
 }
