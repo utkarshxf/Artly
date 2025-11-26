@@ -43,6 +43,10 @@ fun CollectionsScreen(
             viewModel.resetState()
         }
     }
+    LaunchedEffect(Unit) {
+        viewModel.getFavoritesByUserId()
+        viewModel.resetState()
+    }
 
     Scaffold(
         topBar = {

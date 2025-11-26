@@ -11,7 +11,7 @@ fun uploadImage(uri: Uri?, context: Context, onSuccess: (String) -> Unit) {
     Log.d("UploadingImageToFirebase","Image Url: ${uri.toString()}")
     val storage = FirebaseStorage.getInstance()
     val storageRef = storage.reference
-    val imageRef = storageRef.child("images/${uri!!.lastPathSegment}")
+    val imageRef = storageRef.child("images/${uri!!.lastPathSegment}.jpg")
 
     val uploadTask = uri.let {
         imageRef.putFile(it)
@@ -59,14 +59,5 @@ fun getSourceUrlSiteName(url: String): String {
         }
     } catch (e: Exception) {
         "Unknown site"
-    }
-}
-
-fun getDefaultProfileUrl(gender: String): String {
-    return when (gender) {
-        "Male" -> "https://dxvnlnyzij172.cloudfront.net/users/M_preview.png"
-        "Female" -> "https://dxvnlnyzij172.cloudfront.net/users/F_preview.png"
-        "Others" -> "https://dxvnlnyzij172.cloudfront.net/users/Others_preview.png"
-        else -> "https://dxvnlnyzij172.cloudfront.net/users/M_preview.png"
     }
 }

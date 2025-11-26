@@ -117,6 +117,7 @@ import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.common.ArtistProfileCard
 import com.orion.templete.presentation.components.GenreSection
+import com.orion.templete.presentation.favorites.AddCollectionDialog
 import com.orion.templete.presentation.favorites.AddToFavoritesUiState
 import com.orion.templete.presentation.favorites.CollectionCard
 import com.orion.templete.presentation.favorites.CollectionViewModel
@@ -453,28 +454,78 @@ fun SaveSection(
     artworkId: String? = null,
     vm: CollectionViewModel = hiltViewModel()
 ) {
+    var addCollectionDialog by remember { mutableStateOf(false) }
     val state = vm.favoritesUiState
     LaunchedEffect(key1 = vm.createFavoritesUiState) {
-        if (vm.createFavoritesUiState is CreateFavoritesUiState.Success) {
+        if (vm.createFavoritesUiState is CreateFavoritesUiState.Success || vm.createFavoritesUiState is CreateFavoritesUiState.Error) {
             vm.getFavoritesByUserId()
+            vm.resetState()
         }
+    }
+    if (addCollectionDialog){
+        var isCreating by remember {
+            mutableStateOf(false)
+        }
+        isCreating = when(vm.createFavoritesUiState){
+            is CreateFavoritesUiState.Error -> false
+            is CreateFavoritesUiState.Loading -> true
+            is CreateFavoritesUiState.Ideal -> false
+            is CreateFavoritesUiState.Success -> false
+        }
+        AddCollectionDialog(
+            onDismiss = {
+                addCollectionDialog = !addCollectionDialog
+            },
+            onCreateCollection = {
+                vm.createNewFavorites(it)
+            },
+            isCreating = isCreating,
+        )
     }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Save",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Text(
+                text = "Save",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = {
+                addCollectionDialog = true
+            }) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "New",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+//        Text(
+//            text = "Save",
+//            style = MaterialTheme.typography.headlineSmall,
+//            modifier = Modifier.padding(bottom = 8.dp)
+//        )
         Spacer(modifier = Modifier.height(8.dp))
         HorizontalDivider(
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         )
         Spacer(modifier = Modifier.height(8.dp))
+        val context = LocalContext.current
         when (state) {
             is FavoritesUiState.Loading -> {
                 CircularProgressIndicator(
@@ -498,6 +549,7 @@ fun SaveSection(
                                 it.id?.let { it1 ->
                                     if (artworkId != null) {
                                         vm.saveOnFavorites(favoritesId = it1 , artworkId =artworkId)
+                                        Toast.makeText(context , "Saved" , Toast.LENGTH_SHORT).show()
                                         dismiss()
                                     }
                                 }

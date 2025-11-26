@@ -1,73 +1,66 @@
 package com.orion.templete.presentation.profile
 
+import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.orion.templete.R
+import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.user_model.UserDTO
+import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.profile.common.DrawerContent
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import kotlinx.coroutines.launch
+import kotlin.math.min
 
 @Composable
 fun ProfileScreen(
-    navController: NavController ,
+    navController: NavController,
     logOut: () -> Unit = {},
     viewModel: ProfileScreenViewModel = hiltViewModel()
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val isUserArtist = viewModel.isUserArtist
+    val uiState = viewModel.userData
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         ModalNavigationDrawer(
@@ -81,37 +74,46 @@ fun ProfileScreen(
                         DrawerContent(
                             navController = navController,
                             logOut = logOut,
-                            onClose = {
-                                scope.launch { drawerState.close() }
-                            }
+                            onClose = { scope.launch { drawerState.close() } }
                         )
                     }
                 }
             }
         ) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                when (val uiState = viewModel.userData) {
+                when (uiState) {
                     is ProfileScreenUiState.Loading -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .wrapContentSize(Alignment.Center)
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
-
                     is ProfileScreenUiState.Success -> {
-                        ProfileContent(
-                            user = uiState.user,
-                            onMenuClick = { scope.launch { drawerState.open() } },
-                            onClick = { navController.navigate(Screens.UserEditScreen.route) },
-                            navController
-                        )
+                        if (isUserArtist) {
+                            ArtistProfileContent(
+                                user = uiState.user,
+                                onMenuClick = { scope.launch { drawerState.open() } },
+                                onEditClick = { navController.navigate(Screens.UserEditScreen.route) },
+                                navController = navController,
+                                viewModel = viewModel
+                            )
+                        } else {
+                            ProfileContent(
+                                user = uiState.user,
+                                onMenuClick = { scope.launch { drawerState.open() } },
+                                onEditClick = { navController.navigate(Screens.UserEditScreen.route) },
+                                navController = navController,
+                                viewModel = viewModel
+                            )
+                        }
                     }
-
                     is ProfileScreenUiState.Error -> {
                         ErrorScreen(
                             message = uiState.message,
-                            onRetry = { viewModel.refreshProfile() })
+                            onRetry = { viewModel.refreshProfile() }
+                        )
                     }
                 }
             }
@@ -120,101 +122,486 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileContent(user: UserDTO , onMenuClick: () -> Unit , onClick: () -> Unit , navController: NavController) {
+private fun ProfileContent(
+    user: UserDTO,
+    onMenuClick: () -> Unit,
+    onEditClick: () -> Unit,
+    navController: NavController,
+    viewModel: ProfileScreenViewModel
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        UserCreditCard(
+        UserCard(
             user = user,
             modifier = Modifier.padding(vertical = 16.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        ButtonSection(onClick = onClick , onMenuClick = onMenuClick)
+        ButtonSection(onClick = onEditClick, onMenuClick = onMenuClick)
         Spacer(modifier = Modifier.height(16.dp))
-        ExploreMoreArtistsCard(navController = navController)
+        ExploreMoreArtistsCard(navController = navController, viewModel = viewModel)
     }
 }
-@Composable
-fun ExploreMoreArtistsCard(navController: NavController) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(160.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF6A11CB),  // Deep Purple
-                        Color(0xFF2575FC)   // Vibrant Blue
-                    )
-                )
-            )
-            .clickable {
-                navController.navigate(Screens.Search.route)
-            }
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
 
-            Column(
-                modifier = Modifier.weight(0.7f)
-            ) {
-                Text(
-                    text = "Explore More Artists",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Discover new artist and fresh artworks",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 14.sp
-                )
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ArtistProfileContent(
+    user: UserDTO,
+    onMenuClick: () -> Unit,
+    onEditClick: () -> Unit,
+    navController: NavController,
+    viewModel: ProfileScreenViewModel
+) {
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var showImagePopup by remember { mutableStateOf(false) }
+    val artWorksUiState = viewModel.artWorksUiState
+
+    // Single scroll state for entire screen
+    val lazyListState = rememberLazyListState()
+
+    // Calculate collapse progress based on scroll
+    val collapseProgress by remember {
+        derivedStateOf {
+            if (lazyListState.firstVisibleItemIndex > 0) {
+                1f
+            } else {
+                val scrollOffset = lazyListState.firstVisibleItemScrollOffset.toFloat()
+                val maxOffset = 400f // Adjust based on your header height
+                (scrollOffset / maxOffset).coerceIn(0f, 1f)
             }
-            Box(
+        }
+    }
+
+    if (showImagePopup) {
+        ImagePopup(imageUrl = user.profilePicture) {
+            showImagePopup = false
+        }
+    }
+
+    LazyColumn(
+        state = lazyListState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 12.dp)
+    ) {
+        // Header Section (collapsible)
+        item(key = "header") {
+            Column(
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(25.dp))
-                    .background(Color.White.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        alpha = 1f - (collapseProgress * 0.3f)
+                        translationY = -collapseProgress * 30f
+                    }
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowForward,
-                    contentDescription = "Explore More",
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+                ArtistProfileHeader(
+                    user = user,
+                    onImageClick = { showImagePopup = true }
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                ArtistDescriptionSection(user)
+                Spacer(modifier = Modifier.height(12.dp))
+                ButtonSection(
+                    onClick = onEditClick,
+                    onMenuClick = onMenuClick
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        // Tabs Section (sticky)
+        stickyHeader(key = "tabs") {
+            ArtworkTabs(
+                selectedTabIndex = selectedTabIndex,
+                onTabSelected = { selectedTabIndex = it }
+            )
+        }
+
+        // Content Section
+        when (artWorksUiState) {
+            is ArtWorksUiState.Loading -> {
+                item(key = "loading") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+            is ArtWorksUiState.Success -> {
+                val artworks = artWorksUiState.artworks
+                if (artworks.isEmpty()) {
+                    item(key = "empty") {
+                        EmptyArtworksState()
+                    }
+                } else {
+                    when (selectedTabIndex) {
+                        0 -> artworkGridItems(artworks, navController)
+                        1 -> artworkListItems(artworks, navController)
+                    }
+                }
+            }
+            is ArtWorksUiState.Error -> {
+                item(key = "error") {
+                    ErrorScreen(
+                        message = artWorksUiState.message,
+                        onRetry = { viewModel.refreshProfile() }
+                    )
+                }
             }
         }
     }
 }
+
+// Extension function for grid items in LazyColumn
+private fun LazyListScope.artworkGridItems(
+    artworks: List<ArtworkDTO>,
+    navController: NavController
+) {
+    // Group artworks into rows of 2
+    val rows = artworks.chunked(2)
+
+    items(
+        count = rows.size,
+        key = { index -> rows[index].firstOrNull()?.id ?: "grid_row_$index" }
+    ) { index ->
+        val row = rows[index]
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            row.forEach { artwork ->
+                Box(modifier = Modifier.weight(1f)) {
+                    ArtworkItem(
+                        artwork = artwork,
+                        showArtistName = false,
+                        onArtworkClick = {
+                            artwork.id?.let { id ->
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    key = "artworkId",
+                                    value = id
+                                )
+                                navController.navigate(Screens.ArtworkDetail.route)
+                            }
+                        }
+                    )
+                }
+            }
+            // Fill empty space if odd number of items
+            if (row.size < 2) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+// Extension function for list items in LazyColumn
+private fun LazyListScope.artworkListItems(
+    artworks: List<ArtworkDTO>,
+    navController: NavController
+) {
+    items(
+        count = artworks.size,
+        key = { index -> artworks[index].id ?: "list_item_$index" }
+    ) { index ->
+        val artwork = artworks[index]
+        ArtworkListItem(
+            artwork = artwork,
+            onClick = {
+                artwork.id?.let { id ->
+                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                        key = "artworkId",
+                        value = id
+                    )
+                    navController.navigate(Screens.ArtworkDetail.route)
+                }
+            }
+        )
+    }
+}
+
 @Composable
-private fun ButtonSection(onClick: () -> Unit , onMenuClick: () -> Unit = {}) {
+private fun ArtworkTabs(
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit
+) {
+    TabRow(
+        selectedTabIndex = selectedTabIndex,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        indicator = { tabPositions ->
+            TabRowDefaults.SecondaryIndicator(
+                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    ) {
+        Tab(
+            selected = selectedTabIndex == 0,
+            onClick = { onTabSelected(0) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_gird),
+                    contentDescription = "Grid View",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        )
+        Tab(
+            selected = selectedTabIndex == 1,
+            onClick = { onTabSelected(1) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_list),
+                    contentDescription = "List View",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun ArtworkListItem(
+    artwork: ArtworkDTO,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp)
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(artwork.imageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = artwork.title,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(id = R.drawable.placeholder),
+            error = painterResource(id = R.drawable.placeholder)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = artwork.title ?: "Untitled",
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = artwork.medium ?: artwork.artist ?: "",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun EmptyArtworksState() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Text(
+                text = "🎨",
+                style = MaterialTheme.typography.displayMedium
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "No artworks yet",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Your posted artworks will appear here",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+@Composable
+fun ImagePopup(imageUrl: String, onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(imageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = "Profile Image",
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.Fit
+        )
+    }
+}
+
+@Composable
+fun ArtistProfileHeader(user: UserDTO, onImageClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(
+                model = user.profilePicture,
+                contentDescription = "Profile picture",
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .clickable { onImageClick() },
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = user.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "ID: ${user.id.take(8)}...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+            }
+        }
+        AppIcon(
+            icon = R.drawable.ic_logo_no_bacground,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(40.dp)
+        )
+    }
+}
+
+@Composable
+fun ArtistDescriptionSection(user: UserDTO) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        user.dob?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        user.gender?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
+@Composable
+fun ExploreMoreArtistsCard(navController: NavController, viewModel: ProfileScreenViewModel) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = R.drawable.become_artist,
+                contentDescription = "Featured artist",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
+                    )
+            )
+
+            val context = LocalContext.current
+            Button(
+                onClick = {
+                    if (viewModel.canRegisterAsArtist()) {
+                        navController.navigate(Screens.ArtistRegister.route)
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "You are already registered as an artist.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 12.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(text = "Register", color = MaterialTheme.colorScheme.onPrimary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ButtonSection(onClick: () -> Unit, onMenuClick: () -> Unit = {}) {
     TempleteTheme {
         Row(
-            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
                     .clickable { onClick() }
                     .background(
-                        color = Color.Transparent, shape = RoundedCornerShape(10.dp)
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(10.dp)
                     )
                     .border(
                         1.dp,
                         color = MaterialTheme.colorScheme.onSurface,
                         shape = RoundedCornerShape(10.dp)
                     )
-                    .clip(shape = RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center
+                    .clip(shape = RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     "Edit",
@@ -232,116 +619,50 @@ private fun ButtonSection(onClick: () -> Unit , onMenuClick: () -> Unit = {}) {
         }
     }
 }
+
 @Composable
-fun UserCreditCard(user: UserDTO, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(200.dp)
+fun UserCard(user: UserDTO, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Glossy card with gradient background
-        Card(
-            modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
+            Row {
+                AsyncImage(
+                    model = user.profilePicture,
+                    contentDescription = "Profile picture",
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row {
-                        AsyncImage(
-                            model = user.profilePicture,
-                            contentDescription = "Profile picture",
-                            modifier = Modifier
-                                .size(46.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = user.name,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = "ID: ${user.id.take(8)}...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    AppIcon(icon = R.drawable.ic_logo_no_bacground, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(40.dp))
-                }
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.15f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(12.dp)
-                ) {
-                    UserInfoRow(
-                        title = "DOB",
-                        value = user.dob
+                        .size(46.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = user.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
-                    UserInfoRow(
-                        title = "Gender",
-                        value = user.gender
+                    Text(
+                        text = "ID: ${user.id.take(8)}...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     )
-                    UserInfoRow(
-                        title = "Country",
-                        value = user.countryIso2
-                    )
-                    Row {
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            text = "@${user.name.lowercase().replace(" ", "")}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color =  MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                        )
-                    }
                 }
             }
 
+            AppIcon(
+                icon = R.drawable.ic_logo_no_bacground,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(40.dp)
+            )
         }
-    }
-}
-
-@Composable
-private fun UserInfoRow(title: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color =  MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color =  MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
-        )
     }
 }

@@ -89,8 +89,8 @@ fun Signup(
                 popUpTo(Screens.Signup.route) { inclusive = true }
             }
         },
-        onNavigateToRegister = {
-            navController.navigate(Screens.UserRegister.route) {
+        onNavigateToHomeScreen = {
+            navController.navigate(Screens.Home.route) {
                 popUpTo(Screens.Signup.route) { inclusive = true }
             }
         },
@@ -105,7 +105,7 @@ fun SignupScreen(
     modifier: Modifier = Modifier,
     uiState: SignupUiState,
     signupUser: (Registration) -> Unit,
-    onNavigateToRegister: () -> Unit,
+    onNavigateToHomeScreen: () -> Unit,
     onNavigateToLogin: () -> Unit,
     viewModel: AuthViewModel,
     activity: Activity
@@ -128,7 +128,7 @@ fun SignupScreen(
 
     LaunchedEffect(uiState.data) {
         uiState.data?.let {
-            onNavigateToRegister()
+            onNavigateToHomeScreen()
         }
     }
     LaunchedEffect(authState.value) {

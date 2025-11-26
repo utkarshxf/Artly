@@ -5,6 +5,8 @@ import android.os.Bundle
 import com.facebook.appevents.AppEventsLogger
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import com.orion.templete.R
+import com.orion.templete.data.model.user_model.UserDetails
+import com.orion.templete.presentation.artist_register.RegisterArtistUiState
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.json.JSONObject
 import javax.inject.Inject
@@ -17,6 +19,33 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
     private val logger: AppEventsLogger = AppEventsLogger.newLogger(context)
 
     private val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+
+    private val secureStorage = SecureStorage(context)
+
+    /**
+     * Identifies a user in Mixpanel and sets their properties
+     */
+    fun identifyUser(userDetails: UserDetails) {
+        // Identify the user in Mixpanel
+        mp.identify(userDetails.id)
+
+        // Set user properties
+        val userProps = JSONObject().apply {
+            put("name", userDetails.name)
+            put("dob", userDetails.dob)
+            put("gender", userDetails.gender)
+            put("language", userDetails.language)
+            put("country", userDetails.countryIso2)
+            put("is_artist", userDetails.artist)
+            userDetails.profilePicture?.let { 
+                put("avatar", it)
+            }
+            put("created", System.currentTimeMillis().toString())
+        }
+
+        // Update the user's properties in Mixpanel
+        mp.people.set(userProps)
+    }
 
     // User Authentication Events
     fun trackLoginImpression() {
@@ -47,6 +76,11 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
 
         // Facebook event tracking
         logger.logEvent("fb_mobile_complete_registration")
+
+        // Identify user in Mixpanel
+        secureStorage.getUserDetails()?.let { userDetails ->
+            identifyUser(userDetails)
+        }
     }
 
     fun trackSignupImpression() {
@@ -71,6 +105,11 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
             put("First_Seen", System.currentTimeMillis().toString())
         }
         mp.track("Signup_Success", obj)
+
+        // Identify user in Mixpanel
+        secureStorage.getUserDetails()?.let { userDetails ->
+            identifyUser(userDetails)
+        }
     }
 
     // User Profile Events
@@ -91,6 +130,11 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
             put("User_ID", userId)
         }
         mp.track("Profile_Edited", obj)
+
+        // Update user properties in Mixpanel
+        secureStorage.getUserDetails()?.let { userDetails ->
+            identifyUser(userDetails)
+        }
     }
 
     fun trackProfilePictureUpdated() {
@@ -100,6 +144,11 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
             put("User_ID", userId)
         }
         mp.track("Profile_Picture_Updated", obj)
+
+        // Update user properties in Mixpanel
+        secureStorage.getUserDetails()?.let { userDetails ->
+            identifyUser(userDetails)
+        }
     }
 
     // Artwork Interaction Events
@@ -310,6 +359,11 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
             put("User_ID", userId)
         }
         mp.track("App_Opened", obj)
+
+        // Identify user in Mixpanel if they are logged in
+        secureStorage.getUserDetails()?.let { userDetails ->
+            identifyUser(userDetails)
+        }
     }
 
     fun trackAppClosed() {
@@ -420,5 +474,13 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
         val params = Bundle()
         params.putString("error_message", toString)
         logger.logEvent("fb_mobile_login_error", params)
+    }
+
+    fun tackUserBecomeArtist(userId: String) {
+        val obj = JSONObject().apply {
+            put("Platform", "Android")
+            put("User_ID", userId)
+        }
+        mp.track("User_Become_Artist", obj)
     }
 }

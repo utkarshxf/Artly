@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.domain.repository.UserRepository
-import com.orion.templete.presentation.user_register.UserDetailsUiState
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
@@ -46,3 +45,8 @@ class EditProfileViewModel @Inject constructor(
         }
     }
 }
+data class UserDetailsUiState(
+    val isLoading: Boolean = false,
+    val data: UserDetails? = null,
+    val error: String? = null
+)

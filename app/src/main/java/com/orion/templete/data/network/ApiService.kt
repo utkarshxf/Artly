@@ -1,11 +1,11 @@
 package com.orion.templete.data.network
 
 
-import com.google.android.gms.common.internal.safeparcel.SafeParcelable.Param
 import com.orion.templete.data.model.ai_model.GeneratedImageResponse
 import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkUploadDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
@@ -14,6 +14,7 @@ import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
+import com.orion.templete.data.model.user_model.RegisterArtistRequest
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import retrofit2.Response
@@ -25,11 +26,37 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
-import retrofit2.http.Url
 
 interface ApiService {
     @GET("artwork")
     suspend fun getAllArtworks(): retrofit2.Response<ArtworkDTO>
+
+    /**
+     * Search genres by name
+     */
+    @GET("genres")
+    suspend fun searchGenres(@Query("genreName") genreName: String): Response<List<com.orion.templete.presentation.artwork_upload.GenreItem>>
+
+    /**
+     * Get all genres
+     */
+    @GET("genres/all")
+    suspend fun getAllGenres(): Response<List<com.orion.templete.presentation.artwork_upload.GenreItem>>
+
+    /**
+     * Create a new genre
+     */
+    @POST("genres")
+    suspend fun createGenre(@Body genre: com.orion.templete.presentation.artwork_upload.GenreItem): Response<com.orion.templete.presentation.artwork_upload.GenreItem>
+
+    /**
+     * Upload artwork
+     */
+    @POST("artwork/artist/{artistId}")
+    suspend fun uploadArtwork(
+        @Path("artistId") artistId: String,
+        @Body artwork: ArtworkUploadDTO
+    ): Response<ArtworkUploadDTO>
 
     @POST("login")
     suspend fun loginUser(@Body user: User): retrofit2.Response<LoginResponseDTO>
@@ -94,6 +121,15 @@ interface ApiService {
         @Path("userId") userId: String,
         @Path("artistId") artistId: String
     ): Response<Unit>
+
+    /**
+     * Register user as an artist
+     */
+    @POST("/artist")
+    suspend fun registerAsArtist(
+        @Query("userId") currentUserId: String?,
+        @Body request: RegisterArtistRequest
+    ): Response<RegisterArtistRequest>
 
     /**
      * Comment on artwork
@@ -180,6 +216,14 @@ interface ApiService {
     suspend fun getArtworkByFavoriteId(
         @Path("favoriteId") favoriteId: String
     ): Response<List<ArtworkDTO>>
+
+    /**
+     * Check if a user is an artist
+     */
+    @GET("users/isUserIsArtistByUserId/{userId}")
+    suspend fun isUserArtist(
+        @Path("userId") userId: String
+    ): Response<Boolean>
 
     @GET("artist/getArtistByArtworkId")
     suspend fun getArtistByArtworkId(

@@ -8,12 +8,12 @@ import com.flashcall.me.data.local.dao.UserDao
 import com.google.firebase.auth.FirebaseAuth
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
-import com.orion.templete.data.repository.AIRepositoryImplementation
+import com.orion.templete.data.repository.uploadRepositoryImplementation
 import com.orion.templete.data.repository.ArtistRepositoryImplementation
 import com.orion.templete.data.repository.ArtworkRepositoryImplementation
 import com.orion.templete.data.repository.LoginRepositoryImplementation
 import com.orion.templete.data.repository.UserRepositoryImplementation
-import com.orion.templete.domain.repository.AIRepository
+import com.orion.templete.domain.repository.uploadRepository
 import com.orion.templete.domain.repository.ArtistRepository
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.domain.repository.LoginRepository
@@ -90,8 +90,14 @@ object  AppModule {
         return ArtworkRepositoryImplementation(apiService = apiService)
     }
     @Provides
-    fun provideAIRepository(apiService: ApiService): AIRepository {
-        return AIRepositoryImplementation(apiService = apiService)
+    fun provideAIRepository(
+        apiService: ApiService,
+        @ApplicationContext context: Context
+    ): uploadRepository {
+        return uploadRepositoryImplementation(
+            apiService = apiService,
+            context = context
+        )
     }
     @Provides
     fun provideUserRepository(

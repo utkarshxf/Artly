@@ -1,11 +1,17 @@
 package com.orion.templete.util
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
@@ -51,6 +57,35 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
     fun setLayout(value: Boolean) {
         with(sharedPreferences.edit()) {
             putBoolean("layout", value)
+            apply()
+        }
+    }
+
+    fun userIsAnArtist(): Flow<Boolean> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            // Only emit when the specific preference changes
+            if (key == PreferencesKey.UserIsArtist.key) {
+                val isInPipMode = prefs.getBoolean(PreferencesKey.UserIsArtist.key, false)
+                trySend(isInPipMode)
+            }
+        }
+
+        // Initial emission
+        val initialValue = sharedPreferences.getBoolean(PreferencesKey.UserIsArtist.key, false)
+        trySend(initialValue)
+
+        // Register listener
+        sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+
+        // Ensure cleanup when flow is cancelled
+        awaitClose {
+            sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }.flowOn(Dispatchers.IO)
+
+    fun setUserIsAnArtist(isArtist: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean(PreferencesKey.UserIsArtist.key, isArtist)
             apply()
         }
     }
