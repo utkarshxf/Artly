@@ -101,8 +101,9 @@ private fun HeaderRow(
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                imageVector = Icons.Filled.Share,
+                painter = painterResource(id = R.drawable.ic_message),
                 tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(28.dp),
                 contentDescription = "Chat"
             )
         }
@@ -357,15 +358,7 @@ fun SwipeCard(
         }
 
         stateOfCards.error?.isNotBlank() == true -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = stateOfCards.error)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { swipeScreenViewModel.loadNextItems() }) {
-                        Text(text = "Retry")
-                    }
-                }
-            }
+            swipeScreenViewModel.resetPagination()
         }
 
         stateOfCards.items.isEmpty() -> {
@@ -377,9 +370,7 @@ fun SwipeCard(
         }
 
         else -> {
-            val artworkList = remember(stateOfCards.items) {
-                stateOfCards.items.toMutableList()
-            }
+            val artworkList = remember(stateOfCards.items) {   stateOfCards.items as? ArrayList<ArtworkDTO> ?: arrayListOf() }
             val states = artworkList.reversed().map { it to rememberSwipeableCardState() }
 
             // Main container with glow effects
