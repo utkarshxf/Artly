@@ -1,7 +1,6 @@
 package com.orion.templete.presentation.auth.signup
 
 import android.app.Activity
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -52,6 +51,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -74,6 +74,8 @@ import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.presentation.auth.OTPScreenUiState
 import com.orion.templete.presentation.components.AnimatedPreloader
 import kotlinx.coroutines.delay
+import java.util.Locale
+import java.util.Locale.getDefault
 
 @Composable
 fun Signup(
@@ -117,6 +119,12 @@ fun SignupScreen(
     var countryCode by remember { mutableStateOf("+91") }
     var password by remember { mutableStateOf("") }
     var isOtpSending by remember { mutableStateOf(false) }
+
+    // MVVM: Collect StateFlow from ViewModel instead of managing local state
+    val usernameValidationMessage by viewModel.usernameValidationMessage.collectAsState()
+    val isUsernameValid by viewModel.isUsernameValid.collectAsState()
+    val isCheckingUsernameAvailability by viewModel.isCheckingUsernameAvailability.collectAsState()
+
     val authState = viewModel.authState.collectAsState()
     val otpState = viewModel.otpState.collectAsState()
     LaunchedEffect(uiState.error) {
@@ -124,6 +132,10 @@ fun SignupScreen(
             Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
             isOtpSending = false
         }
+    }
+
+    LaunchedEffect(userName) {
+        viewModel.onUsernameChanged(userName)
     }
 
     LaunchedEffect(uiState.data) {
@@ -189,10 +201,32 @@ fun SignupScreen(
         SpacerHeight(ExtraLargeSpacing)
         CustomTextField(
             value = userName,
-            onValueChange = { userName = it },
+            onValueChange = { userName = it.lowercase(getDefault()) },
             hint = R.string.username_hint, // You need to add this string resource,
             keyboardType = KeyboardType.Text
         )
+        if (userName.isNotEmpty()) {
+            SpacerHeight(SmallSize)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (isCheckingUsernameAvailability) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.Gray
+                    )
+                }
+                Text(
+                    text = usernameValidationMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isUsernameValid) Color(0xFF2E7D32) else Color(0xFFC62828),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
         SpacerHeight(LargeSize)
         CustomTextField(
             value = mobileNumber,
@@ -214,7 +248,9 @@ fun SignupScreen(
         SpacerHeight(LargeSize)
         Button(
             onClick = {
-                if (userName.isNotBlank() && mobileNumber.isNotBlank() && password.isNotBlank()) {
+                if (!isUsernameValid) {
+                    Toast.makeText(context, "Please enter a valid username", Toast.LENGTH_SHORT).show()
+                } else if (userName.isNotBlank() && mobileNumber.isNotBlank() && password.isNotBlank()) {
                     viewModel.createUserWithPhone(countryCode+mobileNumber, activity)
                 } else {
                     Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()

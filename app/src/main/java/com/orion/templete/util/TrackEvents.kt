@@ -483,4 +483,6 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
         }
         mp.track("User_Become_Artist", obj)
     }
+
+    fun trackUserProfileUpdated(userId: String) {}
 }

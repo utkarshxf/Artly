@@ -6,12 +6,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orion.templete.data.model.artist_model.ArtistStatsResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.user_model.RegisterArtistRequest
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.domain.repository.UserRepository
+import com.orion.templete.presentation.artist_profile.ArtistStatsUiState
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -32,21 +37,21 @@ class ProfileScreenViewModel @Inject constructor(
     var isUserArtist by mutableStateOf(false)
         private set
 
+    // MVVM: StateFlow for artist details
+    private val _artistDetails = MutableStateFlow<RegisterArtistRequest?>(null)
+    val artistDetails: StateFlow<RegisterArtistRequest?> = _artistDetails
+
+    // MVVM: Artist stats state for current user
+    var artistStatsUiState by mutableStateOf<ArtistStatsUiState>(ArtistStatsUiState.Loading)
+        private set
+
     val currentUserId = secureStorage.getUserId()
     val userIsArtist = secureStorage.userIsAnArtist()
 
     init {
-        currentUserId?.let { userId ->
-            getUserProfile(userId)
-
-            // Collect from userIsArtist Flow
-            viewModelScope.launch {
-                secureStorage.userIsAnArtist().collect { isArtist ->
-                    isUserArtist = isArtist
-                    if (isArtist) {
-                        getArtistArtworks(userId)
-                    }
-                }
+        viewModelScope.launch {
+            userIsArtist.collect { isArtist ->
+                isUserArtist = isArtist
             }
         }
     }
@@ -68,6 +73,34 @@ class ProfileScreenViewModel @Inject constructor(
         }
     }
 
+    // MVVM: Fetch artist details from API and cache in SecureStorage
+    private fun getCurrentArtistDetails(artistId: String) {
+        viewModelScope.launch {
+            userRepository.getCurrentArtistDetails(artistId).collect { response ->
+                when (response) {
+                    is ResponseStates.Success -> {
+                        // Save to SecureStorage for persistence
+                        secureStorage.saveCurrentArtistDetails(response.data)
+                        // Update StateFlow for UI
+                        _artistDetails.value = response.data
+                    }
+                    is ResponseStates.Error -> {
+                        // Try to load from cache if API fails
+                        val cachedDetails = secureStorage.getCurrentArtistDetails()
+                        _artistDetails.value = cachedDetails
+                    }
+                    is ResponseStates.Loading -> {
+                        // Loading state - try cached data while loading
+                        val cachedDetails = secureStorage.getCurrentArtistDetails()
+                        if (cachedDetails != null) {
+                            _artistDetails.value = cachedDetails
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun getArtistArtworks(artistId: String) {
         viewModelScope.launch {
             userRepository.getArtistArtworks(currentUserId ?: "", artistId).collect { response ->
@@ -81,10 +114,14 @@ class ProfileScreenViewModel @Inject constructor(
     }
 
     fun refreshProfile() {
-        if (currentUserId != null) {
-            getUserProfile(currentUserId)
-            if (isUserArtist) {
-                getArtistArtworks(currentUserId)
+        viewModelScope.launch {
+            if (currentUserId != null) {
+                launch {  getUserProfile(currentUserId) }
+                if (isUserArtist) {
+                    launch {  getCurrentArtistDetails(currentUserId) }
+                    launch {  getArtistArtworks(currentUserId) }
+                    launch {  getArtistStats(currentUserId) }
+                }
             }
         }
     }
@@ -92,6 +129,19 @@ class ProfileScreenViewModel @Inject constructor(
 
     fun canRegisterAsArtist(): Boolean {
        return true
+    }
+
+    // MVVM: Fetch artist statistics for current user
+    private fun getArtistStats(artistId: String) {
+        viewModelScope.launch {
+            userRepository.getArtistStats(artistId).collect { response ->
+                artistStatsUiState = when (response) {
+                    is ResponseStates.Loading -> ArtistStatsUiState.Loading
+                    is ResponseStates.Success -> ArtistStatsUiState.Success(response.data)
+                    is ResponseStates.Error -> ArtistStatsUiState.Error(response.error)
+                }
+            }
+        }
     }
 }
 

@@ -48,7 +48,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SwipeScreen(
     vm: SwipeScreenViewModel = hiltViewModel(),
-    navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit = {}
+    navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit = {},
+    onChatClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var isSwipeLayout by remember { mutableStateOf(SecureStorage(context).getLayout()) }
@@ -59,7 +60,8 @@ fun SwipeScreen(
             onToggleLayout = {
                 isSwipeLayout = !isSwipeLayout
                 SecureStorage(context).setLayout(isSwipeLayout)
-            }
+            },
+            onChatClick = onChatClick
         )
 
         if (isSwipeLayout) {
@@ -74,7 +76,8 @@ fun SwipeScreen(
 private fun HeaderRow(
     modifier: Modifier = Modifier,
     isSwipeLayout: Boolean = true,
-    onToggleLayout: () -> Unit = {}
+    onToggleLayout: () -> Unit = {},
+    onChatClick: () -> Unit = {}
 ) {
     Row(
         modifier = modifier
@@ -93,19 +96,14 @@ private fun HeaderRow(
             modifier = Modifier.size(40.dp)
         )
 
-        // Layout toggle button
         IconButton(
-            onClick = onToggleLayout,
+            onClick = onChatClick,
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                painter = painterResource(
-                    id = if (isSwipeLayout) R.drawable.ic_list else R.drawable.cardlayer
-                ),
-                contentDescription = if (isSwipeLayout)
-                    "Switch to scroll layout" else "Switch to swipe layout",
+                imageVector = Icons.Filled.Share,
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(24.dp)
+                contentDescription = "Chat"
             )
         }
     }
@@ -433,10 +431,10 @@ fun SwipeCard(
                             }
 
                             // Auto-reset if maximum glow reached
-                            if (leftGlowTarget > 0.7f) {
+                            if (leftGlowTarget >= 0.7f) {
                                 leftGlowTarget = 0f
                             }
-                            if (rightGlowTarget > 0.7f) {
+                            if (rightGlowTarget >= 0.7f) {
                                 rightGlowTarget = 0f
                             }
                         }
@@ -451,6 +449,12 @@ fun SwipeCard(
                                             state = state,
                                             blockedDirections = listOf(Direction.Down),
                                             onSwiped = {
+                                                if (artworkList.isNotEmpty()) {
+                                                    artworkList.remove(artwork)
+                                                }
+                                                if (artworkList.isEmpty()) {
+                                                    swipeScreenViewModel.loadNextItems()
+                                                }
                                                 when (state.swipedDirection) {
                                                     Direction.Right -> {
                                                         swipeScreenViewModel.likeArtwork(
@@ -470,11 +474,6 @@ fun SwipeCard(
                                                         }
                                                     }
                                                     else -> {}
-                                                }
-
-                                                artworkList.remove(artwork)
-                                                if (artworkList.isEmpty()) {
-                                                    swipeScreenViewModel.loadNextItems()
                                                 }
                                             },
                                             onSwipeCancel = {
@@ -564,7 +563,7 @@ private fun ProfileCard(
             modifier = Modifier.fillMaxSize(),
             painter = rememberAsyncImagePainter(artwork.imageUrl),
             contentDescription = artwork.title,
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Fit
         )
     }
     Box(

@@ -102,7 +102,7 @@ class uploadRepositoryImplementation @Inject constructor(
         }
     }
 
-    override suspend fun uploadArtwork(artistId: String, artwork: ArtworkUploadDTO): Flow<ResponseStates<ArtworkUploadDTO>> = flow {
+    override suspend fun uploadArtwork(artistId: String, artwork: ArtworkUploadDTO): Flow<ResponseStates<Unit>> = flow {
         emit(ResponseStates.Loading)
         try {
             val response = apiService.uploadArtwork(artistId, artwork)

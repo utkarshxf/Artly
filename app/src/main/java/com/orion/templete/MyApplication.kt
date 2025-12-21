@@ -64,7 +64,7 @@ class MyApplication: Application() {
                             Log.d("ImageLoading", "Detected Wikimedia URL")
 
                             requestBuilder.apply {
-                                header("User-Agent", "Artwrk/1.0 (Android; ${Build.MODEL}) Coil/2.0")
+                                header("User-Agent", "Artistry/1.0 (Android; ${Build.MODEL}) Coil/2.0")
                                 header("Referer", "https://en.wikipedia.org/")
                                 header("Accept", "image/webp,image/apng,image/*,*/*;q=0.8")
                                 header("Accept-Encoding", "gzip, deflate, br")

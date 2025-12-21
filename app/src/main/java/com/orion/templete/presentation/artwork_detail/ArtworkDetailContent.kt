@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,8 +40,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Share
@@ -53,13 +50,11 @@ import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -68,6 +63,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,8 +72,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Gray
@@ -86,14 +80,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -102,13 +93,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
-import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.presentation.artist_profile.ArtistProfileScreenUiState
 import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
 import com.orion.templete.presentation.artist_profile.GetCommentsOnArtworkUiState
@@ -118,12 +107,10 @@ import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.common.ArtistProfileCard
 import com.orion.templete.presentation.components.GenreSection
 import com.orion.templete.presentation.favorites.AddCollectionDialog
-import com.orion.templete.presentation.favorites.AddToFavoritesUiState
 import com.orion.templete.presentation.favorites.CollectionCard
 import com.orion.templete.presentation.favorites.CollectionViewModel
 import com.orion.templete.presentation.favorites.CreateFavoritesUiState
 import com.orion.templete.presentation.favorites.FavoritesUiState
-import com.orion.templete.presentation.search.dummyArtworks
 import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
@@ -140,6 +127,8 @@ import kotlin.math.min
 fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewModel: ArtworkDetailViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
         viewModel.getArtworkById(artworkId)
+        // MVVM: Fetch artwork statistics
+        viewModel.getArtworkStats(artworkId)
     }
     when (val uiState = viewModel.artworkDetailScreenUiState) {
         is ArtworkDetailScreenUiState.Loading -> {
@@ -151,7 +140,7 @@ fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewMo
         }
 
         is ArtworkDetailScreenUiState.Success -> {
-            ArtworkDetailContent(uiState.artwork , navController)
+            ArtworkDetailContent(uiState.artwork , navController, viewModel)
             Log.d("qwerty" , uiState.artwork.toString())
         }
 
@@ -167,11 +156,11 @@ fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewMo
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavController) {
+fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavController, viewModel: ArtworkDetailViewModel? = null) {
     val scrollState = rememberLazyListState()
     var isLiked = remember { mutableStateOf(artworkDetailsDTO.liked) }
     Box {
-        Details(artworkDetailsDTO, scrollState , isLiked , navController)
+        Details(artworkDetailsDTO, scrollState , isLiked , navController, viewModel)
         ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked ,navController)
     }
 }
@@ -182,7 +171,8 @@ private fun Details(
     artworkDetailsDTO: ArtworkDTO,
     scrollState: LazyListState,
     isLiked: MutableState<Boolean?>,
-    navController: NavController
+    navController: NavController,
+    viewModel: ArtworkDetailViewModel? = null
 ) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight),
@@ -190,7 +180,7 @@ private fun Details(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            BasicInfo(artworkDetailsDTO, isLiked)
+            BasicInfo(artworkDetailsDTO, isLiked, viewModel)
             Description(artworkDetailsDTO)
             ArtworkDetails(artworkDetailsDTO)
             AboutTheArtist(navController, artworkDetailsDTO.id)
@@ -294,12 +284,15 @@ fun Description(artworkDetailsDTO: ArtworkDTO) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
+fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>, viewModel: ArtworkDetailViewModel? = null) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     var showComments by remember { mutableStateOf(false) }
     var showSavedFolders by remember { mutableStateOf(false) }
     val collectionVm : CollectionViewModel = hiltViewModel()
     val context = LocalContext.current
+
+    // MVVM: Collect artwork stats from ViewModel
+    val artworkStatsState by viewModel?.artworkStatsUiState?.collectAsState() ?: remember { mutableStateOf(ArtworkStatsUiState.Loading) }
 
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -307,16 +300,38 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "Like" ){
-            if(isLiked.value == true){
-                artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
-            }else{
-                artworkDetailsDTO.id?.let { vm.likeArtwork(it) }
+        // MVVM: Display likes from API stats
+        when (artworkStatsState) {
+            is ArtworkStatsUiState.Success -> {
+                var update = remember { mutableStateOf(0) }
+                val stats = (artworkStatsState as ArtworkStatsUiState.Success).stats
+                ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = viewModel?.showLikes(stats.likes , update)?:stats.likes){
+                    if(isLiked.value == true){
+                        artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
+                        update.value --;
+                    }else{
+                        artworkDetailsDTO.id?.let { vm.likeArtwork(it) }
+                        update.value ++;
+                    }
+                    isLiked.value = !isLiked.value!!
+                }
+                InfoColumn(R.drawable.ic_comment, stats.comments){
+                    showComments = true
+                }
             }
-            isLiked.value = !isLiked.value!!
-        }
-        InfoColumn(R.drawable.ic_comment, "Comment"){
-            showComments = true
+            else -> {
+                ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "" ){
+                    if(isLiked.value == true){
+                        artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
+                    }else{
+                        artworkDetailsDTO.id?.let { vm.likeArtwork(it) }
+                    }
+                    isLiked.value = !isLiked.value!!
+                }
+                InfoColumn(R.drawable.ic_comment, ""){
+                    showComments = true
+                }
+            }
         }
         InfoColumn(R.drawable.ic_save, "Save"){
             showSavedFolders = true
@@ -353,12 +368,14 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
                     CommentSection(
                         comments = comments,
                         onSendComment = { newComment ->
-                            comments = listOf(GetCommentsDTO(
-                                userId = currentUser?.id,
-                                userName = currentUser?.name,
-                                userProfilePicture = currentUser?.profilePicture,
-                                text = newComment
-                            )) + comments
+                            comments = listOf(
+                                GetCommentsDTO(
+                                    userId = currentUser?.id,
+                                    userName = currentUser?.name,
+                                    userProfilePicture = currentUser?.profilePicture,
+                                    text = newComment
+                                )
+                            ) + comments
                             artworkDetailsDTO.id?.let {
                                 vm.commentOnArtwork(
                                     it,

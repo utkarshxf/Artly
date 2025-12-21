@@ -43,7 +43,7 @@ object ShareUtils {
             append("by $artist\n\n")
 
             // Add app download link
-            append("\nExplore more artwork on Artwrk. Download the app from https://artwrk.studio/")
+            append("\nExplore more artwork on Artistry. Download the app from https://artwrk.studio/")
         }
 
         // Only share if image URL is available

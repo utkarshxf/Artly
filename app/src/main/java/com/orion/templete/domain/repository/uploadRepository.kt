@@ -35,5 +35,5 @@ interface uploadRepository {
      * @param artwork The artwork details
      * @return A Flow emitting ResponseStates wrapping the created ArtworkDTO
      */
-    suspend fun uploadArtwork(artistId: String, artwork: ArtworkUploadDTO): Flow<ResponseStates<ArtworkUploadDTO>>
+    suspend fun uploadArtwork(artistId: String, artwork: ArtworkUploadDTO): Flow<ResponseStates<Unit>>
 }

@@ -117,4 +117,14 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
     }
+
+    override suspend fun getArtworkStats(artworkId: String): Flow<ResponseStates<com.orion.templete.data.model.artwork_model.ArtworkStatsResponse>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getArtworkStats(artworkId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
 }

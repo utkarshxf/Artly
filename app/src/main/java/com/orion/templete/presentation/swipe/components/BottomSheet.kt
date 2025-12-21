@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.swipe.components
 
+import android.util.Log
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
@@ -23,6 +24,7 @@ fun BottomSheet(
     val modalBottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
     )
+    Log.d("BottomSheet" ,"BottomSheet")
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
         sheetState = modalBottomSheetState,

@@ -41,7 +41,6 @@ import com.orion.templete.data.model.user_model.RegisterArtistRequest
 import com.orion.templete.presentation.common.CustomTextField
 import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.ui.theme.LighterGray
-import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.uploadImage
 import java.time.Instant
 import java.time.LocalDate
@@ -50,26 +49,25 @@ import java.time.ZoneId
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArtistRegisterScreen(
+fun EditArtistScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ArtistRegisterScreenViewModel = hiltViewModel()
+    viewModel: EditArtistViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val activity = context as MainActivity
     val imageCropper = remember { activity.getImageCropper() }
     val galleryLauncher = remember { activity.getGalleryLauncher() }
 
-    // Required State variables
+    // State variables for artist data
     var name by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf("") }
-    val nationality = SecureStorage(context).getUserDetails()?.countryIso2 ?: "in"
-
-    // Optional State variables
     var education by remember { mutableStateOf("") }
     var awards by remember { mutableStateOf("") }
     var wikipediaUrl by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var nationality by remember { mutableStateOf("") }
+    var imageUrl by remember { mutableStateOf("") }
 
     // Optional fields visibility
     var showEducation by remember { mutableStateOf(false) }
@@ -88,19 +86,51 @@ fun ArtistRegisterScreen(
         .toInstant()
         .toEpochMilli()
 
-    val uiState = viewModel.registerArtistState
+    val initialLoadState = viewModel.initialLoadState
+    val loadArtistDataState by viewModel.loadArtistDataState.collectAsState()
+    val updateArtistState by viewModel.updateArtistState.collectAsState()
+    val currentArtistData by viewModel.currentArtistData.collectAsState()
     val birthDatePickerState = rememberDatePickerState(
         initialDisplayedMonthMillis = january2004Millis,
         yearRange = 1900..currentYear
     )
 
     // Effects
-    LaunchedEffect(croppedImageUri) {
-        pickedImageUri = croppedImageUri
-    }
-
     LaunchedEffect(Unit) {
         imageCropper.clearCroppedImageUri()
+        // Business Logic: Load artist data
+        viewModel.loadArtistData()
+    }
+
+    LaunchedEffect(loadArtistDataState) {
+        when (loadArtistDataState) {
+            is LoadArtistDataState.Success -> {
+                val artistData = (loadArtistDataState as LoadArtistDataState.Success).data
+                name = artistData.name ?: ""
+                birthDate = artistData.birth_date ?: ""
+                education = artistData.education ?: ""
+                awards = artistData.awards ?: ""
+                wikipediaUrl = artistData.wikipedia_url ?: ""
+                description = artistData.description ?: ""
+                nationality = artistData.nationality ?: ""
+                imageUrl = artistData.image_url ?: ""
+
+                // Show optional fields if they have data
+                showEducation = education.isNotEmpty()
+                showAwards = awards.isNotEmpty()
+                showWikipediaUrl = wikipediaUrl.isNotEmpty()
+                showDescription = description.isNotEmpty()
+            }
+            is LoadArtistDataState.Error -> {
+                Toast.makeText(context, (loadArtistDataState as LoadArtistDataState.Error).message, Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
+        }
+    }
+
+
+    LaunchedEffect(croppedImageUri) {
+        pickedImageUri = croppedImageUri
     }
 
     LaunchedEffect(birthDatePickerState.selectedDateMillis) {
@@ -110,14 +140,17 @@ fun ArtistRegisterScreen(
         }
     }
 
-    LaunchedEffect(uiState) {
-        uiState.error?.let { error ->
-            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-        }
-
-        uiState.data?.let {
-            Toast.makeText(context, "You Are A Creator Now. Happy Posting Your Art!!", Toast.LENGTH_SHORT).show()
-            onNavigateBack()
+    // MVVM: Handle update responses
+    LaunchedEffect(updateArtistState) {
+        when (updateArtistState) {
+            is UpdateArtistState.Success -> {
+                Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                onNavigateBack()
+            }
+            is UpdateArtistState.Error -> {
+                Toast.makeText(context, (updateArtistState as UpdateArtistState.Error).message, Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
         }
     }
 
@@ -140,6 +173,17 @@ fun ArtistRegisterScreen(
         }
     }
 
+    // MVVM: Show loading state
+    if (initialLoadState is InitialLoadState.Loading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -149,13 +193,13 @@ fun ArtistRegisterScreen(
     ) {
         // Header
         Text(
-            text = "Become an Artist",
+            text = "Edit Artist Profile",
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
         Text(
-            text = "Share your artworks and show your art to art enthusiasts worldwide.",
+            text = "Update your artist profile information",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             modifier = Modifier.padding(bottom = 24.dp)
@@ -163,24 +207,15 @@ fun ArtistRegisterScreen(
 
         // Profile Picture
         Box(modifier = Modifier.padding(start = 8.dp), contentAlignment = Alignment.BottomEnd) {
-
-            if(pickedImageUri == null){
-                AnimatedPreloader(R.raw.person,
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clickable { galleryLauncher.launchGallery() })
-            }else{
-                AsyncImage(
-                    model = pickedImageUri ?: R.drawable.person_outline_24px,
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .clickable { galleryLauncher.launchGallery() },
-                    contentScale = ContentScale.Crop
-                )
-            }
-
+            AsyncImage(
+                model = pickedImageUri ?: imageUrl.ifEmpty { R.drawable.person_outline_24px },
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .clickable { galleryLauncher.launchGallery() },
+                contentScale = ContentScale.Crop
+            )
             Image(
                 painter = painterResource(id = R.drawable.ic_camara),
                 contentDescription = null,
@@ -193,23 +228,23 @@ fun ArtistRegisterScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Required: Name Field
+        // Name Field
         CustomTextField(
             value = name,
             onValueChange = { name = it },
             hint = R.string.name_hint,
             keyboardType = KeyboardType.Text,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Required: Birth Date Field
+        // Birth Date Field
         TextField(
             value = birthDate,
             onValueChange = { },
             readOnly = true,
-            label = { Text("Birth Date*") },
+            label = { Text("Birth Date") },
             trailingIcon = {
                 IconButton(onClick = { showBirthDatePicker = true }) {
                     Icon(
@@ -288,115 +323,68 @@ fun ArtistRegisterScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Submit Button
+        // Update Button
         Button(
             onClick = {
-                if (pickedImageUri != null) {
-                    uploadImage(pickedImageUri, context) { imageUrl ->
-                        viewModel.registerAsArtist(
+                val finalImageUrl = if (pickedImageUri != null) {
+                    uploadImage(pickedImageUri, context) { uploadedUrl ->
+                        // Business Logic: Call ViewModel to update artist
+                        viewModel.updateArtist(
                             RegisterArtistRequest(
+                                id = currentArtistData?.id ?: "",
                                 name = name,
                                 birth_date = birthDate,
                                 nationality = nationality,
                                 education = education.ifBlank { null },
                                 awards = awards.ifBlank { null },
-                                image_url = imageUrl,
+                                image_url = uploadedUrl,
                                 wikipedia_url = wikipediaUrl.ifBlank { null },
                                 description = description.ifBlank { null }
                             )
                         )
                     }
+                    return@Button
                 } else {
-                    viewModel.registerAsArtist(
-                        RegisterArtistRequest(
-                            name = name,
-                            birth_date = birthDate,
-                            nationality = nationality,
-                            education = education.ifBlank { null },
-                            awards = awards.ifBlank { null },
-                            image_url = null,
-                            wikipedia_url = wikipediaUrl.ifBlank { null },
-                            description = description.ifBlank { null }
-                        )
+                    imageUrl
+                }
+
+                // Business Logic: Call ViewModel to update artist
+                viewModel.updateArtist(
+                    RegisterArtistRequest(
+                        id = currentArtistData?.id ?: "",
+                        name = name,
+                        birth_date = birthDate,
+                        nationality = nationality,
+                        education = education.ifBlank { null },
+                        awards = awards.ifBlank { null },
+                        image_url = finalImageUrl,
+                        wikipedia_url = wikipediaUrl.ifBlank { null },
+                        description = description.ifBlank { null }
                     )
-                }
+                )
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = MaterialTheme.shapes.medium,
-            enabled = !uiState.isLoading && name.isNotBlank() && birthDate.isNotBlank()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = updateArtistState !is UpdateArtistState.Loading
         ) {
-            if (uiState.isLoading) {
-                AnimatedPreloader()
+            if (updateArtistState is UpdateArtistState.Loading) {
+                AnimatedPreloader(
+                    modifier = Modifier.size(24.dp)
+                )
             } else {
-                Text(
-                    text = stringResource(id = R.string.save_button_label),
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Text("Update Profile")
             }
         }
-    }
-}
 
-@Composable
-fun OptionalField(
-    isVisible: Boolean,
-    onVisibilityChange: (Boolean) -> Unit,
-    fieldLabel: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    hint: Int,
-    multiLine: Boolean = false,
-    keyboardType: KeyboardType = KeyboardType.Text
-) {
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically()
-    ) {
-        Column {
-            CustomTextField(
-                value = value,
-                onValueChange = onValueChange,
-                hint = hint,
-                keyboardType = keyboardType,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    IconButton(
-                        onClick = { onVisibilityChange(false) }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove $fieldLabel"
-                        )
-                    }
-                }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
+        Spacer(modifier = Modifier.height(16.dp))
 
-    if (!isVisible) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onVisibilityChange(true) }
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = fieldLabel,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add $fieldLabel"
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+        // Cancel Button
+        Button(
+            onClick = onNavigateBack,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(),
+            enabled = updateArtistState !is UpdateArtistState.Loading
+        ) {
+            Text("Cancel")
         }
     }
 }

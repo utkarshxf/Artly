@@ -30,9 +30,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,10 +43,13 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.user_model.RegisterArtistRequest
 import com.orion.templete.data.model.user_model.UserDTO
+import com.orion.templete.presentation.artist_profile.ArtistStatsSection
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.Screens
+import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.profile.common.DrawerContent
 import com.orion.templete.presentation.ui.theme.TempleteTheme
@@ -61,7 +66,9 @@ fun ProfileScreen(
     val scope = rememberCoroutineScope()
     val isUserArtist = viewModel.isUserArtist
     val uiState = viewModel.userData
-
+    LaunchedEffect(Unit) {
+        viewModel.refreshProfile()
+    }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -95,7 +102,9 @@ fun ProfileScreen(
                             ArtistProfileContent(
                                 user = uiState.user,
                                 onMenuClick = { scope.launch { drawerState.open() } },
-                                onEditClick = { navController.navigate(Screens.UserEditScreen.route) },
+                                onEditClick = {
+                                    navController.navigate(Screens.EditArtist.route)
+                                },
                                 navController = navController,
                                 viewModel = viewModel
                             )
@@ -158,6 +167,8 @@ private fun ArtistProfileContent(
     var showImagePopup by remember { mutableStateOf(false) }
     val artWorksUiState = viewModel.artWorksUiState
 
+    val artistDetails by viewModel.artistDetails.collectAsState()
+
     // Single scroll state for entire screen
     val lazyListState = rememberLazyListState()
 
@@ -175,7 +186,9 @@ private fun ArtistProfileContent(
     }
 
     if (showImagePopup) {
-        ImagePopup(imageUrl = user.profilePicture) {
+        // Use artist image if available, fallback to user image
+        val imageUrl = artistDetails?.image_url ?: user.profilePicture
+        ImagePopup(imageUrl = imageUrl) {
             showImagePopup = false
         }
     }
@@ -196,12 +209,17 @@ private fun ArtistProfileContent(
                     }
             ) {
                 Spacer(modifier = Modifier.height(12.dp))
+                // MVVM: Pass artist details to header if available
                 ArtistProfileHeader(
                     user = user,
+                    artistDetails = artistDetails,
                     onImageClick = { showImagePopup = true }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                ArtistDescriptionSection(user)
+                // MVVM: Display artist stats
+                ArtistStatsSection(viewModel.artistStatsUiState)
+                Spacer(modifier = Modifier.height(12.dp))
+                ArtistDescriptionSection(user, artistDetails)
                 Spacer(modifier = Modifier.height(12.dp))
                 ButtonSection(
                     onClick = onEditClick,
@@ -241,8 +259,8 @@ private fun ArtistProfileContent(
                     }
                 } else {
                     when (selectedTabIndex) {
-                        0 -> artworkGridItems(artworks, navController)
-                        1 -> artworkListItems(artworks, navController)
+                        0 -> artworkListItems(artworks, navController)
+                        1 -> artworkGridItems(artworks, navController)
                     }
                 }
             }
@@ -348,8 +366,8 @@ private fun ArtworkTabs(
             onClick = { onTabSelected(0) },
             icon = {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_gird),
-                    contentDescription = "Grid View",
+                    painter = painterResource(id = R.drawable.ic_list),
+                    contentDescription = "List View",
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -359,8 +377,8 @@ private fun ArtworkTabs(
             onClick = { onTabSelected(1) },
             icon = {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_list),
-                    contentDescription = "List View",
+                    painter = painterResource(id = R.drawable.ic_gird),
+                    contentDescription = "Grid View",
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -389,7 +407,7 @@ private fun ArtworkListItem(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             placeholder = painterResource(id = R.drawable.placeholder),
             error = painterResource(id = R.drawable.placeholder)
         )
@@ -467,7 +485,11 @@ fun ImagePopup(imageUrl: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun ArtistProfileHeader(user: UserDTO, onImageClick: () -> Unit) {
+fun ArtistProfileHeader(
+    user: UserDTO,
+    artistDetails: com.orion.templete.data.model.user_model.RegisterArtistRequest? = null,
+    onImageClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -476,8 +498,10 @@ fun ArtistProfileHeader(user: UserDTO, onImageClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // MVVM: Use artist image if available
+            val displayImage = artistDetails?.image_url ?: user.profilePicture
             AsyncImage(
-                model = user.profilePicture,
+                model = displayImage,
                 contentDescription = "Profile picture",
                 modifier = Modifier
                     .size(80.dp)
@@ -487,8 +511,10 @@ fun ArtistProfileHeader(user: UserDTO, onImageClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
+                // MVVM: Use artist name if available
+                val displayName = artistDetails?.name ?: user.name
                 Text(
-                    text = user.name,
+                    text = displayName,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -509,22 +535,133 @@ fun ArtistProfileHeader(user: UserDTO, onImageClick: () -> Unit) {
 }
 
 @Composable
-fun ArtistDescriptionSection(user: UserDTO) {
+fun ArtistDescriptionSection(
+    user: UserDTO,
+    artistDetails: RegisterArtistRequest? = null
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        user.dob?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
-            )
+        // Birth Date
+        val displayDate = artistDetails?.birth_date ?: user.dob
+        displayDate?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = "Birth: $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        user.gender?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
-            )
+
+        // Death Date (Artist only)
+        artistDetails?.death_date?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = "Death: $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Nationality
+        artistDetails?.nationality?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = "Nationality: $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Art Movement
+        artistDetails?.art_movement?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = "Art Movement: $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Education
+        artistDetails?.education?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = "Education: $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Awards
+        artistDetails?.awards?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = "Awards: $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Notable Works
+        artistDetails?.notable_works?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = "Notable Works: $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Wikipedia URL
+        artistDetails?.wikipedia_url?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = "Wikipedia: $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Description
+        artistDetails?.description?.let {
+            if (it.isNotEmpty()) {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Show user gender if artist details not available
+        if (artistDetails == null) {
+            user.gender?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }
@@ -536,27 +673,56 @@ fun ExploreMoreArtistsCard(navController: NavController, viewModel: ProfileScree
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = R.drawable.become_artist,
-                contentDescription = "Featured artist",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+        val context = LocalContext.current
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            AnimatedPreloader(
+                R.raw.artist,
+                modifier = Modifier.size(
+                    300.dp
+                )
             )
 
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)),
-                            startY = 0f,
-                            endY = Float.POSITIVE_INFINITY
-                        )
-                    )
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Title
+            Text(
+                text = "Become an Artist",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
 
-            val context = LocalContext.current
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Unleash Your Creativity",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Share your artwork with a global audience and turn your passion into opportunity.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Primary Button
             Button(
                 onClick = {
                     if (viewModel.canRegisterAsArtist()) {
@@ -570,13 +736,68 @@ fun ExploreMoreArtistsCard(navController: NavController, viewModel: ProfileScree
                     }
                 },
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 12.dp),
-                shape = RoundedCornerShape(8.dp)
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(10.dp)
             ) {
-                Text(text = "Register", color = MaterialTheme.colorScheme.onPrimary)
+                Text(
+                    text = "Start Your Artist Journey",
+                    fontWeight = FontWeight.SemiBold
+                )
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "🎨 It's free and takes just a minute!",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            )
         }
+
+//    Box(modifier = Modifier.fillMaxSize()) {
+//            AsyncImage(
+//                model = R.drawable.become_artist,
+//                contentDescription = "Featured artist",
+//                modifier = Modifier.fillMaxSize(),
+//                contentScale = ContentScale.Crop
+//            )
+//
+//            Box(
+//                modifier = Modifier
+//                    .matchParentSize()
+//                    .background(
+//                        Brush.verticalGradient(
+//                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)),
+//                            startY = 0f,
+//                            endY = Float.POSITIVE_INFINITY
+//                        )
+//                    )
+//            )
+//
+//            val context = LocalContext.current
+//            Button(
+//                onClick = {
+//                    if (viewModel.canRegisterAsArtist()) {
+//                        navController.navigate(Screens.ArtistRegister.route)
+//                    } else {
+//                        Toast.makeText(
+//                            context,
+//                            "You are already registered as an artist.",
+//                            Toast.LENGTH_LONG
+//                        ).show()
+//                    }
+//                },
+//                modifier = Modifier
+//                    .align(Alignment.CenterEnd)
+//                    .padding(end = 12.dp),
+//                shape = RoundedCornerShape(8.dp)
+//            ) {
+//                Text(text = "Register", color = MaterialTheme.colorScheme.onPrimary)
+//            }
+//        }
     }
 }
 

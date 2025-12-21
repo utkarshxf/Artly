@@ -3,8 +3,10 @@ package com.orion.templete.data.network
 
 import com.orion.templete.data.model.ai_model.GeneratedImageResponse
 import com.orion.templete.data.model.artist_model.ArtistDTO
+import com.orion.templete.data.model.artist_model.ArtistStatsResponse
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkStatsResponse
 import com.orion.templete.data.model.artwork_model.ArtworkUploadDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
@@ -17,6 +19,8 @@ import com.orion.templete.data.model.login_model.User
 import com.orion.templete.data.model.user_model.RegisterArtistRequest
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
+import com.orion.templete.data.model.user_model.SearchUsersResponse
+import com.orion.templete.data.model.UsernameValidationResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Field
@@ -56,7 +60,7 @@ interface ApiService {
     suspend fun uploadArtwork(
         @Path("artistId") artistId: String,
         @Body artwork: ArtworkUploadDTO
-    ): Response<ArtworkUploadDTO>
+    ): Response<Unit>
 
     @POST("login")
     suspend fun loginUser(@Body user: User): retrofit2.Response<LoginResponseDTO>
@@ -94,6 +98,12 @@ interface ApiService {
     @GET("/artist/getArtistByArtistId")
     suspend fun getArtistByArtistId( @Query("userId") currentUserId: String , @Query("artistId") userId: String): retrofit2.Response<ArtistDTO>
 
+    /**
+     * Get artist statistics (followers, likes, artworks count)
+     */
+    @GET("/artist/getArtistStats")
+    suspend fun getArtistStats(@Query("artistId") artistId: String): retrofit2.Response<ArtistStatsResponse>
+
     @POST("/users")
     suspend fun createUser(@Body request: UserDetails): Response<UserDetails>
 
@@ -102,6 +112,15 @@ interface ApiService {
         @Path("userId") userId: String,
         @Body request: UserDetails
     ): Response<UserDetails>
+
+    /**
+     * Search users by username or key. Source of truth is `username`.
+     */
+    @GET("/users/searchUsers")
+    suspend fun searchUsers(
+        @Query("key") key: String,
+        @Query("limit") limit: Int = 20
+    ): Response<SearchUsersResponse>
 
     /**
      * Follow an artist
@@ -129,6 +148,23 @@ interface ApiService {
     suspend fun registerAsArtist(
         @Query("userId") currentUserId: String?,
         @Body request: RegisterArtistRequest
+    ): Response<RegisterArtistRequest>
+
+    /**
+     * Update artist profile information
+     */
+    @PUT("/artist/{artistId}")
+    suspend fun updateArtist(
+        @Path("artistId") artistId: String,
+        @Body request: RegisterArtistRequest
+    ): Response<RegisterArtistRequest>
+
+    /**
+     * Get current artist details
+     */
+    @GET("/artist/{artistId}")
+    suspend fun getArtistDetails(
+        @Path("artistId") artistId: String
     ): Response<RegisterArtistRequest>
 
     /**
@@ -173,6 +209,14 @@ interface ApiService {
         @Path("userId") userId: String,
         @Path("artworkId") artworkId: String
     ): Response<ArtworkDTO>
+
+    /**
+     * Get artwork statistics (likes, comments count)
+     */
+    @GET("/artwork/{artworkId}/stats")
+    suspend fun getArtworkStats(
+        @Path("artworkId") artworkId: String
+    ): Response<ArtworkStatsResponse>
 
     @GET("favorites/user/{userId}")
     suspend fun getFavoritesByUserId(
@@ -245,29 +289,11 @@ interface ApiService {
         @Query("artistId") artistId: String
     ): Response<List<ArtworkDTO>>
 
-
     /**
-     * Generates an image based on a prompt and optional source image
-     *
-     * @param image Base64 encoded image data or URL to image (optional)
-     * @param prompt Text prompt to guide the image generation
-     * @param strength How much to preserve of the original image (0.0-1.0)
-     * @param guidanceScale How closely to follow the prompt (higher = more faithful)
-     * @param steps Number of inference steps (higher = more detail but slower)
-     * @param seed Random seed for reproducible results (optional)
-     * @return Response containing the generated image
+     * Validate username availability
      */
-
-    @POST("https://your-image-generation-api.com/generate_image")
-    @FormUrlEncoded
-    suspend fun generateImage(
-        @Field("image") image: String? = null,
-        @Field("prompt") prompt: String,
-        @Field("strength") strength: Float = 0.75f,
-        @Field("guidance_scale") guidanceScale: Float = 7.5f,
-        @Field("steps") steps: Int = 50,
-        @Field("seed") seed: String? = null
-    ): Response<GeneratedImageResponse>
+    @GET("isValidUsername")
+    suspend fun validateUsername(@Query("username") username: String): Response<UsernameValidationResponse>
 
     companion object {
 //        var baseurl = "https://backendart-production.up.railway.app/"

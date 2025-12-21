@@ -83,11 +83,14 @@ private fun ProfileContent(
 ) {
     LaunchedEffect(key1 = Unit) {
         viewModel.getArtistArtworks(artistId = artist.id)
+        // MVVM: Fetch artist statistics
+        viewModel.getArtistStats(artist.id)
     }
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var showImagePopup by remember { mutableStateOf(false) }
     val artWorksUiState = viewModel.artWorksUiState
+    val artistStatsUiState = viewModel.artistStatsUiState
 
     // Single scroll state for entire screen
     val lazyListState = rememberLazyListState()
@@ -130,6 +133,9 @@ private fun ProfileContent(
                 ProfileHeader(artist) {
                     showImagePopup = true
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+                // MVVM: Display artist statistics
+                ArtistStatsSection(artistStatsUiState)
                 Spacer(modifier = Modifier.height(12.dp))
                 ProfileDescriptionSection(artist = artist)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -488,5 +494,78 @@ private fun ButtonSection(
                 else -> Text("Follow")
             }
         }
+    }
+}
+
+// MVVM: Display artist statistics (followers, likes, artworks count)
+@Composable
+fun ArtistStatsSection(statsState: ArtistStatsUiState) {
+    when (statsState) {
+        is ArtistStatsUiState.Success -> {
+            val stats = statsState.stats
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                StatItem(
+                    label = "Followers",
+                    value = stats.followers.toString()
+                )
+                Divider(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                )
+                StatItem(
+                    label = "Likes",
+                    value = stats.totalLikesOnArtworks.toString()
+                )
+                Divider(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                )
+                StatItem(
+                    label = "Artworks",
+                    value = stats.totalArtworks.toString()
+                )
+            }
+        }
+        is ArtistStatsUiState.Loading -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            }
+        }
+        is ArtistStatsUiState.Error -> {
+            // Silent error - don't show error on stats
+        }
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
     }
 }

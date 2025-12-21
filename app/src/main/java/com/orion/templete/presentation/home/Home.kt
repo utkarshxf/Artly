@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,7 +49,10 @@ import com.orion.templete.presentation.address.ShippingAddressScreen
 import com.orion.templete.presentation.artwork_upload.UploadImageScreen
 import com.orion.templete.presentation.artist_profile.ArtistProfileScreen
 import com.orion.templete.presentation.artist_register.ArtistRegisterScreen
+import com.orion.templete.presentation.artist_register.EditArtistScreen
 import com.orion.templete.presentation.profile.ProfileScreen
+import com.orion.templete.presentation.chat.RecentChatsScreen
+import com.orion.templete.presentation.chat.ChatScreen
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
 import com.orion.templete.presentation.artwork_detail.ArtworkDetailScreen
@@ -87,6 +91,11 @@ fun Home(
     val navController = rememberNavController()
     var navigationSelectedItem by remember { mutableIntStateOf(0) }
 
+    // First-time user popup state
+    val context = LocalContext.current
+    val secureStorage = remember { SecureStorage(context) }
+    var showBecomeArtistDialog by remember { mutableStateOf(secureStorage.isFirstTime() && !isArtist) }
+
     val screens = listOf(
         Screens.Profile,
         Screens.Search,
@@ -94,7 +103,6 @@ fun Home(
         Screens.FavoritesScreen,
         Screens.Swipe,
     )
-    val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val bottomBarDestination = screens.any { it.route == currentDestination?.route }
@@ -120,6 +128,8 @@ fun Home(
             SwipeScreen(swipeViewModel , navigateToDetailScreen = { data->
                 navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
                 navController.navigate(Screens.ArtworkDetail.route)
+            }, onChatClick = {
+                navController.navigate(Screens.RecentChats.route)
             })
         }
         composable(Screens.Profile.route) {
@@ -159,6 +169,13 @@ fun Home(
         }
         composable(Screens.ShippingAddress.route){
             ShippingAddressScreen(onBackClick = {}, onContinueClick = {})
+        }
+        composable(Screens.EditArtist.route) {
+            EditArtistScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
         composable(Screens.Cart.route){
             CartScreen( {} , {} )
@@ -260,6 +277,15 @@ fun Home(
                 )
             }
         }
+        composable(Screens.RecentChats.route) {
+            RecentChatsScreen(onOpenChat = { peer ->
+                val encoded = android.net.Uri.encode(peer)
+                navController.navigate(com.orion.templete.presentation.common.Screens.ChatThread.route(encoded))
+            })
+        }
+        composable(com.orion.templete.presentation.common.Screens.ChatThread.route) { backStackEntry ->
+            ChatScreen()
+        }
     }
     if (bottomBarDestination){
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
@@ -342,4 +368,18 @@ fun Home(
             }
         }
     }
+
+    // First-time user "Become an Artist" popup
+    BecomeArtistBottomSheet(
+        visible = showBecomeArtistDialog,
+        onDismiss = {
+            showBecomeArtistDialog = false
+            secureStorage.setFirstTime(false)
+        },
+        onBecomeArtist = {
+            showBecomeArtistDialog = false
+            secureStorage.setFirstTime(false)
+            navController.navigate(Screens.ArtistRegister.route)
+        }
+    )
 }

@@ -14,6 +14,7 @@ import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
+import com.orion.templete.data.model.UsernameValidationResponse
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.domain.repository.LoginRepository
 import com.orion.templete.util.AuthResultState
@@ -108,5 +109,28 @@ class LoginRepositoryImplementation @Inject constructor(
 
     override suspend fun forgetPassword(request: ForgetPasswordRequest): LoginResponseDTO {
         return safeApiRequest { apiService.forgetPassword(request) }
+    }
+
+    override fun validateUsername(username: String): Flow<AuthResultState<UsernameValidationResponse>> = callbackFlow {
+        trySend(AuthResultState.Loading)
+        try {
+            val response = apiService.validateUsername(username)
+            if (response.isSuccessful && response.body() != null) {
+                trySend(AuthResultState.Success(response.body()!!))
+            } else {
+                val errorMessage = response.errorBody()?.string() ?: "Error validating username"
+                trySend(
+                    AuthResultState.Failure(
+                        Exception(errorMessage)
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("validateUsername", "Error: ${e.message}")
+            trySend(AuthResultState.Failure(e))
+        }
+        awaitClose {
+            close()
+        }
     }
 }

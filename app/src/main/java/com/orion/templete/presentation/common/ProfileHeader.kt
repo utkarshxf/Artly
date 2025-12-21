@@ -30,7 +30,7 @@ fun ProfileHeader(user: ArtistDTO , onClick: () -> Unit) {
             model = user.image_url,
             contentDescription = "Profile picture",
             modifier = Modifier
-                .size(80.dp)
+                .size(70.dp)
                 .clip(CircleShape).clickable { onClick() },
             contentScale = ContentScale.Crop
         )

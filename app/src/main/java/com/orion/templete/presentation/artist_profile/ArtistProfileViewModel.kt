@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artist_model.ArtistDTO
+import com.orion.templete.data.model.artist_model.ArtistStatsResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
@@ -54,6 +55,10 @@ class ArtistProfileViewModel @Inject constructor(
         private set
 
     var artWorksUiState by mutableStateOf<ArtWorksUiState>(ArtWorksUiState.Loading)
+        private set
+
+    // MVVM: Artist stats state
+    var artistStatsUiState by mutableStateOf<ArtistStatsUiState>(ArtistStatsUiState.Loading)
         private set
 
     val currentUserId = secureStorage.getUserId()?:""
@@ -213,6 +218,19 @@ class ArtistProfileViewModel @Inject constructor(
     fun refreshComments(artworkId: String) {
         getAllComments(artworkId)
     }
+
+    // MVVM: Get artist statistics (followers, likes, total artworks)
+    fun getArtistStats(artistId: String) {
+        viewModelScope.launch {
+            userRepository.getArtistStats(artistId).collect { response ->
+                artistStatsUiState = when (response) {
+                    is ResponseStates.Loading -> ArtistStatsUiState.Loading
+                    is ResponseStates.Success -> ArtistStatsUiState.Success(response.data)
+                    is ResponseStates.Error -> ArtistStatsUiState.Error(response.error)
+                }
+            }
+        }
+    }
 }
 sealed interface ArtistProfileScreenUiState {
     object Loading : ArtistProfileScreenUiState
@@ -263,3 +281,11 @@ sealed interface ArtWorksUiState {
     data class Success(val artworks: List<ArtworkDTO>) : ArtWorksUiState
     data class Error(val message: String) : ArtWorksUiState
 }
+
+// MVVM: Artist statistics UI state
+sealed interface ArtistStatsUiState {
+    object Loading : ArtistStatsUiState
+    data class Success(val stats: ArtistStatsResponse) : ArtistStatsUiState
+    data class Error(val message: String) : ArtistStatsUiState
+}
+

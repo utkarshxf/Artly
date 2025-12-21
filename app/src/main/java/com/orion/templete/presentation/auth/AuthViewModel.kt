@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.User
+import com.orion.templete.data.model.UsernameValidationResponse
 import com.orion.templete.domain.repository.LoginRepository
 import com.orion.templete.usecase.RegisterUseCase
 import com.orion.templete.util.AuthResultState
@@ -24,6 +25,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,7 +38,7 @@ class AuthViewModel @Inject constructor(
     private val loginUseCase: RegisterUseCase,
     private val secureStorage: SecureStorage,
     private val authRepository: LoginRepository,
-    private val trackEvents: TrackEvents // Add TrackEvents dependency
+    private val trackEvents: TrackEvents
 ) : ViewModel() {
 
     var signingData by mutableStateOf(LoginUiState())
@@ -43,6 +49,66 @@ class AuthViewModel @Inject constructor(
     val authState: StateFlow<AuthScreenUiState> = _authState
     private val _otpState = MutableStateFlow<OTPScreenUiState>(OTPScreenUiState.Initial)
     val otpState: StateFlow<OTPScreenUiState> = _otpState
+
+    // Username Validation State Management (MVVM - StateFlow for UI)
+    private val _usernameValidationMessage = MutableStateFlow("")
+    val usernameValidationMessage: StateFlow<String> = _usernameValidationMessage
+
+    private val _isUsernameValid = MutableStateFlow(false)
+    val isUsernameValid: StateFlow<Boolean> = _isUsernameValid
+
+    private val _isCheckingUsernameAvailability = MutableStateFlow(false)
+    val isCheckingUsernameAvailability: StateFlow<Boolean> = _isCheckingUsernameAvailability
+
+    // Internal StateFlow to handle username input changes with debounce
+    private val _usernameInputFlow = MutableStateFlow("")
+
+    init {
+        // Debounce username input and validate
+        _usernameInputFlow
+            .debounce(500) // Wait 500ms after user stops typing
+            .distinctUntilChanged() // Only proceed if username actually changed
+            .filter { it.isNotEmpty() && it.length >= 3 && it.matches(Regex("^[a-z]+$")) } // Filter invalid inputs
+            .onEach { validateUsername(it) } // Validate when conditions met
+            .launchIn(viewModelScope)
+    }
+
+    // Business Logic: All validation logic moved from UI to ViewModel
+    fun onUsernameChanged(username: String) {
+        viewModelScope.launch {
+            // Perform local validation first (instant feedback)
+            when {
+                username.isEmpty() -> {
+                    _usernameValidationMessage.value = ""
+                    _isUsernameValid.value = false
+                    _isCheckingUsernameAvailability.value = false
+                }
+                username.contains(" ") -> {
+                    _usernameValidationMessage.value = "Username must not contain spaces"
+                    _isUsernameValid.value = false
+                    _isCheckingUsernameAvailability.value = false
+                }
+                username.length < 3 -> {
+                    _usernameValidationMessage.value = "Username must be at least 3 characters"
+                    _isUsernameValid.value = false
+                    _isCheckingUsernameAvailability.value = false
+                }
+                username != username.lowercase() -> {
+                    _usernameValidationMessage.value = "Username must contain only lowercase letters"
+                    _isUsernameValid.value = false
+                    _isCheckingUsernameAvailability.value = false
+                }
+                !username.matches(Regex("^[a-z]+$")) -> {
+                    _usernameValidationMessage.value = "Username can only contain lowercase letters"
+                    _isUsernameValid.value = false
+                    _isCheckingUsernameAvailability.value = false
+                }
+                else -> {
+                    _usernameInputFlow.value = username
+                }
+            }
+        }
+    }
 
     fun checkSignInStatus() {
         viewModelScope.launch {
@@ -215,6 +281,39 @@ class AuthViewModel @Inject constructor(
             } catch (e: Exception) {
                 // Update the UI state with error
                 forgetPasswordData = ForgetPasswordUiState(error = e.message)
+            }
+        }
+    }
+
+    private fun validateUsername(username: String) {
+        viewModelScope.launch {
+            authRepository.validateUsername(username)
+
+                .collect { authState ->
+                when (authState) {
+                    is AuthResultState.Success -> {
+                        val response = authState.data
+                        _isCheckingUsernameAvailability.value = false
+                        _isUsernameValid.value = response.isValid
+                        _usernameValidationMessage.value = if (response.isValid) {
+                            "Username is available ✓"
+                        } else {
+                            response.message ?: "Username is not available"
+                        }
+                        Log.d("validateUsername", "Success: ${response.message}")
+                    }
+                    is AuthResultState.Failure -> {
+                        _isCheckingUsernameAvailability.value = false
+                        _isUsernameValid.value = false
+                        _usernameValidationMessage.value = authState.msg.message ?: "Error checking username"
+                        Log.e("validateUsername", "Error: ${authState.msg.message}")
+                    }
+                    is AuthResultState.Loading -> {
+                        _isCheckingUsernameAvailability.value = true
+                        _usernameValidationMessage.value = "Checking availability..."
+                        Log.d("validateUsername", "Loading...")
+                    }
+                }
             }
         }
     }

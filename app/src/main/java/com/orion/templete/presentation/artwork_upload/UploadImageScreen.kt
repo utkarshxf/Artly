@@ -80,7 +80,6 @@ fun UploadImageScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            viewModel.setOriginalImageUri(it)
             val cropIntent = imageCropper.createCropIntent(it)
             uCropLauncher.launch(cropIntent)
         }
@@ -290,16 +289,6 @@ fun ArtworkDetailsForm(
             isError = viewModel.uploadUiState is UploadUiState.Error && viewModel.title.isBlank()
         )
 
-        // Medium
-        OutlinedTextField(
-            value = viewModel.medium,
-            onValueChange = { viewModel.updateMedium(it) },
-            label = { Text("Medium") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-        )
-
         // Genre Section
         GenreSection(
             viewModel = viewModel,
@@ -356,10 +345,7 @@ private fun GenreSection(
             trailingIcon = {
                 IconButton(onClick = { onShowGenreDropdownChange(!showGenreDropdown) }) {
                     Icon(
-                        imageVector = if (showGenreDropdown)
-                            Icons.Default.KeyboardArrowUp
-                        else
-                            Icons.Default.KeyboardArrowDown,
+                        imageVector = Icons.Default.Search,
                         contentDescription = "Toggle genre dropdown"
                     )
                 }
@@ -399,26 +385,6 @@ private fun GenreSection(
                         }
                     }
                 }
-            }
-        }
-
-        // Create new genre button
-        if (viewModel.genreName.isNotBlank() && genreSearchResults.isEmpty()) {
-            Button(
-                onClick = {
-                    viewModel.createNewGenre()
-                    onShowGenreDropdownChange(false)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Create new genre"
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Create \"${viewModel.genreName}\" genre")
             }
         }
 
@@ -468,6 +434,17 @@ private fun OptionalFieldsSection(viewModel: UploadViewModel) {
     var showArtMovement by remember { mutableStateOf(false) }
     var showLicenseInfo by remember { mutableStateOf(false) }
     var showSourceUrl by remember { mutableStateOf(false) }
+    var medium by remember { mutableStateOf(false) }
+
+
+    // Medium
+    OptionalField(
+        isVisible = medium,
+        onVisibilityChange = { medium = it },
+        value = viewModel.medium,
+        onValueChange = { viewModel.updateMedium(it) },
+        fieldLabel = "Medium",
+    )
 
     // Dimensions
     OptionalField(

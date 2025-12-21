@@ -2,9 +2,11 @@ package com.orion.templete.presentation.artwork_upload
 
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.toUpperCase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artwork_model.ArtworkUploadDTO
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Locale
+import java.util.Locale.getDefault
 import javax.inject.Inject
 
 @HiltViewModel
@@ -77,14 +81,6 @@ class UploadViewModel @Inject constructor(
 
     // Current user ID
     private val currentUserId = secureStorage.getUserId() ?: ""
-
-    // Set the original image URI and start uploading in the background
-    fun setOriginalImageUri(uri: Uri) {
-        _originalImageUri.value = uri
-        uploadUiState = UploadUiState.ImageSelected
-        // Start uploading the image in the background
-        uploadImage(uri, false)
-    }
 
     // Set the cropped image URI and update the original image upload
     fun setCroppedImageUri(uri: Uri) {
@@ -199,9 +195,11 @@ class UploadViewModel @Inject constructor(
             _genreSearchResults.value = emptyList()
             return
         }
+        fun String.capitalizeWords(): String =
+            split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercaseChar() } }
 
         viewModelScope.launch {
-            uploadRepository.searchGenres(query).collect { response ->
+            uploadRepository.searchGenres(query.capitalizeWords()).collect { response ->
                 when (response) {
                     is ResponseStates.Loading -> {
                         // Show loading state if needed
@@ -251,7 +249,7 @@ class UploadViewModel @Inject constructor(
             return
         }
 
-        if (_croppedImageUri.value == null && _originalImageUri.value == null) {
+        if (_croppedImageUri.value == null) {
             uploadUiState = UploadUiState.Error("Image is required")
             return
         }
@@ -267,8 +265,8 @@ class UploadViewModel @Inject constructor(
             // Create the artwork DTO
             val artwork = ArtworkUploadDTO(
                 title = title,
-                imageUrl = _originalImageUrl.ifEmpty { _originalImageUri.value?.toString() ?: "" },
-                imageUrlCompressed = _compressedImageUrl.ifEmpty { _croppedImageUri.value?.toString() ?: _originalImageUri.value?.toString() ?: "" },
+                imageUrl = _compressedImageUrl.ifEmpty { _croppedImageUri.value?.toString() ?: "" },
+                imageUrlCompressed = _compressedImageUrl.ifEmpty { _croppedImageUri.value?.toString() ?: "" },
                 storageType = "Firebase",
                 medium = medium,
                 artist = secureStorage.getUserDetails()?.name ?: currentUserId,

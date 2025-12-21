@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.orion.templete.data.local.AppDatabase
 import com.flashcall.me.data.local.dao.UserDao
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
 import com.orion.templete.data.repository.uploadRepositoryImplementation
@@ -13,11 +14,13 @@ import com.orion.templete.data.repository.ArtistRepositoryImplementation
 import com.orion.templete.data.repository.ArtworkRepositoryImplementation
 import com.orion.templete.data.repository.LoginRepositoryImplementation
 import com.orion.templete.data.repository.UserRepositoryImplementation
+import com.orion.templete.data.repository.chat.ChatRepositoryImpl
 import com.orion.templete.domain.repository.uploadRepository
 import com.orion.templete.domain.repository.ArtistRepository
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.domain.repository.LoginRepository
 import com.orion.templete.domain.repository.UserRepository
+import com.orion.templete.domain.repository.chat.ChatRepository
 import com.orion.templete.util.SecureStorage
 import dagger.Module
 import dagger.Provides
@@ -60,6 +63,12 @@ object  AppModule {
     @Singleton
     fun providesFirebaseAuth(): FirebaseAuth {
         return FirebaseAuth.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun providesFirestore(): FirebaseFirestore {
+        return FirebaseFirestore.getInstance()
     }
 
     @Provides
@@ -126,6 +135,12 @@ object  AppModule {
         context: Context
     ): UserRepository {
         return UserRepositoryImplementation(apiService ,userDao ,context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatRepository(db: FirebaseFirestore, api: ApiService): ChatRepository {
+        return ChatRepositoryImpl(db, api)
     }
 
     @Provides

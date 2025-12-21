@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.google.gson.Gson
+import com.orion.templete.data.model.user_model.RegisterArtistRequest
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -143,6 +145,35 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
     fun setFirstTime(value: Boolean) {
         with(sharedPreferences.edit()) {
             putBoolean(PreferencesKey.UserFirstTimeLogin.key, value)
+            apply()
+        }
+    }
+
+    // MVVM: Save current artist details
+    fun saveCurrentArtistDetails(artistDetails: RegisterArtistRequest) {
+        val gson = Gson()
+        val json = gson.toJson(artistDetails)
+        with(sharedPreferences.edit()) {
+            putString("current_artist_details", json)
+            apply()
+        }
+    }
+
+    // MVVM: Get current artist details
+    fun getCurrentArtistDetails(): RegisterArtistRequest? {
+        val json = sharedPreferences.getString("current_artist_details", null) ?: return null
+        return try {
+            val gson = Gson()
+            gson.fromJson(json, RegisterArtistRequest::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // MVVM: Clear artist details
+    fun clearCurrentArtistDetails() {
+        with(sharedPreferences.edit()) {
+            remove("current_artist_details")
             apply()
         }
     }

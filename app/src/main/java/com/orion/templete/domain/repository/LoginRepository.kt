@@ -6,6 +6,7 @@ import com.orion.templete.data.model.login_model.LoginResponseDTO
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
+import com.orion.templete.data.model.UsernameValidationResponse
 import com.orion.templete.util.AuthResultState
 import kotlinx.coroutines.flow.Flow
 
@@ -17,4 +18,5 @@ interface LoginRepository {
     fun alreadySignIn(): Flow<AuthResultState<String>>
     fun createUserWithPhone(phone:String, activity: Activity) : Flow<AuthResultState<String>>
     fun signWithCredential(otp:String): Flow<AuthResultState<String>>
+    fun validateUsername(username: String): Flow<AuthResultState<UsernameValidationResponse>>
 }

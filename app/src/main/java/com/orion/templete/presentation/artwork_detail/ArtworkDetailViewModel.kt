@@ -1,16 +1,20 @@
 package com.orion.templete.presentation.artwork_detail
 
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkStatsResponse
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,6 +32,10 @@ class ArtworkDetailViewModel @Inject constructor(
 
     var similarArtworks by mutableStateOf<ArtworksScreenUiState>(ArtworksScreenUiState.Loading)
         private set
+
+    // MVVM: Artwork stats state
+    private val _artworkStatsUiState = MutableStateFlow<ArtworkStatsUiState>(ArtworkStatsUiState.Loading)
+    val artworkStatsUiState: StateFlow<ArtworkStatsUiState> = _artworkStatsUiState
 
     private val currentUserId = secureStorage.getUserId()
 
@@ -120,6 +128,32 @@ class ArtworkDetailViewModel @Inject constructor(
     fun viewRecommendedArtwork(artworkId: String, source: String) {
         trackEvents.trackRecommendedArtworkViewed(artworkId, source)
     }
+
+    // MVVM: Get artwork statistics (likes and comments count)
+    fun getArtworkStats(artworkId: String) {
+        viewModelScope.launch {
+            artworkRepository.getArtworkStats(artworkId).collect { response ->
+                _artworkStatsUiState.value = when (response) {
+                    is ResponseStates.Loading -> ArtworkStatsUiState.Loading
+                    is ResponseStates.Success -> ArtworkStatsUiState.Success(response.data)
+                    is ResponseStates.Error -> ArtworkStatsUiState.Error(response.error)
+                }
+            }
+        }
+    }
+
+
+    fun resetState(id: String?) {
+        id?.let {
+            getArtworkStats(id)
+        }
+    }
+
+    fun showLikes(likes: String, update: MutableState<Int>): String {
+        if(likes.toIntOrNull() != null){
+            return likes.toInt().plus(update.value).toString()
+        }else return likes
+    }
 }
 
 sealed interface ArtworkDetailScreenUiState {
@@ -133,3 +167,11 @@ sealed interface ArtworksScreenUiState {
     data class Success(val artwork: List<ArtworkDTO>) : ArtworksScreenUiState
     data class Error(val message: String) : ArtworksScreenUiState
 }
+
+// MVVM: Artwork statistics UI state
+sealed interface ArtworkStatsUiState {
+    object Loading : ArtworkStatsUiState
+    data class Success(val stats: ArtworkStatsResponse) : ArtworkStatsUiState
+    data class Error(val message: String) : ArtworkStatsUiState
+}
+

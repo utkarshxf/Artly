@@ -116,6 +116,28 @@ interface UserRepository {
     suspend fun registerAsArtist (artistData:RegisterArtistRequest): Flow<ResponseStates<RegisterArtistRequest>>
 
     /**
+     * Update an existing artist's profile information.
+     * @param artistId The id of the artist to update.
+     * @param artistData The updated artist data.
+     * @return A [Flow] emitting [ResponseStates] wrapping the updated [RegisterArtistRequest] on success.
+     */
+    suspend fun updateArtist(artistId: String, artistData: RegisterArtistRequest): Flow<ResponseStates<RegisterArtistRequest>>
+
+    /**
+     * Get current artist details for the logged-in user.
+     * @param artistId The id of the artist (typically current user's id).
+     * @return A [Flow] emitting [ResponseStates] wrapping [RegisterArtistRequest] with artist details.
+     */
+    suspend fun getCurrentArtistDetails(artistId: String): Flow<ResponseStates<RegisterArtistRequest>>
+
+    /**
+     * Get artist statistics (followers, likes, artworks count).
+     * @param artistId The id of the artist.
+     * @return A [Flow] emitting [ResponseStates] wrapping [ArtistStatsResponse].
+     */
+    suspend fun getArtistStats(artistId: String): Flow<ResponseStates<com.orion.templete.data.model.artist_model.ArtistStatsResponse>>
+
+    /**
      * Check whether a given user is registered as an artist.
      * @param userId The id of the user to check.
      * @return A [Flow] emitting [ResponseStates] wrapping a Boolean indicating artist status.

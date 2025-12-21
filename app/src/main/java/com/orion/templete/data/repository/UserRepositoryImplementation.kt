@@ -237,6 +237,39 @@ class UserRepositoryImplementation @Inject constructor(
         }
     }
 
+    override suspend fun updateArtist(artistId: String, artistData: RegisterArtistRequest): Flow<ResponseStates<RegisterArtistRequest>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.updateArtist(artistId, artistData) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getCurrentArtistDetails(artistId: String): Flow<ResponseStates<RegisterArtistRequest>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getArtistDetails(artistId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getArtistStats(artistId: String): Flow<ResponseStates<com.orion.templete.data.model.artist_model.ArtistStatsResponse>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getArtistStats(artistId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
     override suspend fun isUserArtist(userId: String): Flow<ResponseStates<Boolean>> = flow {
         emit(ResponseStates.Loading)
         try {

@@ -12,6 +12,7 @@ import com.orion.templete.presentation.auth.AuthViewModel
 import com.orion.templete.presentation.auth.forgetpassword.ForgetPasswordScreen
 import com.orion.templete.presentation.auth.login.Login
 import com.orion.templete.presentation.auth.signup.Signup
+import com.orion.templete.presentation.artist_register.EditArtistScreen
 import com.orion.templete.presentation.home.Home
 import com.orion.templete.presentation.common.Screens
 
