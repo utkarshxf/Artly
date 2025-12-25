@@ -62,6 +62,9 @@ import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.favorites.CollectionArtworksScreen
 import com.orion.templete.presentation.favorites.CollectionViewModel
 import com.orion.templete.presentation.favorites.CollectionsScreen
+import com.orion.templete.presentation.leaderboard.LeaderboardScreen
+import com.orion.templete.presentation.top_artists.TopArtistsScreen
+import com.orion.templete.presentation.top_creators.TopCreatorsScreen
 import com.orion.templete.presentation.order_state.OrderConfirmationDetails
 import com.orion.templete.presentation.order_state.OrderFailedScreen
 import com.orion.templete.presentation.order_state.OrderSuccessScreen
@@ -163,6 +166,15 @@ fun Home(
             if (userID != null){
                 ArtistProfileScreen(userID , navController)
             }
+        }
+        composable(Screens.Leaderboard.route) {
+            LeaderboardScreen(navController)
+        }
+        composable(Screens.TopArtists.route) {
+            TopArtistsScreen(navController)
+        }
+        composable(Screens.TopCreators.route) {
+            TopCreatorsScreen(navController)
         }
         composable(Screens.UploadImageScreen.route) {
             UploadImageScreen(navController)

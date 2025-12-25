@@ -1,10 +1,13 @@
 package com.orion.templete.domain.repository
 
+import androidx.paging.PagingData
 import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.user_model.RegisterArtistRequest
+import com.orion.templete.data.model.user_model.TopUserProjection
+import com.orion.templete.data.model.user_model.TopCreatorProjection
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.util.ResponseStates
@@ -143,4 +146,28 @@ interface UserRepository {
      * @return A [Flow] emitting [ResponseStates] wrapping a Boolean indicating artist status.
      */
     suspend fun isUserArtist(userId: String): Flow<ResponseStates<Boolean>>
+
+    /**
+     * Get top viewers (limited to 10 for preview).
+     * @return A [Flow] emitting [ResponseStates] wrapping a list of [TopUserProjection].
+     */
+    suspend fun getTopViewers(): Flow<ResponseStates<List<TopUserProjection>>>
+
+    /**
+     * Get top viewers with Paging3 support.
+     * @return A [Flow] emitting [PagingData] of [TopUserProjection].
+     */
+    fun getTopViewersPaged(): Flow<PagingData<TopUserProjection>>
+
+    /**
+     * Get top creators (users who are also artists).
+     * @return A [Flow] emitting [ResponseStates] wrapping a list of [TopCreatorProjection].
+     */
+    suspend fun getTopCreators(): Flow<ResponseStates<List<TopCreatorProjection>>>
+
+    /**
+     * Get top creators with Paging3 support.
+     * @return A [Flow] emitting [PagingData] of [TopCreatorProjection].
+     */
+    fun getTopCreatorsPaged(): Flow<PagingData<TopCreatorProjection>>
 }

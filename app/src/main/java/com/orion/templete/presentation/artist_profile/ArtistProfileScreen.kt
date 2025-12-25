@@ -108,7 +108,8 @@ private fun ProfileContent(
         }
     }
 
-    if (showImagePopup) {
+    if (showImagePopup && artist.image_url != null) {
+
         ImagePopup(imageUrl = artist.image_url) {
             showImagePopup = false
         }
@@ -406,25 +407,35 @@ fun ImagePopup(imageUrl: String, onDismiss: () -> Unit) {
 @Composable
 private fun ProfileDescriptionSection(artist: ArtistDTO) {
     val context = LocalContext.current
-    val intent = remember { Intent(Intent.ACTION_VIEW, Uri.parse(artist.wikipedia_url)) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         GenreSection(artist.art_movement)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = artist.description,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 6,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = artist.wikipedia_url,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-            textDecoration = TextDecoration.Underline,
-            modifier = Modifier.clickable { context.startActivity(intent) }
-        )
+
+        // Only show description if it's not null or empty
+        if (!artist.description.isNullOrEmpty()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = artist.description,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 6,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Only show Wikipedia link if URL is not null or empty
+        if (!artist.wikipedia_url.isNullOrEmpty()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = artist.wikipedia_url,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                textDecoration = TextDecoration.Underline,
+                modifier = Modifier.clickable {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(artist.wikipedia_url))
+                    context.startActivity(intent)
+                }
+            )
+        }
     }
 }
 

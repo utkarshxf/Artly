@@ -123,9 +123,11 @@ object  AppModule {
     @Provides
     fun artistRepository(
         apiService: ApiService,
+        context: Context
     ): ArtistRepository {
         return ArtistRepositoryImplementation(
             apiService = apiService,
+            context = context
         )
     }
     @Provides

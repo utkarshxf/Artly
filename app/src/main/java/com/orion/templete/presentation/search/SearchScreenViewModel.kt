@@ -4,24 +4,26 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
+import com.orion.templete.data.model.artist_model.TopArtistProjection
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
-import com.orion.templete.data.model.favorits.favoritesDTO
+import com.orion.templete.data.model.user_model.TopUserProjection
+import com.orion.templete.data.model.user_model.TopCreatorProjection
 import com.orion.templete.domain.repository.ArtistRepository
+import com.orion.templete.domain.repository.UserRepository
+import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
 class SearchScreenViewModel @Inject constructor(
     private val artistRepository: ArtistRepository,
+    private val userRepository: UserRepository,
     private val secureStorage: SecureStorage,
     private val trackEvents: TrackEvents
 ) : ViewModel() {
@@ -41,6 +43,16 @@ class SearchScreenViewModel @Inject constructor(
 
     private val _todayBiggestHit = MutableStateFlow<TodayBiggestHitUiState>(TodayBiggestHitUiState.Loading)
     val todayBiggestHit: StateFlow<TodayBiggestHitUiState> = _todayBiggestHit
+
+    private val _topUsers = MutableStateFlow<TopUsersUiState>(TopUsersUiState.Loading)
+    val topUsers: StateFlow<TopUsersUiState> = _topUsers
+
+    private val _topArtists = MutableStateFlow<TopArtistsUiState>(TopArtistsUiState.Loading)
+    val topArtists: StateFlow<TopArtistsUiState> = _topArtists
+
+    private val _topCreators = MutableStateFlow<TopCreatorsUiState>(TopCreatorsUiState.Loading)
+    val topCreators: StateFlow<TopCreatorsUiState> = _topCreators
+
     init {
         val currentUserId = secureStorage.getUserId()
         currentUserId?.let {
@@ -48,6 +60,9 @@ class SearchScreenViewModel @Inject constructor(
             getNewArtworks(it)
             getRecommendedForToday(it)
             getTodayBiggestHit()
+            getTopUsers()
+            getTopArtists()
+            getTopCreators()
         }
     }
 
@@ -64,7 +79,8 @@ class SearchScreenViewModel @Inject constructor(
                 }
         }
     }
-    fun getPopularArtworks(userId :String) {
+
+    fun getPopularArtworks(userId: String) {
         viewModelScope.launch {
             artistRepository.getPopularArtworks(userId)
                 .catch { e ->
@@ -75,7 +91,8 @@ class SearchScreenViewModel @Inject constructor(
                 }
         }
     }
-    fun getNewArtworks(userId :String) {
+
+    fun getNewArtworks(userId: String) {
         viewModelScope.launch {
             artistRepository.getNewArtworks(userId)
                 .catch { e ->
@@ -85,7 +102,8 @@ class SearchScreenViewModel @Inject constructor(
                 }
         }
     }
-    fun getRecommendedForToday(userId :String) {
+
+    fun getRecommendedForToday(userId: String) {
         viewModelScope.launch {
             artistRepository.getRecommendedForToday(userId)
                 .catch { e ->
@@ -96,7 +114,8 @@ class SearchScreenViewModel @Inject constructor(
                 }
         }
     }
-    fun getTodayBiggestHit(){
+
+    fun getTodayBiggestHit() {
         viewModelScope.launch {
             artistRepository.getTodayBiggestHit()
                 .catch { e ->
@@ -104,6 +123,45 @@ class SearchScreenViewModel @Inject constructor(
                         TodayBiggestHitUiState.Error(e.message ?: "Unknown error")
                 }.collect { result ->
                     _todayBiggestHit.value = TodayBiggestHitUiState.Success(result)
+                }
+        }
+    }
+
+    fun getTopUsers() {
+        viewModelScope.launch {
+            userRepository.getTopViewers()
+                .collect { result ->
+                    when (result) {
+                        is ResponseStates.Loading -> _topUsers.value = TopUsersUiState.Loading
+                        is ResponseStates.Success -> _topUsers.value = TopUsersUiState.Success(result.data)
+                        is ResponseStates.Error -> _topUsers.value = TopUsersUiState.Error(result.error)
+                    }
+                }
+        }
+    }
+
+    fun getTopArtists() {
+        viewModelScope.launch {
+            artistRepository.getTopArtists()
+                .collect { result ->
+                    when (result) {
+                        is ResponseStates.Loading -> _topArtists.value = TopArtistsUiState.Loading
+                        is ResponseStates.Success -> _topArtists.value = TopArtistsUiState.Success(result.data)
+                        is ResponseStates.Error -> _topArtists.value = TopArtistsUiState.Error(result.error)
+                    }
+                }
+        }
+    }
+
+    fun getTopCreators() {
+        viewModelScope.launch {
+            userRepository.getTopCreators()
+                .collect { result ->
+                    when (result) {
+                        is ResponseStates.Loading -> _topCreators.value = TopCreatorsUiState.Loading
+                        is ResponseStates.Success -> _topCreators.value = TopCreatorsUiState.Success(result.data)
+                        is ResponseStates.Error -> _topCreators.value = TopCreatorsUiState.Error(result.error)
+                    }
                 }
         }
     }
@@ -132,9 +190,28 @@ sealed interface RecommendedForTodayUiState {
     data class Success(val listArtwork: List<ArtworkDTO>) : RecommendedForTodayUiState
     data class Error(val message: String) : RecommendedForTodayUiState
 }
+
 sealed interface TodayBiggestHitUiState {
     object Loading : TodayBiggestHitUiState
     data class Success(val artwork: ArtworkDTO) : TodayBiggestHitUiState
     data class Error(val message: String) : TodayBiggestHitUiState
+}
+
+sealed interface TopUsersUiState {
+    object Loading : TopUsersUiState
+    data class Success(val users: List<TopUserProjection>) : TopUsersUiState
+    data class Error(val message: String) : TopUsersUiState
+}
+
+sealed interface TopArtistsUiState {
+    object Loading : TopArtistsUiState
+    data class Success(val artists: List<TopArtistProjection>) : TopArtistsUiState
+    data class Error(val message: String) : TopArtistsUiState
+}
+
+sealed interface TopCreatorsUiState {
+    object Loading : TopCreatorsUiState
+    data class Success(val creators: List<TopCreatorProjection>) : TopCreatorsUiState
+    data class Error(val message: String) : TopCreatorsUiState
 }
 

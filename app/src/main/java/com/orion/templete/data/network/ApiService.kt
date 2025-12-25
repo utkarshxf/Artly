@@ -5,6 +5,7 @@ import com.orion.templete.data.model.ai_model.GeneratedImageResponse
 import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artist_model.ArtistStatsResponse
 import com.orion.templete.data.model.artist_model.SearchArtistResponse
+import com.orion.templete.data.model.artist_model.TopArtistsResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.ArtworkStatsResponse
 import com.orion.templete.data.model.artwork_model.ArtworkUploadDTO
@@ -20,6 +21,8 @@ import com.orion.templete.data.model.user_model.RegisterArtistRequest
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.data.model.user_model.SearchUsersResponse
+import com.orion.templete.data.model.user_model.TopUsersResponse
+import com.orion.templete.data.model.user_model.TopCreatorsResponse
 import com.orion.templete.data.model.UsernameValidationResponse
 import retrofit2.Response
 import retrofit2.http.Body
@@ -295,9 +298,36 @@ interface ApiService {
     @GET("isValidUsername")
     suspend fun validateUsername(@Query("username") username: String): Response<UsernameValidationResponse>
 
+    /**
+     * Get top viewers leaderboard
+     */
+    @GET("/users/leaderboard/top-viewers")
+    suspend fun getTopViewers(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 10
+    ): Response<TopUsersResponse>
+
+    /**
+     * Get top creators leaderboard
+     */
+    @GET("/users/leaderboard/top-creators")
+    suspend fun getTopCreators(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 10
+    ): Response<TopCreatorsResponse>
+
+    /**
+     * Get top artists leaderboard
+     */
+    @GET("/artist/leaderboard/top-artists")
+    suspend fun getTopArtists(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 10
+    ): Response<TopArtistsResponse>
+
     companion object {
 //        var baseurl = "https://backendart-production.up.railway.app/"
-        var baseurl = "https://hammerhead-app-zgpcv.ondigitalocean.app/"
+        var baseurl = "https://pseudointernational-taillessly-rachell.ngrok-free.dev/"
 //        var baseurl = "http://10.0.2.2:7040"
     }
     // this is the change before commit to new branch
