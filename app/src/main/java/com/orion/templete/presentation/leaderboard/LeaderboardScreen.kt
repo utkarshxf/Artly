@@ -86,11 +86,11 @@ fun LeaderboardScreen(
                             user = it,
                             rank = index + 1,
                             onClick = {
-                                navController.currentBackStackEntry?.savedStateHandle?.set(
-                                    key = "UserID",
-                                    value = it.userId
-                                )
-                                navController.navigate(Screens.UserProfile.route)
+//                                navController.currentBackStackEntry?.savedStateHandle?.set(
+//                                    key = "UserID",
+//                                    value = it.userId
+//                                )
+//                                navController.navigate(Screens.UserProfile.route)
                             }
                         )
                     }

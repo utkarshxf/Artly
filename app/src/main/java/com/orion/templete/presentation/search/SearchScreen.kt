@@ -184,11 +184,11 @@ fun TopUsers(state: TopUsersUiState, navController: NavController) {
                     TopUserCard(
                         users = state.users
                     ) {
-                        navController.currentBackStackEntry?.savedStateHandle?.set(
-                            key = "UserID",
-                            value = it.userId
-                        )
-                        navController.navigate(Screens.UserProfile.route)
+//                        navController.currentBackStackEntry?.savedStateHandle?.set(
+//                            key = "UserID",
+//                            value = it.userId
+//                        )
+//                        navController.navigate(Screens.UserProfile.route)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
