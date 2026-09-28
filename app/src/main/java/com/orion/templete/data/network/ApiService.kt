@@ -14,6 +14,9 @@ import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.PhoneAuthRequest
+import com.orion.templete.data.model.login_model.PhoneAuthResponse
+import com.orion.templete.data.model.login_model.PhoneSignupRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
@@ -70,6 +73,12 @@ interface ApiService {
 
     @POST("signup")
     suspend fun signup(@Body user: Registration): retrofit2.Response<LoginResponseDTO>
+
+    @POST("auth/phone")
+    suspend fun phoneAuth(@Body request: PhoneAuthRequest): Response<PhoneAuthResponse>
+
+    @POST("auth/phone/signup")
+    suspend fun phoneSignup(@Body request: PhoneSignupRequest): Response<LoginResponseDTO>
 
     @POST("check")
     suspend fun verifyUser(@Body token: TokenRequest): retrofit2.Response<Boolean>
@@ -326,8 +335,9 @@ interface ApiService {
     ): Response<TopArtistsResponse>
 
     companion object {
+        var baseurl = "https://artly-backend.azurewebsites.net/"
+//        var baseurl = "https://pseudointernational-taillessly-rachell.ngrok-free.dev/"
 //        var baseurl = "https://backendart-production.up.railway.app/"
-        var baseurl = "https://pseudointernational-taillessly-rachell.ngrok-free.dev/"
 //        var baseurl = "http://10.0.2.2:7040"
     }
     // this is the change before commit to new branch

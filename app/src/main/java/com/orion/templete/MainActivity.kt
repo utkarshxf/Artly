@@ -6,7 +6,11 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.orion.templete.util.GalleryLauncher
 import com.orion.templete.presentation.common.Screens
@@ -37,8 +41,11 @@ class MainActivity : ComponentActivity() {
             Log.d("TAG", "onCreate: $userId   $currentUserId  $startDestination ${!userId.equals(currentUserId)}")
             TempleteTheme {
 //                WindowCompat.setDecorFitsSystemWindows(window, false)
-                Surface() {
-                    Navigation(startDestination , this)
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    // Android 15+ draws apps edge-to-edge; keep every screen clear of the status and navigation bars
+                    Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+                        Navigation(startDestination , this@MainActivity)
+                    }
                 }
             }
         }

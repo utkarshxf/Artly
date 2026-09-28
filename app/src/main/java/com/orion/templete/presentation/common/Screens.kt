@@ -19,6 +19,7 @@ sealed class Screens(val route: String){
     object TopCreators : Screens("top_creators_route")
     object Login : Screens("login_route")
     object Signup : Screens("signup_route")
+    object CreateAccount : Screens("create_account_route")
     object ForgetPassword : Screens("forget_password_route")
     object Home : Screens("home_route")
     object Upload :Screens("upload_route")

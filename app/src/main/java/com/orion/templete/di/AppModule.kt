@@ -30,6 +30,7 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -43,6 +44,8 @@ object  AppModule {
     @Singleton
     fun provideOkHttpClient(context: Context): OkHttpClient {
         return OkHttpClient.Builder()
+            // The backend runs on Azure's free plan, which sleeps when idle; the first request can take ~1 min to wake it
+            .readTimeout(90, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val token = SecureStorage(context).getToken()
                 Log.d("AppModule", "Token: $token")

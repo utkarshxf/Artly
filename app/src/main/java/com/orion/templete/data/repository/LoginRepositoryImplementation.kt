@@ -11,6 +11,9 @@ import com.google.firebase.auth.PhoneAuthProvider
 import com.orion.templete.R
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
+import com.orion.templete.data.model.login_model.PhoneAuthRequest
+import com.orion.templete.data.model.login_model.PhoneAuthResponse
+import com.orion.templete.data.model.login_model.PhoneSignupRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
@@ -22,8 +25,12 @@ import com.orion.templete.util.SafeApiRequest
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+
+// Sent instead of "code sent" when Firebase verified the number by itself (no OTP to enter)
+const val AUTO_VERIFIED = "AUTO_VERIFIED"
 
 class LoginRepositoryImplementation @Inject constructor(
     private val apiService: ApiService,
@@ -60,7 +67,10 @@ class LoginRepositoryImplementation @Inject constructor(
 
         val onVerificationCallback = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks(){
             override fun onVerificationCompleted(p0: PhoneAuthCredential) {
-                trySend(AuthResultState.Success("Verification Completed"))
+                // Instant verification / SMS auto-retrieval: no code to type, sign in with the credential right away
+                db.signInWithCredential(p0)
+                    .addOnSuccessListener { trySend(AuthResultState.Success(AUTO_VERIFIED)) }
+                    .addOnFailureListener { trySend(AuthResultState.Failure(it)) }
             }
 
             override fun onVerificationFailed(p0: FirebaseException) {
@@ -110,6 +120,20 @@ class LoginRepositoryImplementation @Inject constructor(
     override suspend fun forgetPassword(request: ForgetPasswordRequest): LoginResponseDTO {
         return safeApiRequest { apiService.forgetPassword(request) }
     }
+
+    override suspend fun firebaseIdToken(): String =
+        db.currentUser?.getIdToken(false)?.await()?.token
+            ?: throw Exception("Please verify your phone number again")
+
+    override fun verifiedPhoneNumber(): String? = db.currentUser?.phoneNumber?.takeIf { it.isNotBlank() }
+
+    override fun signOutFirebase() = db.signOut()
+
+    override suspend fun phoneAuth(firebaseIdToken: String): PhoneAuthResponse =
+        safeApiRequest { apiService.phoneAuth(PhoneAuthRequest(firebaseIdToken)) }
+
+    override suspend fun phoneSignup(request: PhoneSignupRequest): LoginResponseDTO =
+        safeApiRequest { apiService.phoneSignup(request) }
 
     override fun validateUsername(username: String): Flow<AuthResultState<UsernameValidationResponse>> = callbackFlow {
         trySend(AuthResultState.Loading)

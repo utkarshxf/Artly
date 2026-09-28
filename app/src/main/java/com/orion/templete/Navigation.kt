@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import com.orion.templete.presentation.auth.AuthViewModel
 import com.orion.templete.presentation.auth.forgetpassword.ForgetPasswordScreen
 import com.orion.templete.presentation.auth.login.Login
+import com.orion.templete.presentation.auth.signup.CreateAccount
 import com.orion.templete.presentation.auth.signup.Signup
 import com.orion.templete.presentation.artist_register.EditArtistScreen
 import com.orion.templete.presentation.home.Home
@@ -27,9 +28,13 @@ fun Navigation(startDest: String, activity: MainActivity) {
         composable(Screens.Signup.route) {
             Signup(navController = navController, activity)
         }
+        composable(Screens.CreateAccount.route) {
+            CreateAccount(navController = navController)
+        }
         composable(Screens.Home.route) {
+            // after logout, start again from the phone-number step
             Home(navigateToLoginScreen = {
-                navController.navigate(Screens.Login.route) {
+                navController.navigate(Screens.Signup.route) {
                     popUpTo(Screens.Home.route) { inclusive = true }
                 }
             })

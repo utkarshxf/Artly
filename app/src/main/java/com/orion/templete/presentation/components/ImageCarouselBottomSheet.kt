@@ -61,7 +61,7 @@ fun ImageCarouselBottomSheet(
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded)
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         sheetState = bottomSheetState,
         dragHandle = null
     ) {

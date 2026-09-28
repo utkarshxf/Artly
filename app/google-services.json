@@ -1,51 +1,13 @@
 {
   "project_info": {
-    "project_number": "1068389652785",
-    "project_id": "artify-8fb6e",
-    "storage_bucket": "artify-8fb6e.firebasestorage.app"
+    "project_number": "109661024672",
+    "project_id": "loyal-optics-388515",
+    "storage_bucket": "loyal-optics-388515.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1068389652785:android:352866e0084101778bb810",
-        "android_client_info": {
-          "package_name": "com.example.notes"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCRTNPodlY_gYYSKUy65-2rniZ5bLGtA5M"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:1068389652785:android:8dc9ed315d23cbcf8bb810",
-        "android_client_info": {
-          "package_name": "com.orion.swipecard"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCRTNPodlY_gYYSKUy65-2rniZ5bLGtA5M"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:1068389652785:android:173c9496c5405ef88bb810",
+        "mobilesdk_app_id": "1:109661024672:android:fc43f4961d3b3ca888b4c5",
         "android_client_info": {
           "package_name": "com.orion.templete"
         }
@@ -53,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCRTNPodlY_gYYSKUy65-2rniZ5bLGtA5M"
+          "current_key": "AIzaSyDVQcM-kU1ifIAh7SNrKplkE760tDba6Uk"
         }
       ],
       "services": {

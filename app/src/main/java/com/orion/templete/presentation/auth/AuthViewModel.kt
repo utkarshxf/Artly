@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
+import com.orion.templete.data.model.login_model.PhoneSignupRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.User
 import com.orion.templete.data.model.UsernameValidationResponse
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import javax.inject.Inject
 
 @HiltViewModel
@@ -49,6 +51,8 @@ class AuthViewModel @Inject constructor(
     val authState: StateFlow<AuthScreenUiState> = _authState
     private val _otpState = MutableStateFlow<OTPScreenUiState>(OTPScreenUiState.Initial)
     val otpState: StateFlow<OTPScreenUiState> = _otpState
+    private val _phoneLoginState = MutableStateFlow<PhoneLoginUiState>(PhoneLoginUiState.Idle)
+    val phoneLoginState: StateFlow<PhoneLoginUiState> = _phoneLoginState
 
     // Username Validation State Management (MVVM - StateFlow for UI)
     private val _usernameValidationMessage = MutableStateFlow("")
@@ -260,14 +264,81 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun forgetPassword(phoneNumber: String, newPassword: String) {
-        // Create the request object
-        val request = ForgetPasswordRequest(phoneNumber, newPassword)
+    // Called once Firebase has verified the phone number: log in if the number has an account, otherwise ask the
+    // user to pick a username and password (CreateAccount screen)
+    fun continueWithVerifiedPhone() {
+        // handled: don't reopen the OTP sheet or repeat this when the user comes back to the phone screen
+        _authState.value = AuthScreenUiState.Initial
+        _otpState.value = OTPScreenUiState.Initial
+        viewModelScope.launch(Dispatchers.IO) {
+            _phoneLoginState.value = PhoneLoginUiState.Loading
+            _phoneLoginState.value = try {
+                val response = authRepository.phoneAuth(authRepository.firebaseIdToken())
+                if (response.registered && response.jwtToken != null && response.username != null) {
+                    secureStorage.saveToken(response.jwtToken)
+                    secureStorage.saveUserId(response.username)
+                    trackEvents.trackLoginSuccess()
+                    PhoneLoginUiState.LoggedIn
+                } else {
+                    PhoneLoginUiState.NeedsAccount(response.phone ?: authRepository.verifiedPhoneNumber().orEmpty())
+                }
+            } catch (e: Exception) {
+                trackEvents.trackLoginError(e.message.toString())
+                PhoneLoginUiState.Error(friendlyError(e))
+            }
+        }
+    }
 
+    fun createAccount(username: String, password: String) {
+        trackEvents.trackSignupAttempted()
+        viewModelScope.launch(Dispatchers.IO) {
+            _phoneLoginState.value = PhoneLoginUiState.Loading
+            _phoneLoginState.value = try {
+                val response = authRepository.phoneSignup(
+                    PhoneSignupRequest(authRepository.firebaseIdToken(), username, password)
+                )
+                secureStorage.saveToken(response.jwtToken)
+                secureStorage.saveUserId(response.username)
+                trackEvents.trackSignupSuccess()
+                PhoneLoginUiState.LoggedIn
+            } catch (e: Exception) {
+                trackEvents.trackSignupError(e.message.toString())
+                PhoneLoginUiState.Error(friendlyError(e))
+            }
+        }
+    }
+
+    fun verifiedPhoneNumber(): String? = authRepository.verifiedPhoneNumber()
+
+    // Start the phone step again (e.g. "use a different number")
+    fun restartPhoneLogin() {
+        authRepository.signOutFirebase()
+        _authState.value = AuthScreenUiState.Initial
+        _otpState.value = OTPScreenUiState.Initial
+        _phoneLoginState.value = PhoneLoginUiState.Idle
+    }
+
+    // The screen has reacted to the last result (navigated or showed the error)
+    fun resetPhoneLoginState() {
+        _phoneLoginState.value = PhoneLoginUiState.Idle
+    }
+
+    // SafeApiRequest errors look like "error code: 400: {"message":"...","status":false}"; show just the message
+    private fun friendlyError(e: Exception): String {
+        val raw = e.message.orEmpty()
+        val json = raw.substringAfter('{', "").let { if (it.isEmpty()) "" else "{$it" }
+        return runCatching { JSONObject(json).optString("message") }.getOrNull()?.takeIf { it.isNotBlank() }
+            ?: raw.ifBlank { "Something went wrong, please try again" }
+    }
+
+    fun forgetPassword(phoneNumber: String, newPassword: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Set loading state
                 forgetPasswordData = ForgetPasswordUiState(isLoading = true)
+
+                // The backend only resets the password of the number Firebase verified
+                val request = ForgetPasswordRequest(phoneNumber, newPassword, authRepository.firebaseIdToken())
 
                 // Call the repository method
                 val response = authRepository.forgetPassword(request)
@@ -329,4 +400,11 @@ sealed interface OTPScreenUiState {
     object Loading : OTPScreenUiState
     data class Success(val value: String) : OTPScreenUiState
     data class Error(val message: String) : OTPScreenUiState
+}
+sealed interface PhoneLoginUiState {
+    object Idle : PhoneLoginUiState
+    object Loading : PhoneLoginUiState
+    object LoggedIn : PhoneLoginUiState
+    data class NeedsAccount(val phone: String) : PhoneLoginUiState
+    data class Error(val message: String) : PhoneLoginUiState
 }

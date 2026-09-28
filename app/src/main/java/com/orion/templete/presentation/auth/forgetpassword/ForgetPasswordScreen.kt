@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nameisjayant.composeprojects.components.SpacerHeight
 import com.orion.templete.R
+import com.orion.templete.data.repository.AUTO_VERIFIED
 import com.orion.templete.presentation.auth.AuthScreenUiState
 import com.orion.templete.presentation.auth.OTPScreenUiState
 import com.orion.templete.presentation.common.CustomTextField
@@ -86,8 +87,13 @@ fun ForgetPasswordScreen(
     LaunchedEffect(authState) {
         when (authState) {
             is AuthScreenUiState.Success -> {
-                Toast.makeText(context, "OTP sent successfully", Toast.LENGTH_SHORT).show()
-                currentStep = 2
+                if (authState.verificationId == AUTO_VERIFIED) {
+                    // Firebase verified the number by itself; there is no code to type
+                    currentStep = 3
+                } else {
+                    Toast.makeText(context, "OTP sent successfully", Toast.LENGTH_SHORT).show()
+                    currentStep = 2
+                }
             }
             is AuthScreenUiState.Error -> {
                 Toast.makeText(context, authState.message, Toast.LENGTH_SHORT).show()
