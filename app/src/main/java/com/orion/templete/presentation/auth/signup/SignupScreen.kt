@@ -49,6 +49,8 @@ import com.orion.templete.presentation.auth.AuthScreenUiState
 import com.orion.templete.presentation.auth.AuthViewModel
 import com.orion.templete.presentation.auth.OTPScreenUiState
 import com.orion.templete.presentation.auth.PhoneLoginUiState
+import com.orion.templete.presentation.auth.components.GoogleSignInButton
+import com.orion.templete.presentation.auth.components.OrDivider
 import com.orion.templete.presentation.common.CustomTextField
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.components.AnimatedPreloader
@@ -70,8 +72,9 @@ fun Signup(
         viewModel = viewModel,
         activity = activity,
         onLoggedIn = {
+            // clear every auth page underneath, so Back on Home never shows a login screen
             navController.navigate(Screens.Home.route) {
-                popUpTo(Screens.Signup.route) { inclusive = true }
+                popUpTo(navController.graph.id) { inclusive = true }
             }
         },
         onNeedsAccount = { navController.navigate(Screens.CreateAccount.route) },
@@ -97,6 +100,7 @@ fun PhoneLoginScreen(
     var mobileNumber by remember { mutableStateOf("") }
     var countryCode by remember { mutableStateOf("+91") }
     var showOtpBottomSheet by remember { mutableStateOf(false) }
+    var googleTapped by remember { mutableStateOf(false) }
 
     val authState by viewModel.authState.collectAsState()
     val otpState by viewModel.otpState.collectAsState()
@@ -107,7 +111,7 @@ fun PhoneLoginScreen(
         when (val state = authState) {
             is AuthScreenUiState.Success -> {
                 if (state.verificationId == AUTO_VERIFIED) {
-                    viewModel.continueWithVerifiedPhone()
+                    viewModel.continueWithFirebaseUser()
                 } else {
                     showOtpBottomSheet = true
                 }
@@ -120,7 +124,7 @@ fun PhoneLoginScreen(
         when (val state = otpState) {
             is OTPScreenUiState.Success -> {
                 showOtpBottomSheet = false
-                viewModel.continueWithVerifiedPhone()
+                viewModel.continueWithFirebaseUser()
             }
             is OTPScreenUiState.Error -> Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
             else -> {}
@@ -160,7 +164,7 @@ fun PhoneLoginScreen(
         Icon(painter = painterResource(id = R.drawable.ic_logo_no_bacground), contentDescription = null, modifier = Modifier.size(82.dp))
         SpacerHeight(ExtraLargeSpacing)
         Text(
-            text = "Welcome to Artly",
+            text = "Welcome to Artistry",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
@@ -172,6 +176,17 @@ fun PhoneLoginScreen(
             textAlign = TextAlign.Center
         )
         SpacerHeight(LargeSize)
+        GoogleSignInButton(
+            onClick = {
+                googleTapped = true
+                viewModel.signInWithGoogle(activity)
+            },
+            enabled = !isBusy,
+            isLoading = isBusy && googleTapped
+        )
+        SpacerHeight(MediumSize)
+        OrDivider()
+        SpacerHeight(MediumSize)
         CustomTextField(
             value = mobileNumber,
             onValueChange = { mobileNumber = it.filter(Char::isDigit) },
@@ -188,6 +203,7 @@ fun PhoneLoginScreen(
                 if (number.length < 6) {
                     Toast.makeText(context, "Please enter a valid phone number", Toast.LENGTH_SHORT).show()
                 } else {
+                    googleTapped = false
                     viewModel.createUserWithPhone(countryCode + number, activity)
                 }
             },
@@ -200,7 +216,7 @@ fun PhoneLoginScreen(
             ),
             shape = MaterialTheme.shapes.medium
         ) {
-            if (isBusy) {
+            if (isBusy && !googleTapped) {
                 AnimatedPreloader()
             } else {
                 Text(text = "Continue")

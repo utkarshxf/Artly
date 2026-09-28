@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import com.nameisjayant.composeprojects.components.SpacerHeight
 import com.orion.templete.R
 import com.orion.templete.data.model.login_model.User
+import com.orion.templete.presentation.auth.components.GoogleSignInButton
+import com.orion.templete.presentation.auth.components.OrDivider
 import com.orion.templete.presentation.common.CustomTextField
 import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.ui.theme.ButtonHeight
@@ -57,6 +59,8 @@ fun LoginScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToSignup: () -> Unit,
     onNavigateToForgetPassword: () -> Unit = {},
+    onGoogleSignIn: () -> Unit = {},
+    googleLoading: Boolean = false,
 ) {
     val context = LocalContext.current
     LaunchedEffect(uiState.error) {
@@ -89,6 +93,14 @@ fun LoginScreen(
     ) {
         Icon(painter = painterResource(id = R.drawable.ic_logo_no_bacground), contentDescription = null , modifier = Modifier.size(82.dp))
         SpacerHeight(ExtraLargeSpacing)
+        GoogleSignInButton(
+            onClick = onGoogleSignIn,
+            enabled = !uiState.isLoading && !googleLoading,
+            isLoading = googleLoading
+        )
+        SpacerHeight(MediumSize)
+        OrDivider()
+        SpacerHeight(MediumSize)
         CustomTextField(
             value = username,
             onValueChange = { username = it },
@@ -115,7 +127,7 @@ fun LoginScreen(
                 defaultElevation = 0.dp
             ),
             shape = MaterialTheme.shapes.medium,
-            enabled = !uiState.isLoading
+            enabled = !uiState.isLoading && !googleLoading
         ) {
             if (uiState.isLoading) {
                 AnimatedPreloader()

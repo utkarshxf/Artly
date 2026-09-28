@@ -3,17 +3,23 @@ package com.orion.templete.data.repository
 import android.app.Activity
 import android.content.Context
 import android.util.Log
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.orion.templete.R
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
-import com.orion.templete.data.model.login_model.PhoneAuthRequest
-import com.orion.templete.data.model.login_model.PhoneAuthResponse
-import com.orion.templete.data.model.login_model.PhoneSignupRequest
+import com.orion.templete.data.model.login_model.FirebaseAuthRequest
+import com.orion.templete.data.model.login_model.FirebaseAuthResponse
+import com.orion.templete.data.model.login_model.FirebaseSignupRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
@@ -121,19 +127,37 @@ class LoginRepositoryImplementation @Inject constructor(
         return safeApiRequest { apiService.forgetPassword(request) }
     }
 
+    // Google account picker (Credential Manager) -> Firebase sign-in with the Google ID token
+    override suspend fun signInWithGoogle(activity: Activity) {
+        // default_web_client_id is generated from google-services.json once Google sign-in is enabled in Firebase
+        val webClientIdRes = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+        if (webClientIdRes == 0) throw Exception("Google sign-in is not set up yet")
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(GetSignInWithGoogleOption.Builder(context.getString(webClientIdRes)).build())
+            .build()
+        val credential = CredentialManager.create(activity).getCredential(activity, request).credential
+        if (credential !is CustomCredential || credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+            throw Exception("Google sign-in failed, please try again")
+        }
+        val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+        db.signInWithCredential(GoogleAuthProvider.getCredential(googleIdToken, null)).await()
+    }
+
     override suspend fun firebaseIdToken(): String =
         db.currentUser?.getIdToken(false)?.await()?.token
             ?: throw Exception("Please verify your phone number again")
 
-    override fun verifiedPhoneNumber(): String? = db.currentUser?.phoneNumber?.takeIf { it.isNotBlank() }
+    // The phone number (SMS sign-in) or email (Google sign-in) Firebase has verified
+    override fun verifiedIdentity(): String? =
+        db.currentUser?.let { user -> user.phoneNumber?.takeIf { it.isNotBlank() } ?: user.email?.takeIf { it.isNotBlank() } }
 
     override fun signOutFirebase() = db.signOut()
 
-    override suspend fun phoneAuth(firebaseIdToken: String): PhoneAuthResponse =
-        safeApiRequest { apiService.phoneAuth(PhoneAuthRequest(firebaseIdToken)) }
+    override suspend fun firebaseAuth(firebaseIdToken: String): FirebaseAuthResponse =
+        safeApiRequest { apiService.firebaseAuth(FirebaseAuthRequest(firebaseIdToken)) }
 
-    override suspend fun phoneSignup(request: PhoneSignupRequest): LoginResponseDTO =
-        safeApiRequest { apiService.phoneSignup(request) }
+    override suspend fun firebaseSignup(request: FirebaseSignupRequest): LoginResponseDTO =
+        safeApiRequest { apiService.firebaseSignup(request) }
 
     override fun validateUsername(username: String): Flow<AuthResultState<UsernameValidationResponse>> = callbackFlow {
         trySend(AuthResultState.Loading)

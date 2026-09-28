@@ -54,29 +54,32 @@ import java.util.Locale.getDefault
 
 private const val MIN_PASSWORD_LENGTH = 6
 
-// Step 2 for a new phone number: pick a username and password. The number itself was verified in step 1.
+// Step 2 for a new phone number or Google account: pick a username and password. The phone number / Google
+// email itself was verified in step 1.
 @Composable
 fun CreateAccount(navController: NavController) {
     val viewModel: AuthViewModel = hiltViewModel()
-    val phone = remember { viewModel.verifiedPhoneNumber() }
+    val identity = remember { viewModel.verifiedIdentity() }
     val backToPhoneStep = {
         viewModel.restartPhoneLogin()
-        if (!navController.popBackStack(Screens.Signup.route, inclusive = false)) {
-            navController.navigate(Screens.Signup.route) { popUpTo(Screens.CreateAccount.route) { inclusive = true } }
+        // back to whichever page opened us (phone, password login or forgot password)
+        if (!navController.popBackStack()) {
+            navController.navigate(Screens.Signup.route) { popUpTo(navController.graph.id) { inclusive = true } }
         }
     }
     // The verified Firebase session is gone (e.g. app restarted): start from the phone number again
-    LaunchedEffect(phone) {
-        if (phone == null) backToPhoneStep()
+    LaunchedEffect(identity) {
+        if (identity == null) backToPhoneStep()
     }
     BackHandler { backToPhoneStep() }
 
     CreateAccountScreen(
-        phone = phone.orEmpty(),
+        identity = identity.orEmpty(),
         viewModel = viewModel,
         onLoggedIn = {
+            // clear the whole auth back stack (we may have come from the phone page or the password page)
             navController.navigate(Screens.Home.route) {
-                popUpTo(Screens.Signup.route) { inclusive = true }
+                popUpTo(navController.graph.id) { inclusive = true }
             }
         },
         onUseDifferentNumber = backToPhoneStep
@@ -86,7 +89,7 @@ fun CreateAccount(navController: NavController) {
 @Composable
 fun CreateAccountScreen(
     modifier: Modifier = Modifier,
-    phone: String,
+    identity: String,
     viewModel: AuthViewModel,
     onLoggedIn: () -> Unit,
     onUseDifferentNumber: () -> Unit
@@ -140,14 +143,14 @@ fun CreateAccountScreen(
         )
         SpacerHeight(SmallSize)
         Text(
-            text = "✓ $phone verified",
+            text = "✓ $identity verified",
             style = MaterialTheme.typography.bodyMedium,
             color = Color(0xFF2E7D32),
             textAlign = TextAlign.Center
         )
         SpacerHeight(SmallSize)
         Text(
-            text = "Choose a username and password for Artly.",
+            text = "Choose a username and password for Artistry.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -224,7 +227,7 @@ fun CreateAccountScreen(
         }
         SpacerHeight(LargeSize)
         Text(
-            text = "Use a different number",
+            text = "Use a different number or account",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable { onUseDifferentNumber() }

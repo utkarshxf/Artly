@@ -39,6 +39,8 @@ import com.orion.templete.R
 import com.orion.templete.data.repository.AUTO_VERIFIED
 import com.orion.templete.presentation.auth.AuthScreenUiState
 import com.orion.templete.presentation.auth.OTPScreenUiState
+import com.orion.templete.presentation.auth.components.GoogleSignInButton
+import com.orion.templete.presentation.auth.components.OrDivider
 import com.orion.templete.presentation.common.CustomTextField
 import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.ui.theme.ButtonHeight
@@ -59,7 +61,9 @@ fun ForgetPasswordScreen(
     createUserWithPhone: (String, Activity) -> Unit = { _, _ -> },
     signInWithCredential: (String) -> Unit = { _ -> },
     authState: AuthScreenUiState = AuthScreenUiState.Initial,
-    otpState: OTPScreenUiState = OTPScreenUiState.Initial
+    otpState: OTPScreenUiState = OTPScreenUiState.Initial,
+    onGoogleSignIn: () -> Unit = {},
+    googleLoading: Boolean = false
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -146,8 +150,16 @@ fun ForgetPasswordScreen(
 
         SpacerHeight(ExtraLargeSpacing)
 
-        // Step 1: Enter phone number
+        // Step 1: Enter phone number (or skip the password entirely with Google)
         if (currentStep == 1) {
+            GoogleSignInButton(
+                onClick = onGoogleSignIn,
+                enabled = !googleLoading && authState !is AuthScreenUiState.Loading,
+                isLoading = googleLoading
+            )
+            SpacerHeight(MediumSize)
+            OrDivider()
+            SpacerHeight(MediumSize)
             Text(
                 text = "Enter your phone number to receive an OTP",
                 style = MaterialTheme.typography.bodyMedium,

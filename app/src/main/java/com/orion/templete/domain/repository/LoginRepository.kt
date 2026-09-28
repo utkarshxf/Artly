@@ -3,8 +3,8 @@ package com.orion.templete.domain.repository
 import android.app.Activity
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
-import com.orion.templete.data.model.login_model.PhoneAuthResponse
-import com.orion.templete.data.model.login_model.PhoneSignupRequest
+import com.orion.templete.data.model.login_model.FirebaseAuthResponse
+import com.orion.templete.data.model.login_model.FirebaseSignupRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
@@ -22,10 +22,11 @@ interface LoginRepository {
     fun signWithCredential(otp:String): Flow<AuthResultState<String>>
     fun validateUsername(username: String): Flow<AuthResultState<UsernameValidationResponse>>
 
-    // Phone-first login: Firebase proves the number, the backend logs in or asks for a username/password
+    // Firebase proves the phone number (SMS code) or Google account; the backend logs in or asks for a username/password
+    suspend fun signInWithGoogle(activity: Activity)
     suspend fun firebaseIdToken(): String
-    fun verifiedPhoneNumber(): String?
+    fun verifiedIdentity(): String?
     fun signOutFirebase()
-    suspend fun phoneAuth(firebaseIdToken: String): PhoneAuthResponse
-    suspend fun phoneSignup(request: PhoneSignupRequest): LoginResponseDTO
+    suspend fun firebaseAuth(firebaseIdToken: String): FirebaseAuthResponse
+    suspend fun firebaseSignup(request: FirebaseSignupRequest): LoginResponseDTO
 }

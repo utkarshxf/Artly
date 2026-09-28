@@ -27,18 +27,25 @@ class MainActivity : ComponentActivity() {
     private var galleryLauncher = GalleryLauncher(this, imageCropper)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val token = SecureStorage(this).getToken()
-        val userId = SecureStorage(this).getUserId()
-        val currentUserId = SecureStorage(this).getUserDetails()?.id
+        val storage = SecureStorage(this)
+        val token = storage.getToken()
+        val userId = storage.getUserId()
+        val loggedIn = !token.isNullOrBlank() && !userId.isNullOrBlank()
+        // The cached profile is only filled once Home loads it, so it must not decide whether the user is logged in.
+        // Profile details left over from a different account are dropped; Home fetches the right ones.
+        val cachedDetailsId = storage.getUserDetails()?.id
+        if (loggedIn && cachedDetailsId != null && cachedDetailsId != userId) {
+            storage.clearUserDetails()
+        }
         installSplashScreen()
         setContent {
-            val startDestination = if (token.isNullOrBlank() || userId.isNullOrBlank() || userId != currentUserId) {
-                SecureStorage(this).clearSharedPref()
-                Screens.Signup.route
-            } else {
+            val startDestination = if (loggedIn) {
                 Screens.Home.route
+            } else {
+                storage.clearSharedPref()
+                Screens.Signup.route
             }
-            Log.d("TAG", "onCreate: $userId   $currentUserId  $startDestination ${!userId.equals(currentUserId)}")
+            Log.d("TAG", "onCreate: $userId $cachedDetailsId $startDestination")
             TempleteTheme {
 //                WindowCompat.setDecorFitsSystemWindows(window, false)
                 Surface(modifier = Modifier.fillMaxSize()) {

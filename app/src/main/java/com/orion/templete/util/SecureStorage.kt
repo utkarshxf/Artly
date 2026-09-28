@@ -139,6 +139,18 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
         sharedPreferences.edit().clear().apply()
     }
 
+    // Forget the cached profile only (the login itself stays)
+    fun clearUserDetails() {
+        with(sharedPreferences.edit()) {
+            listOf(
+                PreferencesKey.UserId, PreferencesKey.UserName, PreferencesKey.UserDob, PreferencesKey.UserGender,
+                PreferencesKey.UserLanguage, PreferencesKey.UserCountryIso2, PreferencesKey.UserIsArtist,
+                PreferencesKey.UserProfilePicture
+            ).forEach { remove(it.key) }
+            apply()
+        }
+    }
+
     fun isFirstTime(): Boolean {
         return sharedPreferences.getBoolean(PreferencesKey.UserFirstTimeLogin.key, true)
     }

@@ -115,11 +115,13 @@ fun Home(
     val searchScreenViewModel: SearchScreenViewModel = hiltViewModel()
     val profileScreenViewModel = hiltViewModel<ProfileScreenViewModel>()
 
-    if (profileScreenViewModel.userData is ProfileScreenUiState.Error){
-        if (!((profileScreenViewModel.userData as ProfileScreenUiState.Error).message).isNullOrEmpty()){
-            LaunchedEffect(Unit) {
-                navigateToLoginScreen()
-            }
+    // Only a rejected session means "log in again". Offline / backend waking up / 5xx must not log the
+    // user out - ProfileScreen shows its own retry for those.
+    val profileError = (profileScreenViewModel.userData as? ProfileScreenUiState.Error)?.message.orEmpty()
+    if (listOf("error code: 401", "error code: 403", "error code: 404").any { profileError.startsWith(it) }) {
+        LaunchedEffect(Unit) {
+            secureStorage.clearSharedPref()
+            navigateToLoginScreen()
         }
     }
     NavHost (

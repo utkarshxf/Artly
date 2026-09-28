@@ -14,9 +14,9 @@ import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
-import com.orion.templete.data.model.login_model.PhoneAuthRequest
-import com.orion.templete.data.model.login_model.PhoneAuthResponse
-import com.orion.templete.data.model.login_model.PhoneSignupRequest
+import com.orion.templete.data.model.login_model.FirebaseAuthRequest
+import com.orion.templete.data.model.login_model.FirebaseAuthResponse
+import com.orion.templete.data.model.login_model.FirebaseSignupRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.TokenRequest
 import com.orion.templete.data.model.login_model.User
@@ -74,11 +74,11 @@ interface ApiService {
     @POST("signup")
     suspend fun signup(@Body user: Registration): retrofit2.Response<LoginResponseDTO>
 
-    @POST("auth/phone")
-    suspend fun phoneAuth(@Body request: PhoneAuthRequest): Response<PhoneAuthResponse>
+    @POST("auth/firebase")
+    suspend fun firebaseAuth(@Body request: FirebaseAuthRequest): Response<FirebaseAuthResponse>
 
-    @POST("auth/phone/signup")
-    suspend fun phoneSignup(@Body request: PhoneSignupRequest): Response<LoginResponseDTO>
+    @POST("auth/firebase/signup")
+    suspend fun firebaseSignup(@Body request: FirebaseSignupRequest): Response<LoginResponseDTO>
 
     @POST("check")
     suspend fun verifyUser(@Body token: TokenRequest): retrofit2.Response<Boolean>

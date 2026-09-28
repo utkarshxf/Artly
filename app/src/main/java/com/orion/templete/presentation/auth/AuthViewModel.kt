@@ -8,7 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
-import com.orion.templete.data.model.login_model.PhoneSignupRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
+import com.orion.templete.data.model.login_model.FirebaseSignupRequest
 import com.orion.templete.data.model.login_model.Registration
 import com.orion.templete.data.model.login_model.User
 import com.orion.templete.data.model.UsernameValidationResponse
@@ -24,13 +26,10 @@ import com.orion.templete.util.ForgetPasswordUiState
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import javax.inject.Inject
@@ -64,22 +63,15 @@ class AuthViewModel @Inject constructor(
     private val _isCheckingUsernameAvailability = MutableStateFlow(false)
     val isCheckingUsernameAvailability: StateFlow<Boolean> = _isCheckingUsernameAvailability
 
-    // Internal StateFlow to handle username input changes with debounce
-    private val _usernameInputFlow = MutableStateFlow("")
-
-    init {
-        // Debounce username input and validate
-        _usernameInputFlow
-            .debounce(500) // Wait 500ms after user stops typing
-            .distinctUntilChanged() // Only proceed if username actually changed
-            .filter { it.isNotEmpty() && it.length >= 3 && it.matches(Regex("^[a-z]+$")) } // Filter invalid inputs
-            .onEach { validateUsername(it) } // Validate when conditions met
-            .launchIn(viewModelScope)
-    }
+    // One availability check at a time: every keystroke cancels the previous (debounced) check, so a slow
+    // answer for an older name can never overwrite the result for the current text
+    private var usernameCheckJob: Job? = null
 
     // Business Logic: All validation logic moved from UI to ViewModel
     fun onUsernameChanged(username: String) {
-        viewModelScope.launch {
+        usernameCheckJob?.cancel()
+        _isUsernameValid.value = false
+        usernameCheckJob = viewModelScope.launch {
             // Perform local validation first (instant feedback)
             when {
                 username.isEmpty() -> {
@@ -108,7 +100,8 @@ class AuthViewModel @Inject constructor(
                     _isCheckingUsernameAvailability.value = false
                 }
                 else -> {
-                    _usernameInputFlow.value = username
+                    delay(500) // wait until the user stops typing
+                    validateUsername(username)
                 }
             }
         }
@@ -264,23 +257,23 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    // Called once Firebase has verified the phone number: log in if the number has an account, otherwise ask the
-    // user to pick a username and password (CreateAccount screen)
-    fun continueWithVerifiedPhone() {
+    // Called once Firebase has signed the user in (SMS code or Google): log in if an account uses the verified
+    // phone/email, otherwise ask the user to pick a username and password (CreateAccount screen)
+    fun continueWithFirebaseUser() {
         // handled: don't reopen the OTP sheet or repeat this when the user comes back to the phone screen
         _authState.value = AuthScreenUiState.Initial
         _otpState.value = OTPScreenUiState.Initial
         viewModelScope.launch(Dispatchers.IO) {
             _phoneLoginState.value = PhoneLoginUiState.Loading
             _phoneLoginState.value = try {
-                val response = authRepository.phoneAuth(authRepository.firebaseIdToken())
+                val response = authRepository.firebaseAuth(authRepository.firebaseIdToken())
                 if (response.registered && response.jwtToken != null && response.username != null) {
                     secureStorage.saveToken(response.jwtToken)
                     secureStorage.saveUserId(response.username)
                     trackEvents.trackLoginSuccess()
                     PhoneLoginUiState.LoggedIn
                 } else {
-                    PhoneLoginUiState.NeedsAccount(response.phone ?: authRepository.verifiedPhoneNumber().orEmpty())
+                    PhoneLoginUiState.NeedsAccount(response.phone ?: response.email ?: authRepository.verifiedIdentity().orEmpty())
                 }
             } catch (e: Exception) {
                 trackEvents.trackLoginError(e.message.toString())
@@ -289,13 +282,34 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    // "Continue with Google": pick a Google account, sign in to Firebase, then the same backend step as the phone flow
+    fun signInWithGoogle(activity: Activity) {
+        viewModelScope.launch {
+            _phoneLoginState.value = PhoneLoginUiState.Loading
+            try {
+                authRepository.signInWithGoogle(activity)
+            } catch (e: GetCredentialCancellationException) {
+                _phoneLoginState.value = PhoneLoginUiState.Idle // user closed the account picker
+                return@launch
+            } catch (e: NoCredentialException) {
+                _phoneLoginState.value = PhoneLoginUiState.Error("No Google account found on this phone")
+                return@launch
+            } catch (e: Exception) {
+                trackEvents.trackLoginError(e.message.toString())
+                _phoneLoginState.value = PhoneLoginUiState.Error(friendlyError(e))
+                return@launch
+            }
+            continueWithFirebaseUser()
+        }
+    }
+
     fun createAccount(username: String, password: String) {
         trackEvents.trackSignupAttempted()
         viewModelScope.launch(Dispatchers.IO) {
             _phoneLoginState.value = PhoneLoginUiState.Loading
             _phoneLoginState.value = try {
-                val response = authRepository.phoneSignup(
-                    PhoneSignupRequest(authRepository.firebaseIdToken(), username, password)
+                val response = authRepository.firebaseSignup(
+                    FirebaseSignupRequest(authRepository.firebaseIdToken(), username, password)
                 )
                 secureStorage.saveToken(response.jwtToken)
                 secureStorage.saveUserId(response.username)
@@ -308,9 +322,9 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun verifiedPhoneNumber(): String? = authRepository.verifiedPhoneNumber()
+    fun verifiedIdentity(): String? = authRepository.verifiedIdentity()
 
-    // Start the phone step again (e.g. "use a different number")
+    // Start the phone / Google step again (e.g. "use a different number")
     fun restartPhoneLogin() {
         authRepository.signOutFirebase()
         _authState.value = AuthScreenUiState.Initial
@@ -356,11 +370,9 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    private fun validateUsername(username: String) {
-        viewModelScope.launch {
-            authRepository.validateUsername(username)
-
-                .collect { authState ->
+    private suspend fun validateUsername(username: String) {
+        authRepository.validateUsername(username)
+            .collect { authState ->
                 when (authState) {
                     is AuthResultState.Success -> {
                         val response = authState.data
@@ -386,7 +398,6 @@ class AuthViewModel @Inject constructor(
                     }
                 }
             }
-        }
     }
 }
 sealed interface AuthScreenUiState {
@@ -405,6 +416,6 @@ sealed interface PhoneLoginUiState {
     object Idle : PhoneLoginUiState
     object Loading : PhoneLoginUiState
     object LoggedIn : PhoneLoginUiState
-    data class NeedsAccount(val phone: String) : PhoneLoginUiState
+    data class NeedsAccount(val identity: String) : PhoneLoginUiState
     data class Error(val message: String) : PhoneLoginUiState
 }

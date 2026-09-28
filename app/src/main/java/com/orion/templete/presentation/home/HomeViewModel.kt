@@ -27,6 +27,16 @@ class HomeViewModel @Inject constructor(
     init {
         currentUserId?.let {
             checkIfUserIsArtist(currentUserId)
+            refreshUserDetails(currentUserId)
+        }
+    }
+
+    // Keep the cached profile (name, picture, country...) that chat, upload and artist signup read up to date
+    private fun refreshUserDetails(userId: String) {
+        viewModelScope.launch {
+            userRepository.getUserByUserId(userId).collect { response ->
+                if (response is ResponseStates.Success) secureStorage.saveUserDto(response.data)
+            }
         }
     }
 

@@ -2,8 +2,14 @@ package com.orion.templete
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import com.orion.templete.presentation.auth.PhoneLoginUiState
+import com.orion.templete.presentation.auth.components.findActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,7 +47,28 @@ fun Navigation(startDest: String, activity: MainActivity) {
         }
         composable(Screens.ForgetPassword.route) {
             val viewModel: AuthViewModel = hiltViewModel()
+            val context = LocalContext.current
+            val googleState by viewModel.phoneLoginState.collectAsState()
+            // "Continue with Google" instead of resetting the password
+            LaunchedEffect(googleState) {
+                when (val state = googleState) {
+                    is PhoneLoginUiState.LoggedIn -> navController.navigate(Screens.Home.route) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                    is PhoneLoginUiState.NeedsAccount -> {
+                        viewModel.resetPhoneLoginState()
+                        navController.navigate(Screens.CreateAccount.route)
+                    }
+                    is PhoneLoginUiState.Error -> {
+                        Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                        viewModel.resetPhoneLoginState()
+                    }
+                    else -> {}
+                }
+            }
             ForgetPasswordScreen(
+                onGoogleSignIn = { context.findActivity()?.let { viewModel.signInWithGoogle(it) } },
+                googleLoading = googleState is PhoneLoginUiState.Loading,
                 uiState = viewModel.forgetPasswordData,
                 forgetPassword = { phoneNumber, newPassword ->
                     viewModel.forgetPassword(phoneNumber, newPassword)
@@ -53,7 +80,7 @@ fun Navigation(startDest: String, activity: MainActivity) {
                 },
                 onNavigateToHome = {
                     navController.navigate(Screens.Home.route) {
-                        popUpTo(Screens.ForgetPassword.route) { inclusive = true }
+                        popUpTo(navController.graph.id) { inclusive = true }
                     }
                 },
                 createUserWithPhone = { phone, act ->
