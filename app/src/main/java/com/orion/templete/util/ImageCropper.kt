@@ -15,6 +15,21 @@ import java.util.UUID
 
 
 class ImageCropper(private val activity: ComponentActivity) {
+
+    companion object {
+        // Dark crop screen like the app; CropScreenInsets paints the system bar areas with the same colour
+        const val CROP_BAR_COLOR = 0xFF121212.toInt()
+        private const val CROP_ACCENT_COLOR = 0xFFC2185B.toInt()
+    }
+
+    private fun cropOptions() = Options().apply {
+        setToolbarTitle("Crop")
+        setToolbarColor(CROP_BAR_COLOR)
+        setStatusBarColor(CROP_BAR_COLOR)
+        setToolbarWidgetColor(android.graphics.Color.WHITE)
+        setRootViewBackgroundColor(android.graphics.Color.BLACK)
+        setActiveControlsWidgetColor(CROP_ACCENT_COLOR)
+    }
     private var _croppedImageUri = MutableStateFlow<Uri?>(null)
     val croppedImageUri: Flow<Uri?> get() = _croppedImageUri
     private var resultPhotos: ActivityResultLauncher<Intent>? = null
@@ -41,8 +56,7 @@ class ImageCropper(private val activity: ComponentActivity) {
         val uCrop = UCrop.of(uri, Uri.fromFile(File(activity.cacheDir, destinationFileName)))
 
 
-        val options = Options()
-        uCrop.withOptions(options)
+        uCrop.withOptions(cropOptions())
 
         val intent = uCrop.getIntent(activity)
         resultPhotos?.launch(intent)
@@ -55,8 +69,7 @@ class ImageCropper(private val activity: ComponentActivity) {
         val destinationFileName = UUID.randomUUID().toString()
         val uCrop = UCrop.of(uri, Uri.fromFile(File(activity.cacheDir, destinationFileName)))
 
-        val options = Options()
-        uCrop.withOptions(options)
+        uCrop.withOptions(cropOptions())
 
         return uCrop.getIntent(activity)
     }

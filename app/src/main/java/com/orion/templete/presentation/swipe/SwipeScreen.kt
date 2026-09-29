@@ -1,16 +1,25 @@
 package com.orion.templete.presentation.swipe
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
@@ -24,9 +33,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.orion.templete.presentation.chat.share.PaperPlaneIcon
+import com.orion.templete.presentation.chat.share.ShareToChatSheet
+import com.orion.templete.presentation.chat.share.toArtworkRef
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
@@ -53,6 +69,7 @@ fun SwipeScreen(
 ) {
     val context = LocalContext.current
     var isSwipeLayout by remember { mutableStateOf(SecureStorage(context).getLayout()) }
+    val unreadChats by vm.unreadConversationCount.collectAsState()
 
     Column {
         HeaderRow(
@@ -61,7 +78,8 @@ fun SwipeScreen(
                 isSwipeLayout = !isSwipeLayout
                 SecureStorage(context).setLayout(isSwipeLayout)
             },
-            onChatClick = onChatClick
+            onChatClick = onChatClick,
+            unreadChats = unreadChats
         )
 
         if (isSwipeLayout) {
@@ -77,7 +95,8 @@ private fun HeaderRow(
     modifier: Modifier = Modifier,
     isSwipeLayout: Boolean = true,
     onToggleLayout: () -> Unit = {},
-    onChatClick: () -> Unit = {}
+    onChatClick: () -> Unit = {},
+    unreadChats: Int = 0
 ) {
     Row(
         modifier = modifier
@@ -96,15 +115,68 @@ private fun HeaderRow(
             modifier = Modifier.size(40.dp)
         )
 
-        IconButton(
-            onClick = onChatClick,
-            modifier = Modifier.size(48.dp)
+        // The badge sits outside the IconButton, which clips its content to a circle
+        Box(modifier = Modifier.size(48.dp)) {
+            IconButton(
+                onClick = onChatClick,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_message),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(28.dp),
+                    contentDescription = when {
+                        unreadChats == 1 -> "Messages, 1 unread chat"
+                        unreadChats > 1 -> "Messages, $unreadChats unread chats"
+                        else -> "Messages"
+                    }
+                )
+            }
+            // Over the icon's top-right corner (the 28dp icon spans 10..38dp of this 48dp box)
+            UnreadChatsBadge(
+                count = unreadChats,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-1).dp, y = 2.dp)
+            )
+        }
+    }
+}
+
+private val UnreadBadgeRed = Color(0xFFFF3040)
+
+// Instagram-style red count bubble on the direct-messages icon; hidden at 0, capped at "9+"
+@Composable
+private fun UnreadChatsBadge(count: Int, modifier: Modifier = Modifier) {
+    // Plain holder (not state): keeps the last count on screen while the badge animates out
+    val lastCount = remember { IntArray(1) }
+    if (count > 0) lastCount[0] = count
+    val shown = if (count > 0) count else lastCount[0]
+    AnimatedVisibility(
+        visible = count > 0,
+        modifier = modifier,
+        enter = scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+        exit = scaleOut() + fadeOut()
+    ) {
+        Box(
+            modifier = Modifier
+                .clearAndSetSemantics { }
+                .background(MaterialTheme.colorScheme.surface, CircleShape)
+                .padding(2.dp)
+                .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
+                .background(UnreadBadgeRed, CircleShape)
+                .padding(horizontal = 5.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_message),
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(28.dp),
-                contentDescription = "Chat"
+            Text(
+                text = if (shown > 9) "9+" else shown.toString(),
+                color = Color.White,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    lineHeight = 12.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                maxLines = 1
             )
         }
     }
@@ -234,6 +306,9 @@ fun ScrollCardItem(
 @Composable
 fun ArtworkProfileCard(artwork: ArtworkDTO) {
     var isExpanded by remember { mutableStateOf(false) }
+    // Instagram-style share: send the artwork to chats (the sheet also offers "Share to…" other apps)
+    val shareRef = remember(artwork) { artwork.toArtworkRef() }
+    var showShareSheet by rememberSaveable { mutableStateOf(false) }
 
     val cardHeight by animateDpAsState(
         targetValue = if (isExpanded) 300.dp else 150.dp,
@@ -277,10 +352,13 @@ fun ArtworkProfileCard(artwork: ArtworkDTO) {
                     )
                 }
 
-                IconButton(onClick = { ShareUtils.shareArtwork(context, artwork) }) {
+                IconButton(onClick = {
+                    if (shareRef != null) showShareSheet = true else ShareUtils.shareArtwork(context, artwork)
+                }) {
                     Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share"
+                        imageVector = PaperPlaneIcon,
+                        contentDescription = "Share",
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
@@ -333,6 +411,13 @@ fun ArtworkProfileCard(artwork: ArtworkDTO) {
                 )
             }
         }
+    }
+    if (showShareSheet && shareRef != null) {
+        ShareToChatSheet(
+            artwork = shareRef,
+            onDismiss = { showShareSheet = false },
+            onShareExternally = { ShareUtils.shareArtwork(context, artwork) }
+        )
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)
@@ -439,7 +524,8 @@ fun SwipeCard(
                                         .swipableCard(
                                             state = state,
                                             blockedDirections = listOf(Direction.Down),
-                                            onSwiped = {
+                                                                                        onSwiped = {
+                                                swipeScreenViewModel.onCardSwiped()
                                                 if (artworkList.isNotEmpty()) {
                                                     artworkList.remove(artwork)
                                                 }

@@ -226,7 +226,8 @@ class UserRepositoryImplementation @Inject constructor(
         emit(ResponseStates.Loading)
         try {
             val response = safeApiRequest { apiService.getArtistArtworks(userId , artistId) }
-            emit(ResponseStates.Success(response))
+            // older backends return one empty row for an artist without artworks; never show it as "Untitled"
+            emit(ResponseStates.Success(response.filter { !it.id.isNullOrBlank() }))
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))

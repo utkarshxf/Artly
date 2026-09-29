@@ -1,5 +1,7 @@
 package com.orion.templete.presentation.common
 
+import android.net.Uri
+
 sealed class Screens(val route: String){
 
     object FavoritesScreen : Screens("favorites_screen")
@@ -34,9 +36,13 @@ sealed class Screens(val route: String){
     object OrderTracking : Screens("order_tracking_route")
     object ShippingAddress : Screens("shipping_address_route")
 
-    // Chat
+    // Chat (Instagram-style direct messages)
     object RecentChats : Screens("recent_chats_route")
+    object NewMessage : Screens("new_message_route")
     object ChatThread : Screens("chat_thread_route/{peerUsername}") {
-        fun route(peerUsername: String) = "chat_thread_route/$peerUsername"
+        const val ARG_PEER = "peerUsername"
+
+        // The username is URL-encoded so any character is safe inside the path; Navigation decodes it again
+        fun route(peerUsername: String) = "chat_thread_route/${Uri.encode(peerUsername)}"
     }
 }

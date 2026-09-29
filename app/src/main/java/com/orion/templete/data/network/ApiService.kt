@@ -1,6 +1,7 @@
 package com.orion.templete.data.network
 
 
+import retrofit2.http.DELETE
 import com.orion.templete.data.model.ai_model.GeneratedImageResponse
 import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artist_model.ArtistStatsResponse
@@ -11,6 +12,8 @@ import com.orion.templete.data.model.artwork_model.ArtworkStatsResponse
 import com.orion.templete.data.model.artwork_model.ArtworkUploadDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
+import com.orion.templete.data.model.chat.ChatNotifyRequest
+import com.orion.templete.data.model.chat.ChatTokenResponse
 import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.data.model.login_model.ForgetPasswordRequest
 import com.orion.templete.data.model.login_model.LoginResponseDTO
@@ -27,6 +30,7 @@ import com.orion.templete.data.model.user_model.SearchUsersResponse
 import com.orion.templete.data.model.user_model.TopUsersResponse
 import com.orion.templete.data.model.user_model.TopCreatorsResponse
 import com.orion.templete.data.model.UsernameValidationResponse
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Field
@@ -97,6 +101,19 @@ interface ApiService {
 
     @PUT("artwork/user/dislike/{artworkId}/{userId}")
     suspend fun disLikeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Unit>
+
+    // Permanently deletes the signed-in user's account and everything it owns (Play account-deletion policy)
+    @DELETE("/account")
+    suspend fun deleteMyAccount(): Response<okhttp3.ResponseBody>
+
+    // Search screen: artworks (incl. descriptions), artists and people; type = all | artworks | artists | people
+    @GET("/search")
+    suspend fun search(
+        @Query("q") query: String,
+        @Query("type") type: String,
+        @Query("skip") skip: Int,
+        @Query("limit") limit: Int
+    ): Response<com.orion.templete.data.model.search.SearchResponse>
 
     @GET("/artist/search")
     suspend fun getAllArtists(
@@ -333,6 +350,19 @@ interface ApiService {
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 10
     ): Response<TopArtistsResponse>
+
+    /**
+     * Chat: Firebase custom token for the signed-in user (uid == username).
+     * 503 {"message":"Chat is not configured yet","status":false} while the server has no Firebase credentials.
+     */
+    @POST("chat/token")
+    suspend fun chatToken(): Response<ChatTokenResponse>
+
+    /**
+     * Chat: ask the backend to push a just-written message to the recipient's devices
+     */
+    @POST("chat/notify")
+    suspend fun chatNotify(@Body request: ChatNotifyRequest): Response<ResponseBody>
 
     companion object {
         var baseurl = "https://artly-backend.azurewebsites.net/"

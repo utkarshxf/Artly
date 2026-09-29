@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.top_artists
 
+import com.orion.templete.presentation.common.NameWithBadge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -204,12 +205,15 @@ fun TopArtistGridCard(
 
         Spacer(Modifier.height(8.dp))
 
-        Text(
-            text = artist.name,
+        NameWithBadge(
+            name = artist.name,
+            verified = artist.verified == true,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            badgeSize = 14.dp,
+            horizontalArrangement = Arrangement.Center
         )
     }
 }

@@ -5,6 +5,7 @@ data class TopArtistProjection(
     val name: String,
     val imageUrl: String?,
     val totalLikes: Long,
-    val rank: Int
+    val rank: Int,
+    val verified: Boolean? = null
 )
 

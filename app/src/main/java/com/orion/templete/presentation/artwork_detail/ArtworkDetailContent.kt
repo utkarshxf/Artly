@@ -1,5 +1,7 @@
 package com.orion.templete.presentation.artwork_detail
 
+import com.orion.templete.presentation.artist_profile.FollowArtistUiState
+import com.orion.templete.presentation.artist_profile.UnFollowArtistUiState
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
@@ -67,6 +69,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +85,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
@@ -101,6 +105,9 @@ import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.presentation.artist_profile.ArtistProfileScreenUiState
 import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
 import com.orion.templete.presentation.artist_profile.GetCommentsOnArtworkUiState
+import com.orion.templete.presentation.chat.share.PaperPlaneIcon
+import com.orion.templete.presentation.chat.share.ShareToChatSheet
+import com.orion.templete.presentation.chat.share.toArtworkRef
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.Screens
@@ -159,11 +166,27 @@ fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewMo
 fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavController, viewModel: ArtworkDetailViewModel? = null) {
     val scrollState = rememberLazyListState()
     var isLiked = remember { mutableStateOf(artworkDetailsDTO.liked) }
+    // Instagram-style "send to a chat" (paper plane). Kept open across rotation and process death.
+    val shareRef = remember(artworkDetailsDTO) { artworkDetailsDTO.toArtworkRef() }
+    var showShareToChat by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val openShare: (() -> Unit)? = if (shareRef != null) ({ showShareToChat = true }) else null
     Box {
-        Details(artworkDetailsDTO, scrollState , isLiked , navController, viewModel)
-        ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked ,navController)
+        Details(
+            artworkDetailsDTO, scrollState, isLiked, navController, viewModel,
+            onShareToChat = openShare
+        )
+        ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked ,navController, onShare = openShare)
+    }
+    if (showShareToChat && shareRef != null) {
+        ShareToChatSheet(
+            artwork = shareRef,
+            onDismiss = { showShareToChat = false },
+            onShareExternally = { ShareUtils.shareArtwork(context, artworkDetailsDTO) }
+        )
     }
 }
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -172,7 +195,8 @@ private fun Details(
     scrollState: LazyListState,
     isLiked: MutableState<Boolean?>,
     navController: NavController,
-    viewModel: ArtworkDetailViewModel? = null
+    viewModel: ArtworkDetailViewModel? = null,
+    onShareToChat: (() -> Unit)? = null
 ) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight),
@@ -180,7 +204,7 @@ private fun Details(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            BasicInfo(artworkDetailsDTO, isLiked, viewModel)
+            BasicInfo(artworkDetailsDTO, isLiked, viewModel, onShareToChat)
             Description(artworkDetailsDTO)
             ArtworkDetails(artworkDetailsDTO)
             AboutTheArtist(navController, artworkDetailsDTO.id)
@@ -199,7 +223,37 @@ fun AboutTheArtist(navController: NavController , id: String? , vm: ArtistProfil
     Log.d("artistProfileUiState" , artistProfileUiState.toString())
     if(artistProfileUiState is ArtistProfileScreenUiState.Success){
         val it  = artistProfileUiState.artist
-        ArtistProfileCard(it.name ?: "name", it.id ?: "id", it.image_url ?: "profilePicture") {
+        // Follow right from the artwork (not on your own artist profile)
+        val isMe = it.id.equals(vm.currentUserId, ignoreCase = true)
+        var following by remember(it.id) { mutableStateOf(it.follow) }
+        var followBusy by remember { mutableStateOf(false) }
+        LaunchedEffect(vm.followArtistUiState) {
+            when (vm.followArtistUiState) {
+                is FollowArtistUiState.Loading -> followBusy = true
+                is FollowArtistUiState.Success -> {
+                    followBusy = false
+                    following = true
+                }
+                else -> followBusy = false
+            }
+        }
+        LaunchedEffect(vm.unFollowArtistUiState) {
+            when (vm.unFollowArtistUiState) {
+                is UnFollowArtistUiState.Loading -> followBusy = true
+                is UnFollowArtistUiState.Success -> {
+                    followBusy = false
+                    following = false
+                }
+                else -> followBusy = false
+            }
+        }
+        ArtistProfileCard(
+            it.name ?: "name", it.id ?: "id", it.image_url ?: "profilePicture",
+            verified = it.verified == true,
+            following = if (isMe) null else following,
+            followBusy = followBusy,
+            onFollowClick = { if (following) vm.unfollowArtist(it.id) else vm.followUser(it.id) }
+        ) {
             navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it.id)
             navController.navigate(Screens.UserProfile.route)
         }
@@ -284,7 +338,12 @@ fun Description(artworkDetailsDTO: ArtworkDTO) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>, viewModel: ArtworkDetailViewModel? = null) {
+fun BasicInfo(
+    artworkDetailsDTO: ArtworkDTO,
+    isLiked: MutableState<Boolean?>,
+    viewModel: ArtworkDetailViewModel? = null,
+    onShareToChat: (() -> Unit)? = null
+) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     var showComments by remember { mutableStateOf(false) }
     var showSavedFolders by remember { mutableStateOf(false) }
@@ -332,6 +391,9 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>, vie
                     showComments = true
                 }
             }
+        }
+        if (onShareToChat != null) {
+            ShareToChatAction(onClick = onShareToChat)
         }
         InfoColumn(R.drawable.ic_save, "Save"){
             showSavedFolders = true
@@ -611,6 +673,28 @@ private fun CommentItem(comment: GetCommentsDTO) {
     }
 }
 
+// Paper plane next to like / comment / save: opens the "send to a chat" sheet
+@Composable
+private fun ShareToChatAction(onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable(
+            onClickLabel = "Send to a chat",
+            role = Role.Button,
+            onClick = onClick
+        )
+    ) {
+        Icon(
+            imageVector = PaperPlaneIcon,
+            contentDescription = null,
+            tint = if (isSystemInDarkTheme()) Color.White else Color.Black,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = "Share", fontWeight = Bold)
+    }
+}
+
 @Composable
 fun InfoColumn(@DrawableRes iconResource: Int, text: String , onClick: () -> Unit ={}) {
     Row(verticalAlignment = Alignment.CenterVertically , modifier = Modifier.clickable { onClick() }) {
@@ -644,7 +728,8 @@ private fun ParallaxToolbar(
     artworkDTO: ArtworkDTO,
     scrollState: LazyListState,
     isLiked: MutableState<Boolean?>,
-    navController: NavController
+    navController: NavController,
+    onShare: (() -> Unit)? = null
 ) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     val imageHeight = AppBarExpendedHeight - AppBarCollapsedHeight
@@ -706,12 +791,14 @@ private fun ParallaxToolbar(
                             modifier = Modifier
                                 .padding(end = 16.dp)
                                 .clickable {
-                                ShareUtils.shareArtwork(context, artworkDTO)
+                                // Instagram-style: send it to a chat (the sheet also has "Share to…" other apps)
+                                onShare?.invoke() ?: ShareUtils.shareArtwork(context, artworkDTO)
                             }
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Share,
+                                imageVector = PaperPlaneIcon,
                                 contentDescription = "Share",
+                                modifier = Modifier.size(24.dp)
                             )
                             Text(
                                 text = "Share",

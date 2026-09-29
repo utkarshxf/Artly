@@ -7,6 +7,9 @@ import com.orion.templete.data.local.AppDatabase
 import com.flashcall.me.data.local.dao.UserDao
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.storage.FirebaseStorage
+import com.orion.templete.data.chat.ChatSessionImpl
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
 import com.orion.templete.data.repository.uploadRepositoryImplementation
@@ -21,6 +24,7 @@ import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.domain.repository.LoginRepository
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.domain.repository.chat.ChatRepository
+import com.orion.templete.domain.repository.chat.ChatSession
 import com.orion.templete.util.SecureStorage
 import dagger.Module
 import dagger.Provides
@@ -142,10 +146,29 @@ object  AppModule {
         return UserRepositoryImplementation(apiService ,userDao ,context)
     }
 
+    // ---- Chat (Instagram-style DMs): Firestore + Storage + FCM, session with a backend-minted custom token
     @Provides
     @Singleton
-    fun provideChatRepository(db: FirebaseFirestore, api: ApiService): ChatRepository {
-        return ChatRepositoryImpl(db, api)
+    fun provideFirebaseStorage(): FirebaseStorage {
+        return FirebaseStorage.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseMessaging(): FirebaseMessaging {
+        return FirebaseMessaging.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatSession(impl: ChatSessionImpl): ChatSession {
+        return impl
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatRepository(impl: ChatRepositoryImpl): ChatRepository {
+        return impl
     }
 
     @Provides

@@ -7,16 +7,37 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+// Release signing: keystore path, alias and passwords live in Artly/keystore.properties (not in git)
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+def hasReleaseSigning = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].every {
+    keystoreProperties.getProperty(it)?.trim()
+}
+
 android {
     namespace 'com.orion.templete'
-    compileSdk 34
+    compileSdk 36
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(keystoreProperties.getProperty('storeFile'))
+                storePassword keystoreProperties.getProperty('storePassword')
+                keyAlias keystoreProperties.getProperty('keyAlias')
+                keyPassword keystoreProperties.getProperty('keyPassword')
+            }
+        }
+    }
 
     defaultConfig {
         applicationId "com.orion.templete"
         minSdk 24
-        targetSdk 35
-        versionCode 23
-        versionName "2.4"
+        targetSdk 36
+        versionCode 25
+        versionName "2.5.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -28,6 +49,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {
@@ -70,6 +94,12 @@ dependencies {
     implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
     implementation 'com.google.firebase:firebase-storage:21.0.1'
     implementation 'com.google.firebase:firebase-firestore-ktx:25.1.1'
+    // Chat v2: push notifications (FCM data messages), process lifecycle for presence, EXIF for photo uploads,
+    // extended Material icons for the chat screens (version from the Compose BOM)
+    implementation 'com.google.firebase:firebase-messaging:24.1.0'
+    implementation 'androidx.lifecycle:lifecycle-process:2.6.1'
+    implementation 'androidx.exifinterface:exifinterface:1.3.7'
+    implementation 'androidx.compose.material:material-icons-extended'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'

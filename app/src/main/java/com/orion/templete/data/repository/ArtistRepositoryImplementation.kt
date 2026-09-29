@@ -32,6 +32,9 @@ class ArtistRepositoryImplementation @Inject constructor(
         }
     }
 
+    override suspend fun search(query: String, type: String, skip: Int, limit: Int) =
+        safeApiRequest { apiService.search(query, type, skip, limit) }
+
     override suspend fun getPopularArtworks(userId :String): Flow<List<ArtworkDTO>>  = flow {
         try {
             val response = safeApiRequest { apiService.getPopularArtworks(userId) }

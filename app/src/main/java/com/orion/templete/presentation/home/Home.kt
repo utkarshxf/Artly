@@ -4,6 +4,8 @@ package com.orion.templete.presentation.home
 import ArtViewScreen
 import UserEditScreen
 import android.os.Build
+import android.util.Log
+import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,11 +41,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.orion.templete.data.model.chat.ChatDeepLink
 import com.orion.templete.presentation.address.Address
 import com.orion.templete.presentation.address.InAppShippingAddressScreen
 import com.orion.templete.presentation.address.ShippingAddressScreen
@@ -51,8 +59,11 @@ import com.orion.templete.presentation.artist_profile.ArtistProfileScreen
 import com.orion.templete.presentation.artist_register.ArtistRegisterScreen
 import com.orion.templete.presentation.artist_register.EditArtistScreen
 import com.orion.templete.presentation.profile.ProfileScreen
-import com.orion.templete.presentation.chat.RecentChatsScreen
-import com.orion.templete.presentation.chat.ChatScreen
+import com.orion.templete.presentation.auth.components.findActivity
+import com.orion.templete.presentation.chat.inbox.InboxScreen
+import com.orion.templete.presentation.chat.inbox.NewMessageScreen
+import com.orion.templete.presentation.chat.thread.ChatThreadScreen
+import com.orion.templete.presentation.profile.common.signOutOfChat
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
 import com.orion.templete.presentation.artwork_detail.ArtworkDetailScreen
@@ -94,10 +105,9 @@ fun Home(
     val navController = rememberNavController()
     var navigationSelectedItem by remember { mutableIntStateOf(0) }
 
-    // First-time user popup state
+        // Context and storage
     val context = LocalContext.current
     val secureStorage = remember { SecureStorage(context) }
-    var showBecomeArtistDialog by remember { mutableStateOf(secureStorage.isFirstTime() && !isArtist) }
 
     val screens = listOf(
         Screens.Profile,
@@ -120,6 +130,8 @@ fun Home(
     val profileError = (profileScreenViewModel.userData as? ProfileScreenUiState.Error)?.message.orEmpty()
     if (listOf("error code: 401", "error code: 403", "error code: 404").any { profileError.startsWith(it) }) {
         LaunchedEffect(Unit) {
+            // Chat first: removing this phone's push token still needs the stored username
+            signOutOfChat(context)
             secureStorage.clearSharedPref()
             navigateToLoginScreen()
         }
@@ -129,12 +141,12 @@ fun Home(
         startDestination = Screens.Swipe.route,
         modifier = Modifier.padding(bottom = bottomPadding)
     ){
-        composable(Screens.Swipe.route) {
+        composable(Screens.Swipe.route) { entry ->
             SwipeScreen(swipeViewModel , navigateToDetailScreen = { data->
                 navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
                 navController.navigate(Screens.ArtworkDetail.route)
             }, onChatClick = {
-                navController.navigate(Screens.RecentChats.route)
+                if (entry.isTopOf(navController)) navController.navigate(Screens.RecentChats.route)
             })
         }
         composable(Screens.Profile.route) {
@@ -291,16 +303,69 @@ fun Home(
                 )
             }
         }
-        composable(Screens.RecentChats.route) {
-            RecentChatsScreen(onOpenChat = { peer ->
-                val encoded = android.net.Uri.encode(peer)
-                navController.navigate(com.orion.templete.presentation.common.Screens.ChatThread.route(encoded))
-            })
+        // Chat (Instagram-style DMs). None of these is a bottom-bar destination, so the bar stays hidden.
+        composable(Screens.RecentChats.route) { entry ->
+            InboxScreen(
+                onBack = { navController.popIfTop(entry) },
+                onOpenChat = { peer -> navController.openChatThread(peer, from = entry) },
+                onNewMessage = {
+                    if (entry.isTopOf(navController)) navController.navigate(Screens.NewMessage.route)
+                }
+            )
         }
-        composable(com.orion.templete.presentation.common.Screens.ChatThread.route) { backStackEntry ->
-            ChatScreen()
+        composable(Screens.NewMessage.route) { entry ->
+            NewMessageScreen(
+                onBack = { navController.popIfTop(entry) },
+                // Like Instagram, the picker is replaced by the conversation: back goes to the inbox
+                onOpenChat = { peer ->
+                    navController.openChatThread(peer, from = entry, replaceRoute = Screens.NewMessage.route)
+                }
+            )
+        }
+        composable(
+            route = Screens.ChatThread.route,
+            arguments = listOf(navArgument(Screens.ChatThread.ARG_PEER) { type = NavType.StringType })
+        ) { entry ->
+            ChatThreadScreen(
+                onBack = { navController.popIfTop(entry) },
+                onOpenProfile = { username ->
+                    if (username.isNotBlank() && entry.isTopOf(navController)) {
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = username)
+                        navController.navigate(Screens.UserProfile.route)
+                    }
+                },
+                onOpenArtwork = { artworkId ->
+                    if (artworkId.isNotBlank() && entry.isTopOf(navController)) {
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = artworkId)
+                        navController.navigate(Screens.ArtworkDetail.route)
+                    }
+                }
+            )
         }
     }
+
+    // A tapped chat notification (see MainActivity): open that conversation, then consume it
+    val pendingChatPeer by ChatDeepLink.pendingPeer.collectAsState()
+    LaunchedEffect(pendingChatPeer) {
+        val pending = pendingChatPeer ?: return@LaunchedEffect
+        ChatDeepLink.pendingPeer.compareAndSet(pending, null)
+        val peer = pending.trim()
+        if (peer.isEmpty() || peer.equals(appViewModel.currentUserId?.trim(), ignoreCase = true)) {
+            return@LaunchedEffect
+        }
+        try {
+            navController.openChatFromNotification(peer)
+        } catch (e: IllegalArgumentException) {
+            Log.w("Home", "Couldn't open the chat from a notification", e)
+        } catch (e: IllegalStateException) {
+            Log.w("Home", "Couldn't open the chat from a notification", e)
+        }
+    }
+
+    // Keep the chat composer right above the keyboard (resize the window instead of panning it) while a chat
+    // screen is on top; the rest of the app keeps its current behaviour.
+    val onChatScreen = currentDestination?.route?.let { it in chatRoutes } == true
+    AdjustResizeWhile(active = onChatScreen)
     if (bottomBarDestination){
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
             // Main navigation bar
@@ -383,17 +448,77 @@ fun Home(
         }
     }
 
-    // First-time user "Become an Artist" popup
+        // "Become an Artist" popup after 5 swipes
     BecomeArtistBottomSheet(
-        visible = showBecomeArtistDialog,
+        visible = swipeViewModel.shouldShowBecomeArtist,
         onDismiss = {
-            showBecomeArtistDialog = false
-            secureStorage.setFirstTime(false)
+            swipeViewModel.dismissBecomeArtist()
         },
         onBecomeArtist = {
-            showBecomeArtistDialog = false
-            secureStorage.setFirstTime(false)
+            swipeViewModel.dismissBecomeArtist()
             navController.navigate(Screens.ArtistRegister.route)
         }
     )
+}
+
+private val chatRoutes = setOf(Screens.RecentChats.route, Screens.NewMessage.route, Screens.ChatThread.route)
+
+// True while [this] entry is the visible top of the back stack; guards against double taps navigating twice
+private fun NavBackStackEntry.isTopOf(navController: NavController): Boolean =
+    navController.currentBackStackEntry?.id == id
+
+private fun NavController.popIfTop(entry: NavBackStackEntry) {
+    if (entry.isTopOf(this)) popBackStack()
+}
+
+/**
+ * Opens the conversation with [peer]. [from] = the screen asking (ignored unless it is still on top);
+ * [replaceRoute] = a screen to take off the back stack (e.g. the new-message picker). If a chat is already on top
+ * it is kept when it is the same person and replaced otherwise, so notifications never stack duplicate threads.
+ */
+private fun NavController.openChatThread(
+    peer: String,
+    from: NavBackStackEntry? = null,
+    replaceRoute: String? = null,
+) {
+    val username = peer.trim()
+    if (username.isEmpty()) return
+    val top = currentBackStackEntry
+    if (from != null && top?.id != from.id) return
+    if (top != null && top.destination.route == Screens.ChatThread.route) {
+        if (top.arguments?.getString(Screens.ChatThread.ARG_PEER) == username) return
+        navigate(Screens.ChatThread.route(username)) {
+            popUpTo(Screens.ChatThread.route) { inclusive = true }
+        }
+        return
+    }
+    navigate(Screens.ChatThread.route(username)) {
+        if (replaceRoute != null) popUpTo(replaceRoute) { inclusive = true }
+    }
+}
+
+// A tapped chat notification. Like Instagram, going back from that conversation lands in the inbox.
+private fun NavController.openChatFromNotification(peer: String) {
+    when (currentBackStackEntry?.destination?.route) {
+        Screens.RecentChats.route, Screens.ChatThread.route -> openChatThread(peer)
+        Screens.NewMessage.route -> openChatThread(peer, replaceRoute = Screens.NewMessage.route)
+        else -> {
+            navigate(Screens.RecentChats.route)
+            openChatThread(peer)
+        }
+    }
+}
+
+@Composable
+private fun AdjustResizeWhile(active: Boolean) {
+    val context = LocalContext.current
+    DisposableEffect(active, context) {
+        val window = context.findActivity()?.window
+        if (!active || window == null) return@DisposableEffect onDispose { }
+        val previous = window.attributes.softInputMode
+        @Suppress("DEPRECATION")
+        val resize = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        window.setSoftInputMode((previous and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST.inv()) or resize)
+        onDispose { window.setSoftInputMode(previous) }
+    }
 }

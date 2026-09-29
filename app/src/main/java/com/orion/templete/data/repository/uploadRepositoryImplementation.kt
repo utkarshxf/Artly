@@ -17,6 +17,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class uploadRepositoryImplementation @Inject constructor(
     private val apiService: ApiService,
@@ -35,8 +36,12 @@ class uploadRepositoryImplementation @Inject constructor(
                 val newUri = Uri.parse(imageUri.toString())
 
                 // Upload the image to Firebase Storage
-                uploadImage(newUri, context) { url ->
-                    continuation.resume(url)
+                uploadImage(
+                    newUri,
+                    context,
+                    onFailure = { e -> if (continuation.isActive) continuation.resumeWithException(e) }
+                ) { url ->
+                    if (continuation.isActive) continuation.resume(url)
                 }
 
                 // Handle cancellation

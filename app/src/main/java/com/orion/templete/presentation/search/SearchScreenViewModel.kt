@@ -14,7 +14,14 @@ import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.orion.templete.data.model.search.SearchArtistHit
+import com.orion.templete.data.model.search.SearchArtworkHit
+import com.orion.templete.data.model.search.SearchPersonHit
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
@@ -171,6 +178,146 @@ class SearchScreenViewModel @Inject constructor(
             trackEvents.trackArtistSearched(name)
         }
     }
+
+    // ------------------------------------------------------------------ search (artworks / artists / people)
+
+    private val _search = MutableStateFlow(SearchUiState())
+    val search: StateFlow<SearchUiState> = _search
+    private var debounceJob: Job? = null
+    private val loadJobs = HashMap<SearchTab, Job>()
+
+    // Results follow the text as it is typed (after a short pause)
+    fun onSearchQueryChange(value: String) {
+        _search.update { it.copy(query = value) }
+        debounceJob?.cancel()
+        loadJobs.values.forEach { it.cancel() }
+        loadJobs.clear()
+        val term = value.trim()
+        if (term.isEmpty()) {
+            _search.update { it.copy(results = emptyMap()) }
+            return
+        }
+        debounceJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MS)
+            // other tabs load again when opened
+            _search.update { state -> state.copy(results = state.results.filterKeys { it == state.tab }) }
+            load(_search.value.tab, term, reset = true)
+        }
+    }
+
+    fun onSearchTabSelected(tab: SearchTab) {
+        _search.update { it.copy(tab = tab) }
+        val term = _search.value.query.trim()
+        val loaded = _search.value.results[tab]
+        if (term.isNotEmpty() && debounceJob?.isActive != true && (loaded == null || loaded.query != term)) {
+            load(tab, term, reset = true)
+        }
+    }
+
+    fun retrySearch() {
+        val state = _search.value
+        val term = state.query.trim()
+        if (term.isNotEmpty()) load(state.tab, term, reset = true)
+    }
+
+    // Next page of the open list tab (the "Top" tab is a single page)
+    fun loadMoreSearchResults() {
+        val state = _search.value
+        val tab = state.tab
+        val current = state.results[tab] ?: return
+        if (tab == SearchTab.TOP || current.loading || current.loadingMore || current.endReached || current.error != null) return
+        load(tab, current.query, reset = false)
+    }
+
+    private fun load(tab: SearchTab, term: String, reset: Boolean) {
+        loadJobs[tab]?.cancel()
+        val previous = _search.value.results[tab]?.takeIf { it.query == term }
+        val skip = if (reset || previous == null) 0 else when (tab) {
+            SearchTab.ARTWORKS -> previous.artworks.size
+            SearchTab.ARTISTS -> previous.artists.size
+            SearchTab.PEOPLE -> previous.people.size
+            SearchTab.TOP -> 0
+        }
+        updateTab(tab) { old ->
+            // old results stay on screen (with a progress bar) until the new ones arrive
+            if (reset) (old ?: SearchTabResults()).copy(query = term, loading = true, error = null)
+            else (old ?: SearchTabResults(query = term)).copy(loadingMore = true)
+        }
+        loadJobs[tab] = viewModelScope.launch {
+            try {
+                val response = artistRepository.search(term, tab.type, skip, SEARCH_PAGE_SIZE)
+                val artworks = response.artworks.orEmpty().filter { !it.id.isNullOrBlank() }
+                val artists = response.artists.orEmpty().filter { !it.id.isNullOrBlank() }
+                val people = response.people.orEmpty().filter { !it.username.isNullOrBlank() }
+                val fetched = when (tab) {
+                    SearchTab.ARTWORKS -> artworks.size
+                    SearchTab.ARTISTS -> artists.size
+                    SearchTab.PEOPLE -> people.size
+                    SearchTab.TOP -> 0
+                }
+                updateTab(tab) { old ->
+                    val base = if (reset || old == null || old.query != term) SearchTabResults(query = term) else old
+                    base.copy(
+                        artworks = (base.artworks + artworks).distinctBy { it.id },
+                        artists = (base.artists + artists).distinctBy { it.id },
+                        people = (base.people + people).distinctBy { it.username },
+                        loading = false,
+                        loadingMore = false,
+                        error = null,
+                        endReached = tab == SearchTab.TOP || fetched < SEARCH_PAGE_SIZE,
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("SearchScreenViewModel", "Search failed", e)
+                updateTab(tab) { old ->
+                    (old ?: SearchTabResults(query = term)).copy(
+                        loading = false,
+                        loadingMore = false,
+                        error = "Couldn't search right now. Check your connection and try again."
+                    )
+                }
+            }
+        }
+    }
+
+    private fun updateTab(tab: SearchTab, change: (SearchTabResults?) -> SearchTabResults) {
+        _search.update { state -> state.copy(results = state.results + (tab to change(state.results[tab]))) }
+    }
+
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 300L
+        const val SEARCH_PAGE_SIZE = 20
+    }
+}
+
+enum class SearchTab(val label: String, val type: String) {
+    TOP("Top", "all"),
+    ARTWORKS("Artworks", "artworks"),
+    ARTISTS("Artists", "artists"),
+    PEOPLE("People", "people"),
+}
+
+data class SearchTabResults(
+    val query: String = "",
+    val artworks: List<SearchArtworkHit> = emptyList(),
+    val artists: List<SearchArtistHit> = emptyList(),
+    val people: List<SearchPersonHit> = emptyList(),
+    val loading: Boolean = false,
+    val loadingMore: Boolean = false,
+    val endReached: Boolean = false,
+    val error: String? = null,
+) {
+    val isEmpty: Boolean get() = artworks.isEmpty() && artists.isEmpty() && people.isEmpty()
+}
+
+data class SearchUiState(
+    val query: String = "",
+    val tab: SearchTab = SearchTab.TOP,
+    val results: Map<SearchTab, SearchTabResults> = emptyMap(),
+) {
+    val current: SearchTabResults get() = results[tab] ?: SearchTabResults()
 }
 
 sealed interface PopularArtworksUiState {

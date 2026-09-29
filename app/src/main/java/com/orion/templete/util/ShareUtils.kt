@@ -40,10 +40,7 @@ object ShareUtils {
             if (year != null && year.isNotEmpty()) {
                 append("($year) ")
             }
-            append("by $artist\n\n")
-
-            // Add app download link
-            append("\nExplore more artwork on Artistry. Download the app from https://artwrk.studio/")
+            append("by $artist")
         }
 
         // Only share if image URL is available

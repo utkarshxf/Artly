@@ -245,27 +245,27 @@ fun ArtistRegisterScreen(
             hint = R.string.education_hint
         )
 
-        // Optional: Awards
+        // Optional: Highlights (stored as "awards")
         OptionalField(
             isVisible = showAwards,
             onVisibilityChange = {
                 showAwards = it
                 if (!it) awards = ""
             },
-            fieldLabel = "Awards",
+            fieldLabel = "Highlights",
             value = awards,
             onValueChange = { awards = it },
             hint = R.string.awards_hint
         )
 
-        // Optional: Wikipedia URL
+        // Optional: personal website / portfolio (stored as "wikipedia_url")
         OptionalField(
             isVisible = showWikipediaUrl,
             onVisibilityChange = {
                 showWikipediaUrl = it
                 if (!it) wikipediaUrl = ""
             },
-            fieldLabel = "Wikipedia URL",
+            fieldLabel = "Website",
             value = wikipediaUrl,
             onValueChange = { wikipediaUrl = it },
             hint = R.string.wikipedia_url_hint,
@@ -301,7 +301,7 @@ fun ArtistRegisterScreen(
                                 education = education.ifBlank { null },
                                 awards = awards.ifBlank { null },
                                 image_url = imageUrl,
-                                wikipedia_url = wikipediaUrl.ifBlank { null },
+                                wikipedia_url = normalizeWebsite(wikipediaUrl),
                                 description = description.ifBlank { null }
                             )
                         )
@@ -315,7 +315,7 @@ fun ArtistRegisterScreen(
                             education = education.ifBlank { null },
                             awards = awards.ifBlank { null },
                             image_url = null,
-                            wikipedia_url = wikipediaUrl.ifBlank { null },
+                            wikipedia_url = normalizeWebsite(wikipediaUrl),
                             description = description.ifBlank { null }
                         )
                     )

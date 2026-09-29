@@ -29,9 +29,9 @@
     <string name="facebook_app_id">1437586197550730</string>
     <string name="facebook_client_token">56789abcdef0123456789abcdef01234</string>
     <string name="artist_question">Would you like to register as an artist?</string>
-    <string name="wikipedia_url_hint">Website Link</string>
+    <string name="wikipedia_url_hint">Your website or portfolio link</string>
     <string name="description_hint">Bio</string>
     <string name="nationality_hint">Country</string>
-    <string name="awards_hint">Awards</string>
+    <string name="awards_hint">Exhibitions, features or anything you’re proud of</string>
     <string name="education_hint">Profession</string>
 </resources>

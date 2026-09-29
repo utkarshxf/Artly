@@ -18,6 +18,8 @@ import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -63,20 +65,84 @@ class ArtistProfileViewModel @Inject constructor(
 
     val currentUserId = secureStorage.getUserId()?:""
 
+    // Chat ("Message" button): the username behind the profile on screen when it is another Artistry account.
+    // Registered artists use their username as artist id; historical artists have no account and get no button.
+    var messageUsername by mutableStateOf<String?>(null)
+        private set
+
+    private var profileJob: Job? = null
+    private var messageLookupJob: Job? = null
+    private var loadedProfileId: String? = null
+
     fun getUserProfile(userId: String) {
-        viewModelScope.launch {
+        profileJob?.cancel()
+        // Coming back to a profile that is already on screen (e.g. from a chat) refreshes it quietly: no spinner,
+        // and what is shown stays if the refresh fails
+        val shown = artistProfileScreenUiState
+        val refreshing = loadedProfileId == userId &&
+            (shown is ArtistProfileScreenUiState.Success || shown is ArtistProfileScreenUiState.Account)
+        profileJob = viewModelScope.launch {
             userRepository.getArtistByArtistId(userId, currentUserId).collect { response ->
-                artistProfileScreenUiState = when (response) {
-                    is ResponseStates.Loading -> ArtistProfileScreenUiState.Loading
+                when (response) {
+                    is ResponseStates.Loading -> {
+                        if (!refreshing) artistProfileScreenUiState = ArtistProfileScreenUiState.Loading
+                    }
                     is ResponseStates.Success -> {
                         // Track when artist profile is viewed successfully
                         trackEvents.trackArtistProfileViewed(userId)
-                        ArtistProfileScreenUiState.Success(response.data)
+                        artistProfileScreenUiState = ArtistProfileScreenUiState.Success(response.data)
+                        loadedProfileId = userId
+                        resolveMessageTarget(userId)
                     }
-                    is ResponseStates.Error -> ArtistProfileScreenUiState.Error(response.error)
+                    is ResponseStates.Error -> showAccountOrError(userId, response.error, keepShown = refreshing)
                 }
             }
         }
+    }
+
+    // Not an artist: a plain Artistry account (e.g. someone you chat with) still gets a basic profile
+    private suspend fun showAccountOrError(userId: String, artistError: String, keepShown: Boolean) {
+        val username = userId.trim()
+        val account = if (username.isEmpty()) null else findAccount(username)
+        if (account == null) {
+            if (!keepShown) artistProfileScreenUiState = ArtistProfileScreenUiState.Error(artistError)
+            return
+        }
+        messageLookupJob?.cancel()
+        messageUsername = username.takeUnless { isMe(it) }
+        artistProfileScreenUiState = ArtistProfileScreenUiState.Account(username, account)
+        loadedProfileId = userId
+    }
+
+    private fun resolveMessageTarget(userId: String) {
+        val username = userId.trim()
+        if (username.isEmpty() || isMe(username)) {
+            messageLookupJob?.cancel()
+            messageUsername = null
+            return
+        }
+        if (messageUsername == username || messageLookupJob?.isActive == true) return
+        messageLookupJob = viewModelScope.launch {
+            if (findAccount(username) != null) messageUsername = username
+        }
+    }
+
+    private fun isMe(username: String): Boolean =
+        currentUserId.isNotBlank() && username.equals(currentUserId.trim(), ignoreCase = true)
+
+    // The Artistry account with this username, or null (no such account, offline, backend error)
+    private suspend fun findAccount(username: String): UserDTO? {
+        var found: UserDTO? = null
+        try {
+            userRepository.getUserByUserId(username).collect { response ->
+                if (response is ResponseStates.Success) found = response.data
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w("ArtistProfileViewModel", "Account lookup failed for $username", e)
+        }
+        return found
     }
 
     fun getArtistByArtworkId(artworkId: String) {
@@ -235,6 +301,8 @@ class ArtistProfileViewModel @Inject constructor(
 sealed interface ArtistProfileScreenUiState {
     object Loading : ArtistProfileScreenUiState
     data class Success(val artist: ArtistDTO) : ArtistProfileScreenUiState
+    // Someone who is not an artist (no artist profile, no artworks): basic account profile
+    data class Account(val username: String, val user: UserDTO) : ArtistProfileScreenUiState
     data class Error(val message: String) : ArtistProfileScreenUiState
 }
 

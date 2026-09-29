@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 interface ArtistRepository {
     suspend fun searchArtist(query: String): Flow<List<SearchArtistResponse>>
+
+    // Throws on network / HTTP errors
+    suspend fun search(query: String, type: String, skip: Int, limit: Int): com.orion.templete.data.model.search.SearchResponse
     suspend fun getPopularArtworks(userId :String): Flow<List<ArtworkDTO>>
     suspend fun getNewArtworks(userId :String): Flow<List<ArtworkDTO>>
     suspend fun getRecommendedForToday(userId :String): Flow<List<ArtworkDTO>>

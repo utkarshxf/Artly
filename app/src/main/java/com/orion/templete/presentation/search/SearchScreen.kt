@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.search
 
+import com.orion.templete.presentation.common.NameWithBadge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,9 +67,9 @@ import com.orion.templete.presentation.common.Screens
 
 @Composable
 fun SearchScreen(navController: NavController , viewModel: SearchScreenViewModel = hiltViewModel()) {
-    var query by remember { mutableStateOf("") }
-    var active by remember { mutableStateOf(false) }
-    val searchResults = viewModel.searchResults.collectAsState()
+    // kept when coming back from a result
+    var active by rememberSaveable { mutableStateOf(false) }
+    val searchState by viewModel.search.collectAsState()
     val popularArtworksState by viewModel.popularArtworks.collectAsState()
     val newArtworksState by viewModel.newArtworks.collectAsState()
     val recommendedForTodayState by viewModel.recommendedForToday.collectAsState()
@@ -79,25 +81,34 @@ fun SearchScreen(navController: NavController , viewModel: SearchScreenViewModel
         header = {},
         search = {
             CustomSearchBar(
-                onQueryChange = {
-                    query = it
-                    viewModel.searchArtist(it.replaceFirstChar { char -> char.uppercase() }) },
-                query = query,
+                onQueryChange = viewModel::onSearchQueryChange,
+                query = searchState.query,
                 active = active,
                 onActiveChange = {
-                    viewModel.searchArtist("")
-                    active = it },
-                placeholder = "Search your favorite artists",
+                    if (!it) viewModel.onSearchQueryChange("")
+                    active = it
+                },
+                placeholder = "Search artworks, artists, people",
                 content = {
-                    LazyColumn {
-                        items(searchResults.value) {
-                            ArtistProfileCard(it.name ?: "name", it.id ?: "id", it.imageUrl ?: "profilePicture") {
-                                viewModel.artistSearched(it.name)
-                                navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it.id)
-                                navController.navigate(Screens.UserProfile.route)
-                            }
+                    SearchResultsContent(
+                        state = searchState,
+                        onTabSelected = viewModel::onSearchTabSelected,
+                        onLoadMore = viewModel::loadMoreSearchResults,
+                        onRetry = viewModel::retrySearch,
+                        onOpenArtwork = { hit ->
+                            navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = hit.id)
+                            navController.navigate(Screens.ArtworkDetail.route)
+                        },
+                        onOpenArtist = { hit ->
+                            viewModel.artistSearched(hit.name)
+                            navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = hit.id)
+                            navController.navigate(Screens.UserProfile.route)
+                        },
+                        onOpenPerson = { hit ->
+                            navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = hit.username)
+                            navController.navigate(Screens.UserProfile.route)
                         }
-                    }
+                    )
                 }
             )
         },
@@ -392,12 +403,15 @@ fun TopArtistCard(
 
         Spacer(Modifier.height(8.dp))
 
-        Text(
-            text = artist.name,
+        NameWithBadge(
+            name = artist.name,
+            verified = artist.verified == true,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            badgeSize = 14.dp,
+            horizontalArrangement = Arrangement.Center
         )
     }
 }

@@ -25,6 +25,7 @@ class MyApplication: Application() {
 
     override fun onCreate() {
         super.onCreate()
+        registerActivityLifecycleCallbacks(com.orion.templete.util.CropScreenInsets)
 
         // Initialize FreshChat
         val freshchatConfig = FreshchatConfig(

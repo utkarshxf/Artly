@@ -13,5 +13,7 @@ data class ArtistDTO(
     val nationality: String?,
     val notable_works: String?,
     val wikipedia_url: String?,
-    val follow: Boolean
+    val follow: Boolean,
+    // real artist, not an Artistry user's own artist profile (blue tick)
+    val verified: Boolean? = null
 )

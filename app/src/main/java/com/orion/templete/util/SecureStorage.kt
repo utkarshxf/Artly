@@ -151,7 +151,7 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
         }
     }
 
-    fun isFirstTime(): Boolean {
+        fun isFirstTime(): Boolean {
         return sharedPreferences.getBoolean(PreferencesKey.UserFirstTimeLogin.key, true)
     }
     fun setFirstTime(value: Boolean) {
@@ -159,6 +159,34 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
             putBoolean(PreferencesKey.UserFirstTimeLogin.key, value)
             apply()
         }
+    }
+
+    fun isUserArtist(): Boolean {
+        return sharedPreferences.getBoolean(PreferencesKey.UserIsArtist.key, false)
+    }
+
+    fun hasShownBecomeArtist(): Boolean {
+        return sharedPreferences.getBoolean(PreferencesKey.HasShownBecomeArtist.key, false)
+    }
+
+    fun setHasShownBecomeArtist(value: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean(PreferencesKey.HasShownBecomeArtist.key, value)
+            apply()
+        }
+    }
+
+    fun getSwipeCount(): Int {
+        return sharedPreferences.getInt(PreferencesKey.SwipeCount.key, 0)
+    }
+
+    fun incrementSwipeCount(): Int {
+        val count = getSwipeCount() + 1
+        with(sharedPreferences.edit()) {
+            putInt(PreferencesKey.SwipeCount.key, count)
+            apply()
+        }
+        return count
     }
 
     // MVVM: Save current artist details

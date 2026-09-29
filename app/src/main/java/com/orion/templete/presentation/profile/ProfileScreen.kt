@@ -604,11 +604,11 @@ fun ArtistDescriptionSection(
             }
         }
 
-        // Awards
+        // Highlights (stored as "awards")
         artistDetails?.awards?.let {
             if (it.isNotEmpty()) {
                 Text(
-                    text = "Awards: $it",
+                    text = "Highlights: $it",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                 )
@@ -628,11 +628,11 @@ fun ArtistDescriptionSection(
             }
         }
 
-        // Wikipedia URL
+        // Website (stored as "wikipedia_url")
         artistDetails?.wikipedia_url?.let {
             if (it.isNotEmpty()) {
                 Text(
-                    text = "Wikipedia: $it",
+                    text = "Website: $it",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
