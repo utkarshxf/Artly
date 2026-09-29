@@ -1,11 +1,19 @@
 package com.orion.templete.util
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.google.gson.Gson
+import com.orion.templete.data.model.user_model.RegisterArtistRequest
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
@@ -43,6 +51,45 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
     }
     fun getUserId(): String? {
         return sharedPreferences.getString("userID", null)
+    }
+
+    fun getLayout(): Boolean {
+        return sharedPreferences.getBoolean("layout", true)
+    }
+    fun setLayout(value: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean("layout", value)
+            apply()
+        }
+    }
+
+    fun userIsAnArtist(): Flow<Boolean> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            // Only emit when the specific preference changes
+            if (key == PreferencesKey.UserIsArtist.key) {
+                val isInPipMode = prefs.getBoolean(PreferencesKey.UserIsArtist.key, false)
+                trySend(isInPipMode)
+            }
+        }
+
+        // Initial emission
+        val initialValue = sharedPreferences.getBoolean(PreferencesKey.UserIsArtist.key, false)
+        trySend(initialValue)
+
+        // Register listener
+        sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+
+        // Ensure cleanup when flow is cancelled
+        awaitClose {
+            sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }.flowOn(Dispatchers.IO)
+
+    fun setUserIsAnArtist(isArtist: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean(PreferencesKey.UserIsArtist.key, isArtist)
+            apply()
+        }
     }
 
     fun saveUserDetails(userDetails: UserDetails) {
@@ -90,5 +137,84 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
     }
     fun clearSharedPref(){
         sharedPreferences.edit().clear().apply()
+    }
+
+    // Forget the cached profile only (the login itself stays)
+    fun clearUserDetails() {
+        with(sharedPreferences.edit()) {
+            listOf(
+                PreferencesKey.UserId, PreferencesKey.UserName, PreferencesKey.UserDob, PreferencesKey.UserGender,
+                PreferencesKey.UserLanguage, PreferencesKey.UserCountryIso2, PreferencesKey.UserIsArtist,
+                PreferencesKey.UserProfilePicture
+            ).forEach { remove(it.key) }
+            apply()
+        }
+    }
+
+        fun isFirstTime(): Boolean {
+        return sharedPreferences.getBoolean(PreferencesKey.UserFirstTimeLogin.key, true)
+    }
+    fun setFirstTime(value: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean(PreferencesKey.UserFirstTimeLogin.key, value)
+            apply()
+        }
+    }
+
+    fun isUserArtist(): Boolean {
+        return sharedPreferences.getBoolean(PreferencesKey.UserIsArtist.key, false)
+    }
+
+    fun hasShownBecomeArtist(): Boolean {
+        return sharedPreferences.getBoolean(PreferencesKey.HasShownBecomeArtist.key, false)
+    }
+
+    fun setHasShownBecomeArtist(value: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean(PreferencesKey.HasShownBecomeArtist.key, value)
+            apply()
+        }
+    }
+
+    fun getSwipeCount(): Int {
+        return sharedPreferences.getInt(PreferencesKey.SwipeCount.key, 0)
+    }
+
+    fun incrementSwipeCount(): Int {
+        val count = getSwipeCount() + 1
+        with(sharedPreferences.edit()) {
+            putInt(PreferencesKey.SwipeCount.key, count)
+            apply()
+        }
+        return count
+    }
+
+    // MVVM: Save current artist details
+    fun saveCurrentArtistDetails(artistDetails: RegisterArtistRequest) {
+        val gson = Gson()
+        val json = gson.toJson(artistDetails)
+        with(sharedPreferences.edit()) {
+            putString("current_artist_details", json)
+            apply()
+        }
+    }
+
+    // MVVM: Get current artist details
+    fun getCurrentArtistDetails(): RegisterArtistRequest? {
+        val json = sharedPreferences.getString("current_artist_details", null) ?: return null
+        return try {
+            val gson = Gson()
+            gson.fromJson(json, RegisterArtistRequest::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // MVVM: Clear artist details
+    fun clearCurrentArtistDetails() {
+        with(sharedPreferences.edit()) {
+            remove("current_artist_details")
+            apply()
+        }
     }
 }

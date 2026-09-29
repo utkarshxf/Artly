@@ -1,20 +1,30 @@
 package com.orion.templete.di
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import com.orion.templete.data.local.AppDatabase
 import com.flashcall.me.data.local.dao.UserDao
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.storage.FirebaseStorage
+import com.orion.templete.data.chat.ChatSessionImpl
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
+import com.orion.templete.data.repository.uploadRepositoryImplementation
 import com.orion.templete.data.repository.ArtistRepositoryImplementation
 import com.orion.templete.data.repository.ArtworkRepositoryImplementation
 import com.orion.templete.data.repository.LoginRepositoryImplementation
 import com.orion.templete.data.repository.UserRepositoryImplementation
+import com.orion.templete.data.repository.chat.ChatRepositoryImpl
+import com.orion.templete.domain.repository.uploadRepository
 import com.orion.templete.domain.repository.ArtistRepository
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.domain.repository.LoginRepository
 import com.orion.templete.domain.repository.UserRepository
+import com.orion.templete.domain.repository.chat.ChatRepository
+import com.orion.templete.domain.repository.chat.ChatSession
 import com.orion.templete.util.SecureStorage
 import dagger.Module
 import dagger.Provides
@@ -24,6 +34,7 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -37,13 +48,17 @@ object  AppModule {
     @Singleton
     fun provideOkHttpClient(context: Context): OkHttpClient {
         return OkHttpClient.Builder()
+            // The backend runs on Azure's free plan, which sleeps when idle; the first request can take ~1 min to wake it
+            .readTimeout(90, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val token = SecureStorage(context).getToken()
+                Log.d("AppModule", "Token: $token")
                 val originalRequest = chain.request()
                 val newRequestBuilder = originalRequest.newBuilder()
                 // Add the Authorization header only if the token is not null
                 token?.let {
                     newRequestBuilder.header("Authorization", "Bearer $it")
+                    Log.d("AppModule", "Token: $it")
                 }
                 val newRequest = newRequestBuilder.build()
                 chain.proceed(newRequest)
@@ -55,6 +70,12 @@ object  AppModule {
     @Singleton
     fun providesFirebaseAuth(): FirebaseAuth {
         return FirebaseAuth.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun providesFirestore(): FirebaseFirestore {
+        return FirebaseFirestore.getInstance()
     }
 
     @Provides
@@ -85,6 +106,16 @@ object  AppModule {
         return ArtworkRepositoryImplementation(apiService = apiService)
     }
     @Provides
+    fun provideAIRepository(
+        apiService: ApiService,
+        @ApplicationContext context: Context
+    ): uploadRepository {
+        return uploadRepositoryImplementation(
+            apiService = apiService,
+            context = context
+        )
+    }
+    @Provides
     fun provideUserRepository(
         apiService: ApiService,
         firebaseAuth: FirebaseAuth,
@@ -99,9 +130,11 @@ object  AppModule {
     @Provides
     fun artistRepository(
         apiService: ApiService,
+        context: Context
     ): ArtistRepository {
         return ArtistRepositoryImplementation(
             apiService = apiService,
+            context = context
         )
     }
     @Provides
@@ -111,6 +144,31 @@ object  AppModule {
         context: Context
     ): UserRepository {
         return UserRepositoryImplementation(apiService ,userDao ,context)
+    }
+
+    // ---- Chat (Instagram-style DMs): Firestore + Storage + FCM, session with a backend-minted custom token
+    @Provides
+    @Singleton
+    fun provideFirebaseStorage(): FirebaseStorage {
+        return FirebaseStorage.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseMessaging(): FirebaseMessaging {
+        return FirebaseMessaging.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatSession(impl: ChatSessionImpl): ChatSession {
+        return impl
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatRepository(impl: ChatRepositoryImpl): ChatRepository {
+        return impl
     }
 
     @Provides

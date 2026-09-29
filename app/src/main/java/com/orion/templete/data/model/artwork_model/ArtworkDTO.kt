@@ -30,5 +30,28 @@ data class ArtworkDTO(
     @SerializedName("source_url")
     val sourceUrl: String? = null,
     val liked: Boolean? = null,
-    val id: String? = null
+    val id: String? = null,
+    val genreId: String? = null,
 ): Parcelable
+
+
+@Parcelize
+data class ArtworkUploadDTO(
+    val title: String,
+    val imageUrl: String,
+    val imageUrlCompressed: String,
+    val storageType: String = "Firebase",
+    val medium: String? = null,
+    val artist: String,
+    val artType: String = "IMAGE",
+    val genreId: String?=null,
+    val description: String? = null,
+    val releasedDate: String? = null,
+    val releaseYear: Int? = null,
+    val dimensions: String? = null,
+    val currentLocation: String? = null,
+    val periodStyle: String? = null,
+    val artMovement: String? = null,
+    val licenseInfo: String? = null,
+    val sourceUrl: String? = null
+) : Parcelable

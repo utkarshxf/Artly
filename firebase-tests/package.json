@@ -1,0 +1,15 @@
+{
+  "name": "artistry-firebase-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Emulator tests for Artly/firestore.rules and Artly/storage.rules (chat v2)",
+  "scripts": {
+    "test": "mocha --exit --timeout 20000 \"test/**/*.test.js\"",
+    "emulators:test": "cd .. && firebase emulators:exec --only firestore,storage --project demo-artistry \"npm --prefix firebase-tests test\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.3.0",
+    "mocha": "^11.7.0"
+  }
+}

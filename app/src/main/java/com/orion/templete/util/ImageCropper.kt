@@ -1,4 +1,4 @@
-package com.nearbuck.android.admin.presentation.add_screen.components
+package com.orion.templete.util
 
 import android.app.Activity
 import android.content.Intent
@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.yalantis.ucrop.UCrop
+import com.yalantis.ucrop.UCrop.Options
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
@@ -14,29 +15,72 @@ import java.util.UUID
 
 
 class ImageCropper(private val activity: ComponentActivity) {
+
+    companion object {
+        // Dark crop screen like the app; CropScreenInsets paints the system bar areas with the same colour
+        const val CROP_BAR_COLOR = 0xFF121212.toInt()
+        private const val CROP_ACCENT_COLOR = 0xFFC2185B.toInt()
+    }
+
+    private fun cropOptions() = Options().apply {
+        setToolbarTitle("Crop")
+        setToolbarColor(CROP_BAR_COLOR)
+        setStatusBarColor(CROP_BAR_COLOR)
+        setToolbarWidgetColor(android.graphics.Color.WHITE)
+        setRootViewBackgroundColor(android.graphics.Color.BLACK)
+        setActiveControlsWidgetColor(CROP_ACCENT_COLOR)
+    }
     private var _croppedImageUri = MutableStateFlow<Uri?>(null)
     val croppedImageUri: Flow<Uri?> get() = _croppedImageUri
-    private var widthRatio:Float = 0.0f
-    private var heightRatio:Float = 0.0f
-    private val resultPhotos: ActivityResultLauncher<Intent> =
-        activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-                val data: Intent = result.data!!
-               _croppedImageUri.value = UCrop.getOutput(data)
+    private var resultPhotos: ActivityResultLauncher<Intent>? = null
+
+    init {
+        try {
+            resultPhotos = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+                    val data: Intent = result.data!!
+                    _croppedImageUri.value = UCrop.getOutput(data)
+                }
             }
+        } catch (e: Exception) {
+            // Handle the exception (e.g., activity already started)
+            e.printStackTrace()
         }
+    }
 
-
+    /**
+     * Launch the image cropper with the current aspect ratio
+     */
     fun launchImageCrop(uri: Uri) {
         val destinationFileName = UUID.randomUUID().toString()
-        val uCrop = UCrop.of(uri, Uri.fromFile(File(activity.cacheDir, destinationFileName))).withAspectRatio(1f , 1f)
-        val intent = uCrop.getIntent(activity)
+        val uCrop = UCrop.of(uri, Uri.fromFile(File(activity.cacheDir, destinationFileName)))
 
-        resultPhotos.launch(intent)
+
+        uCrop.withOptions(cropOptions())
+
+        val intent = uCrop.getIntent(activity)
+        resultPhotos?.launch(intent)
     }
+
+    /**
+     * Create a crop intent with the current aspect ratio
+     */
+    fun createCropIntent(uri: Uri): Intent {
+        val destinationFileName = UUID.randomUUID().toString()
+        val uCrop = UCrop.of(uri, Uri.fromFile(File(activity.cacheDir, destinationFileName)))
+
+        uCrop.withOptions(cropOptions())
+
+        return uCrop.getIntent(activity)
+    }
+
+    fun handleActivityResult(data: Intent?) {
+        if (data != null) {
+            _croppedImageUri.value = UCrop.getOutput(data)
+        }
+    }
+
     fun clearCroppedImageUri() {
         _croppedImageUri.value = null
     }
-
-
 }

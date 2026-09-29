@@ -1,0 +1,336 @@
+rules_version = '2';
+
+// Artistry chat v2 (Instagram-style DMs). Wire format: chat_spec.md "Firestore schema" + "Writes".
+//
+// Identity: the app signs in to Firebase with a custom token minted by the backend (POST /chat/token), so
+// request.auth.uid == Artistry username and the sign-in provider is "custom". Phone/Google Firebase sessions
+// (random uids) can read public profiles but take no part in chat.
+//
+// Tested by firebase-tests/ against the emulator:
+//   firebase emulators:exec --only firestore,storage --project demo-artistry "npm --prefix firebase-tests test"
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------- helpers
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Chat session: custom-token sign-in whose uid is the Artistry username
+    function chatUser() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'custom';
+    }
+
+    function me() {
+      return request.auth.uid;
+    }
+
+    // cid is "<uid>__<other>" or "<other>__<uid>". Only used for documents that do not exist yet
+    // (an existing conversation's members are its `usernames`).
+    function cidHasUser(cid, uid) {
+      let n = uid.size() + 2;
+      return cid.size() > n
+        && (cid[0:n] == uid + '__' || cid[cid.size() - n:cid.size()] == '__' + uid);
+    }
+
+    function convPath(cid) {
+      return /databases/$(database)/documents/conversations/$(cid);
+    }
+
+    function messagePath(cid, mid) {
+      return /databases/$(database)/documents/conversations/$(cid)/messages/$(mid);
+    }
+
+    function messageTypes() {
+      return ['text', 'image', 'artwork', 'like', 'profile'];
+    }
+
+    // Absent, null, or a string of at most `max` characters
+    function nullableString(m, k, max) {
+      return !(k in m) || m[k] == null || (m[k] is string && m[k].size() <= max);
+    }
+
+    // Absent, null, or a non-negative int
+    function nullableInt(m, k) {
+      return !(k in m) || m[k] == null || (m[k] is int && m[k] >= 0);
+    }
+
+    // ---------------------------------------------------------------- users/{username}
+
+    function validProfile(username) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['username', 'name', 'avatar', 'lastActive'])
+        && d.get('username', username) == username
+        && nullableString(d, 'name', 200)
+        && nullableString(d, 'avatar', 2048);
+    }
+
+    match /users/{username} {
+      allow read: if signedIn();
+
+      // Upsert (set/merge). lastActive can only be the server time of this write.
+      allow create: if chatUser() && me() == username
+        && validProfile(username)
+        && request.resource.data.get('lastActive', request.time) == request.time;
+
+      allow update: if chatUser() && me() == username
+        && validProfile(username)
+        && (!('lastActive' in request.resource.data.diff(resource.data).affectedKeys())
+            || request.resource.data.lastActive == request.time);
+
+      allow delete: if false;
+
+      // users/{username}/private/devices {tokens: [fcm tokens]} (arrayUnion / arrayRemove); the backend reads it
+      // with admin credentials (and prunes dead tokens). Only the owner's chat session reads or writes it.
+      match /private/{doc} {
+        allow read: if chatUser() && me() == username;
+
+        allow create, update: if chatUser() && me() == username
+          && doc == 'devices'
+          && request.resource.data.keys().hasOnly(['tokens'])
+          && request.resource.data.get('tokens', []) is list
+          && request.resource.data.get('tokens', []).size() <= 100;
+
+        // e.g. dropping every registered device on logout
+        allow delete: if chatUser() && me() == username;
+      }
+    }
+
+    // ---------------------------------------------------------------- conversations/{cid}
+
+    function peerOf(usernames) {
+      return usernames[0] == me() ? usernames[1] : usernames[0];
+    }
+
+    function emptyMap(d, k) {
+      return d[k] is map && d[k].size() == 0;
+    }
+
+    function validNewConversation(cid) {
+      let d = request.resource.data;
+      let u = d.usernames;
+      return d.keys().hasOnly(['usernames', 'createdAt', 'updatedAt', 'lastMessage',
+                               'unread', 'lastRead', 'typing', 'muted', 'markedUnread', 'clearedAt'])
+        && d.keys().hasAll(['usernames', 'createdAt',
+                            'unread', 'lastRead', 'typing', 'muted', 'markedUnread', 'clearedAt'])
+        && u is list && u.size() == 2
+        && u[0] is string && u[1] is string
+        && u[0].size() > 0 && u[0].size() <= 100
+        && u[1].size() > 0 && u[1].size() <= 100
+        && u[0] < u[1]                       // sorted ascending, and no self-chat
+        && me() in u
+        && cid == u[0] + '__' + u[1]
+        && d.createdAt == request.time
+        && d.get('updatedAt', request.time) == request.time
+        && d.get('lastMessage', null) == null
+        && emptyMap(d, 'unread') && emptyMap(d, 'lastRead') && emptyMap(d, 'typing')
+        && emptyMap(d, 'muted') && emptyMap(d, 'markedUnread') && emptyMap(d, 'clearedAt');
+    }
+
+    // Send: lastMessage describes a message the caller creates in the same batch
+    function validSendLastMessage(cid) {
+      let lm = request.resource.data.lastMessage;
+      return lm is map
+        && lm.keys().hasOnly(['id', 'sender', 'type', 'preview', 'createdAt'])
+        && lm.keys().hasAll(['id', 'sender', 'type', 'preview', 'createdAt'])
+        && lm.id is string && lm.id.size() > 0 && lm.id.size() <= 128
+        && lm.sender == me()
+        && lm.type in messageTypes()
+        && lm.preview is string && lm.preview.size() <= 200
+        && lm.createdAt == request.time
+        && existsAfter(messagePath(cid, lm.id))
+        && getAfter(messagePath(cid, lm.id)).data.sender == me()
+        && getAfter(messagePath(cid, lm.id)).data.type == lm.type;
+    }
+
+    // Unsend of the latest message: only its preview changes, and only by its sender
+    function validUnsendPreview() {
+      let o = resource.data.get('lastMessage', null);
+      let n = request.resource.data.lastMessage;
+      return o is map && n is map
+        && o.sender == me()
+        && n.diff(o).affectedKeys().hasOnly(['preview'])
+        && n.preview == 'Unsent a message';
+    }
+
+    // unread.<me> can only be reset to 0; unread.<peer> can only go up by exactly one, and only with a send
+    function validUnreadChange(isSend) {
+      let o = resource.data.get('unread', {});
+      let n = request.resource.data.unread;
+      let peer = peerOf(resource.data.usernames);
+      return n is map
+        && n.diff(o).affectedKeys().hasOnly([me(), peer])
+        && (!(me() in n.diff(o).affectedKeys()) || n.get(me(), -1) == 0)
+        && (!(peer in n.diff(o).affectedKeys()) || (isSend && n.get(peer, -1) == o.get(peer, 0) + 1));
+    }
+
+    // Per-user map field (lastRead, typing, muted, markedUnread, clearedAt): only the caller's own key changes
+    function onlyOwnKey(changed, field) {
+      return !(field in changed)
+        || (request.resource.data[field] is map
+            && request.resource.data[field].diff(resource.data.get(field, {})).affectedKeys().hasOnly([me()]));
+    }
+
+    function validConversationUpdate(cid) {
+      let o = resource.data;
+      let n = request.resource.data;
+      let changed = n.diff(o).affectedKeys();
+      let isSend = ('lastMessage' in changed) && validSendLastMessage(cid);
+      return me() in o.usernames
+        && changed.hasOnly(['lastMessage', 'updatedAt', 'unread', 'lastRead', 'typing',
+                            'muted', 'markedUnread', 'clearedAt'])
+        && (!('lastMessage' in changed) || isSend || validUnsendPreview())
+        && (!('updatedAt' in changed) || (isSend && n.updatedAt == request.time))
+        && (!('unread' in changed) || validUnreadChange(isSend))
+        && onlyOwnKey(changed, 'lastRead')
+        && onlyOwnKey(changed, 'typing')
+        && onlyOwnKey(changed, 'muted')
+        && onlyOwnKey(changed, 'markedUnread')
+        && onlyOwnKey(changed, 'clearedAt')
+        // lastRead.<me>: serverTimestamp
+        && (!('lastRead' in changed) || n.lastRead.get(me(), null) == request.time)
+        // typing.<me>: serverTimestamp or deleted
+        && (!('typing' in changed) || !(me() in n.typing) || n.typing[me()] == request.time)
+        // muted.<me> / markedUnread.<me>: bool or deleted
+        && (!('muted' in changed) || !(me() in n.muted) || n.muted[me()] is bool)
+        && (!('markedUnread' in changed) || !(me() in n.markedUnread) || n.markedUnread[me()] is bool)
+        // clearedAt.<me>: timestamp ("Delete chat" for me)
+        && (!('clearedAt' in changed) || n.clearedAt.get(me(), null) is timestamp);
+    }
+
+    // ---------------------------------------------------------------- messages
+
+    // Member of the (existing) conversation; for a conversation that does not exist yet, a party named in its id
+    // (lets a new thread attach its listeners before the first message; there is nothing to read yet).
+    function isConversationMember(cid) {
+      return exists(convPath(cid))
+        ? me() in get(convPath(cid)).data.usernames
+        : cidHasUser(cid, me());
+    }
+
+    // State after the write, so "create conversation + first message" also works inside one batch
+    function isConversationMemberAfter(cid) {
+      return existsAfter(convPath(cid)) && me() in getAfter(convPath(cid)).data.usernames;
+    }
+
+    function validArtwork(a) {
+      return a == null
+        || (a is map
+            && a.keys().hasOnly(['id', 'title', 'imageUrl', 'artistName'])
+            && a.id is string && a.id.size() > 0 && a.id.size() <= 128
+            && nullableString(a, 'title', 500)
+            && nullableString(a, 'imageUrl', 2048)
+            && nullableString(a, 'artistName', 200));
+    }
+
+    // Shared profile card: id is what the profile screen opens (username or artist id)
+    function validSharedProfile(p) {
+      return p == null
+        || (p is map
+            && p.keys().hasOnly(['id', 'name', 'avatar', 'subtitle'])
+            && p.id is string && p.id.size() > 0 && p.id.size() <= 128
+            && nullableString(p, 'name', 200)
+            && nullableString(p, 'avatar', 2048)
+            && nullableString(p, 'subtitle', 200));
+    }
+
+    function validReplyTo(r) {
+      return r == null
+        || (r is map
+            && r.keys().hasOnly(['id', 'sender', 'type', 'preview', 'createdAt'])
+            && r.keys().hasAll(['id', 'sender', 'type', 'preview'])
+            && r.id is string && r.id.size() > 0 && r.id.size() <= 128
+            && r.sender is string && r.sender.size() <= 100
+            && r.type in messageTypes()
+            && r.preview is string && r.preview.size() <= 200
+            && (!('createdAt' in r) || r.createdAt == null || r.createdAt is timestamp || r.createdAt is int));
+    }
+
+    function validNewMessage() {
+      let d = request.resource.data;
+      let text = d.get('text', '');
+      return d.keys().hasOnly(['sender', 'type', 'text', 'imageUrl', 'imageWidth', 'imageHeight',
+                               'artwork', 'profile', 'replyTo', 'reactions', 'createdAt', 'unsent'])
+        && d.keys().hasAll(['sender', 'type', 'reactions', 'createdAt', 'unsent'])
+        && d.sender == me()
+        && d.type in messageTypes()
+        && d.createdAt == request.time
+        && d.unsent == false
+        && d.reactions is map && d.reactions.size() == 0
+        && text is string && text.size() <= 4000
+        && nullableString(d, 'imageUrl', 2048)
+        && nullableInt(d, 'imageWidth') && nullableInt(d, 'imageHeight')
+        && validArtwork(d.get('artwork', null))
+        && validSharedProfile(d.get('profile', null))
+        && validReplyTo(d.get('replyTo', null))
+        // the content matches the type
+        && (d.type != 'text' || text.size() > 0)
+        && (d.type != 'image' || (d.get('imageUrl', null) is string && d.imageUrl.size() > 0))
+        && (d.type != 'artwork' || d.get('artwork', null) is map)
+        && (d.type != 'profile' || d.get('profile', null) is map);
+    }
+
+    // React / un-react: only reactions.<me> changes, on a message that is still visible
+    function validReactionUpdate() {
+      let o = resource.data;
+      let n = request.resource.data;
+      return n.diff(o).affectedKeys().hasOnly(['reactions'])
+        && o.get('unsent', false) == false
+        && n.reactions is map
+        && n.reactions.diff(o.get('reactions', {})).affectedKeys().hasOnly([me()])
+        && (!(me() in n.reactions)
+            || (n.reactions[me()] is string && n.reactions[me()].size() > 0 && n.reactions[me()].size() <= 32));
+    }
+
+    // Unsend by the sender: unsent=true and the content is wiped (null or deleted both accepted)
+    function validUnsend() {
+      let o = resource.data;
+      let n = request.resource.data;
+      let changed = n.diff(o).affectedKeys();
+      return o.sender == me()
+        && changed.hasOnly(['unsent', 'text', 'imageUrl', 'imageWidth', 'imageHeight',
+                            'artwork', 'profile', 'replyTo', 'reactions'])
+        && n.unsent == true
+        && n.get('text', '') == ''
+        && n.get('imageUrl', null) == null
+        && n.get('artwork', null) == null
+        && n.get('profile', null) == null
+        && n.get('replyTo', null) == null
+        && n.get('reactions', {}) is map && n.get('reactions', {}).size() == 0
+        && (!('imageWidth' in changed) || n.get('imageWidth', null) == null)
+        && (!('imageHeight' in changed) || n.get('imageHeight', null) == null);
+    }
+
+    match /conversations/{cid} {
+      // A conversation that does not exist yet reads as "missing" for the two people named in its id
+      allow get: if chatUser()
+        && (resource == null ? cidHasUser(cid, me()) : me() in resource.data.usernames);
+
+      // Inbox: whereArrayContains("usernames", me) — any list without that filter is denied
+      allow list: if chatUser() && me() in resource.data.usernames;
+
+      allow create: if chatUser() && validNewConversation(cid);
+      allow update: if chatUser() && validConversationUpdate(cid);
+      allow delete: if false;
+
+      match /messages/{mid} {
+        allow read: if chatUser() && isConversationMember(cid);
+
+        allow create: if chatUser()
+          && mid.size() <= 128
+          && isConversationMemberAfter(cid)
+          && validNewMessage();
+
+        allow update: if chatUser()
+          && isConversationMember(cid)
+          && (validReactionUpdate() || validUnsend());
+
+        allow delete: if false;
+      }
+    }
+
+    // Everything else is denied (no other match blocks).
+  }
+}

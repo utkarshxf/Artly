@@ -1,6 +1,7 @@
 package com.orion.templete.domain.repository
 
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.artwork_model.ArtworkStatsResponse
 import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.util.ResponseStates
 import kotlinx.coroutines.flow.Flow
@@ -17,4 +18,9 @@ interface ArtworkRepository {
     suspend fun getAllFavorites(userId: String): Flow<ResponseStates<List<favoritesDTO>>>
     suspend fun createNewFavorites(userId: String, favorites: favoritesDTO): Flow<ResponseStates<favoritesDTO>>
     suspend fun saveOnFavorites(favoritesId: String, artworkId: String): Flow<ResponseStates<Unit>>
+
+    /**
+     * Get artwork statistics (likes and comments count)
+     */
+    suspend fun getArtworkStats(artworkId: String): Flow<ResponseStates<ArtworkStatsResponse>>
 }
