@@ -101,6 +101,9 @@ internal fun buildInboxRow(conversation: Conversation, peer: ChatUser?, me: Stri
             "Tap to chat"
         }
         unreadCount > 1 -> "${if (unreadCount > 99) "99+" else unreadCount.toString()} new messages"
+        // A call is not a message I sent: no "Seen" / "Sent 2h ago", it is described from my side instead.
+        // The other person's side shows the backend's preview as it is (theirPreview below).
+        last.type == MessageType.CALL && last.sender == me -> ownCallPreview(last)
         last.sender == me -> {
             val (text, suffix) = ownStatus(conversation, last, now)
             time = suffix
@@ -155,5 +158,18 @@ private fun theirPreview(last: MessagePreview): String {
         MessageType.PROFILE -> "Shared a profile"
         MessageType.LIKE -> "❤️"
         MessageType.TEXT -> "Sent a message"
+        MessageType.CALL -> "Call"
+    }
+}
+
+// A call I placed. The backend's preview is worded for the person who was called ("Missed audio call",
+// "Declined video call"); from my side the same call reads "You called · No answer" / "You called · Declined".
+// A call that was answered is just "Audio call" / "Video call" for both.
+private fun ownCallPreview(last: MessagePreview): String {
+    val clean = last.preview.replace(WHITESPACE, " ").trim()
+    return when {
+        clean.startsWith("Audio call", ignoreCase = true) || clean.startsWith("Video call", ignoreCase = true) -> clean
+        clean.startsWith("Declined", ignoreCase = true) -> "You called · Declined"
+        else -> "You called · No answer"
     }
 }

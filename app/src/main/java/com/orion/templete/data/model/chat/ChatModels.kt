@@ -6,7 +6,9 @@ package com.orion.templete.data.model.chat
 const val ACTIVE_NOW_WINDOW_MS = 3 * 60 * 1000L
 
 enum class MessageType(val wire: String) {
-    TEXT("text"), IMAGE("image"), ARTWORK("artwork"), LIKE("like"), PROFILE("profile");
+    TEXT("text"), IMAGE("image"), ARTWORK("artwork"), LIKE("like"), PROFILE("profile"),
+    // An audio / video call in the thread ("Audio call · 2 min", "Missed video call"); written by the backend only
+    CALL("call");
 
     companion object {
         fun fromWire(value: String?): MessageType = entries.firstOrNull { it.wire == value } ?: TEXT
@@ -49,6 +51,25 @@ data class ProfileRef(
     val subtitle: String? = null,
 )
 
+// A call shown as a row in the thread. kind: "audio" | "video"; outcome: "completed" | "missed" | "declined" |
+// "cancelled" | "busy". The message sender is always the person who started the call.
+data class CallLog(
+    val id: String,
+    val video: Boolean,
+    val outcome: String,
+    val durationSec: Int = 0,
+) {
+    val answered: Boolean get() = outcome == OUTCOME_COMPLETED
+
+    companion object {
+        const val OUTCOME_COMPLETED = "completed"
+        const val OUTCOME_MISSED = "missed"
+        const val OUTCOME_DECLINED = "declined"
+        const val OUTCOME_CANCELLED = "cancelled"
+        const val OUTCOME_BUSY = "busy"
+    }
+}
+
 // One inbox row, already resolved for the signed-in user
 data class Conversation(
     val id: String,
@@ -78,6 +99,7 @@ data class ChatMessage(
     val imageHeight: Int? = null,
     val artwork: ArtworkRef? = null,
     val profile: ProfileRef? = null,
+    val call: CallLog? = null,
     val replyTo: MessagePreview? = null,
     val reactions: Map<String, String> = emptyMap(), // username -> emoji
     val createdAt: Long,

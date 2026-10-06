@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,7 +34,9 @@ import com.orion.templete.presentation.chat.components.ChatAvatar
 import com.orion.templete.presentation.chat.components.ChatTime
 import kotlinx.coroutines.delay
 
-// Back, avatar (active dot) + name + presence, and the info button. No call buttons.
+// Back, avatar (active dot) + name + presence, then Instagram's two call buttons (audio, video). While calls can't
+// be offered the info button takes their place; it does what a tap on the name does, so nothing is lost when the
+// call buttons replace it (three icons would squeeze the name on small phones).
 @Composable
 fun ThreadTopBar(
     header: ThreadHeaderUi,
@@ -39,6 +44,9 @@ fun ThreadTopBar(
     onBack: () -> Unit,
     onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
+    showCallButtons: Boolean = false,
+    onAudioCall: () -> Unit = {},
+    onVideoCall: () -> Unit = {},
 ) {
     // Presence labels age while the screen is open
     val now by produceState(initialValue = System.currentTimeMillis(), header.lastActive) {
@@ -98,12 +106,30 @@ fun ThreadTopBar(
                     )
                 }
             }
-            IconButton(onClick = onOpenProfile) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = "Conversation details",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
+            if (showCallButtons) {
+                IconButton(onClick = onAudioCall) {
+                    Icon(
+                        imageVector = Icons.Outlined.Call,
+                        contentDescription = "Audio call",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                IconButton(onClick = onVideoCall) {
+                    Icon(
+                        imageVector = Icons.Outlined.Videocam,
+                        contentDescription = "Video call",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
+            } else {
+                IconButton(onClick = onOpenProfile) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = "Conversation details",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
         }
         HorizontalDivider(color = colors.divider, thickness = 0.5.dp)

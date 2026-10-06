@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -84,6 +85,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.orion.templete.data.model.call.CallKind
+import com.orion.templete.data.model.call.CallPeer
+import com.orion.templete.domain.call.CallIntents
 import com.orion.templete.presentation.chat.components.ChatBlue
 import com.orion.templete.presentation.chat.components.ChatTime
 import kotlinx.coroutines.delay
@@ -92,6 +96,7 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "ChatThreadScreen"
 private const val MAX_JUMP_PAGES = 10
+private const val CALL_TAP_GAP_MS = 1_000L
 
 // Instagram-style conversation. Entry point wired by Home.kt (route Screens.ChatThread, nav arg "peerUsername").
 @Composable
@@ -104,6 +109,7 @@ fun ChatThreadScreen(
     val content by viewModel.content.collectAsStateWithLifecycle()
     val list by viewModel.list.collectAsStateWithLifecycle()
     val header by viewModel.header.collectAsStateWithLifecycle()
+    val canCall by viewModel.canCall.collectAsStateWithLifecycle()
 
     val colors = rememberThreadColors()
     val context = LocalContext.current
@@ -254,6 +260,31 @@ fun ChatThreadScreen(
         }
     }
 
+    // ---- Calls: the top-bar buttons and "Call back" / "Call again" on a call row all just open the call screen.
+    // It asks for the microphone / camera and places the call, so that logic lives in one place. ----
+    val callTaps = remember { CallTapGate() }
+    val placeCall: (Boolean) -> Unit = remember(viewModel, context) {
+        { video: Boolean ->
+            // A double tap must not open the call screen twice
+            if (callTaps.pass()) {
+                keyboard?.hide()
+                val peer = CallPeer(
+                    username = viewModel.peer,
+                    name = currentHeader.name,
+                    avatar = currentHeader.avatar,
+                )
+                try {
+                    context.startActivity(
+                        CallIntents.call(context, peer, if (video) CallKind.VIDEO else CallKind.AUDIO)
+                    )
+                } catch (e: Exception) {
+                    Log.w(TAG, "Couldn't open the call screen", e)
+                    viewModel.showMessage("Couldn't start the call. Try again.")
+                }
+            }
+        }
+    }
+
     val callbacks = remember(viewModel) {
         ThreadRowCallbacks(
             onLongPress = { message, bounds ->
@@ -288,6 +319,7 @@ fun ChatThreadScreen(
             onRetry = { message -> viewModel.retrySend(message) },
             onReactionsClick = { message -> reactionsFor = message.id },
             onPeerClick = { currentOnOpenProfile(viewModel.peer) },
+            onCall = { video -> placeCall(video) },
         )
     }
 
@@ -313,6 +345,9 @@ fun ChatThreadScreen(
                 colors = colors,
                 onBack = onBack,
                 onOpenProfile = { onOpenProfile(viewModel.peer) },
+                showCallButtons = canCall,
+                onAudioCall = { placeCall(false) },
+                onVideoCall = { placeCall(true) },
             )
             Box(
                 modifier = Modifier
@@ -334,6 +369,7 @@ fun ChatThreadScreen(
                             colors = colors,
                             maxBubbleWidth = maxBubbleWidth,
                             callbacks = callbacks,
+                            canCall = canCall,
                             onViewProfile = { onOpenProfile(viewModel.peer) },
                         )
                         if (!list.loaded && list.items.isEmpty()) {
@@ -466,6 +502,7 @@ private fun ThreadMessageList(
     colors: ThreadColors,
     maxBubbleWidth: Dp,
     callbacks: ThreadRowCallbacks,
+    canCall: Boolean,
     onViewProfile: () -> Unit,
 ) {
     LazyColumn(
@@ -494,6 +531,7 @@ private fun ThreadMessageList(
                     maxBubbleWidth = maxBubbleWidth,
                     callbacks = callbacks,
                     modifier = Modifier.animateItem(),
+                    canCall = canCall,
                 )
                 is ThreadItem.Separator -> ThreadTimeSeparator(label = item.label, colors = colors)
                 ThreadItem.Typing -> ThreadTypingIndicator(
@@ -589,6 +627,18 @@ private class RootCoordinates {
 
 private class BottomTracker {
     var key: String? = null
+}
+
+// One call tap per moment: the call screen takes a beat to cover the buttons
+private class CallTapGate {
+    private var lastTap = 0L
+
+    fun pass(): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastTap < CALL_TAP_GAP_MS) return false
+        lastTap = now
+        return true
+    }
 }
 
 private suspend fun scrollToBottom(listState: LazyListState) {

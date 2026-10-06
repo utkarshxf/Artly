@@ -84,6 +84,7 @@ object ThreadDimens {
     val AvatarGap = 8.dp
     val ImageWidth = 220.dp
     val ArtworkWidth = 240.dp
+    val CallWidth = 220.dp
     val ImageRadius = 18.dp
     val SwipeThreshold = 64.dp
     val SwipeMax = 96.dp

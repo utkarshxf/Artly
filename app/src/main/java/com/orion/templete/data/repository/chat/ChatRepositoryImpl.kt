@@ -25,6 +25,7 @@ import com.orion.templete.data.chat.ChatMediaUploader
 import com.orion.templete.data.chat.ChatNotifications
 import com.orion.templete.data.chat.ChatUnavailableException
 import com.orion.templete.data.model.chat.ArtworkRef
+import com.orion.templete.data.model.chat.CallLog
 import com.orion.templete.data.model.chat.ProfileRef
 import com.orion.templete.data.model.chat.ChatAuthState
 import com.orion.templete.data.model.chat.ChatMessage
@@ -75,6 +76,9 @@ import javax.inject.Singleton
  *                                          muted, markedUnread, clearedAt}
  *   conversations/{a__b}/messages/{mid}   {sender, type, text, imageUrl, imageWidth, imageHeight, artwork, replyTo,
  *                                          reactions, createdAt, unsent}
+ *                                         type "call" (an audio / video call, written by the backend only) adds
+ *                                         call: {id, kind, outcome, durationSec}; it is never replied to, reacted
+ *                                         to or unsent
  *
  * - Identity: the Firebase uid is the Artistry username (ChatSession signs in with a backend-minted custom token);
  *   the current username always comes from SecureStorage.getUserId().
@@ -507,6 +511,8 @@ class ChatRepositoryImpl @Inject constructor(
     )
 
     private fun replyToMap(reply: MessagePreview): Map<String, Any?>? {
+        // A call row can't be replied to (the UI doesn't offer it): the message goes out without the quote
+        if (reply.type == MessageType.CALL) return null
         val id = reply.id.trim()
         if (id.isEmpty() || id.length > MAX_ID) return null
         return hashMapOf(
@@ -655,6 +661,8 @@ class ChatRepositoryImpl @Inject constructor(
         chatSession.ensureSignedIn()
         val me = requireMe()
         requireParty(conversationId, me)
+        // Call rows belong to the backend (their sender is whoever started the call)
+        if (message.type == MessageType.CALL) throw IllegalArgumentException("Calls can't be unsent.")
         if (message.sender != me) throw IllegalArgumentException("You can only unsend your own messages.")
         if (message.unsent) return
         val conversation = conversationRef(conversationId)
@@ -789,6 +797,22 @@ class ChatRepositoryImpl @Inject constructor(
                 )
             }
         }
+        // A call row is drawn from this map; if it is missing or incomplete the row falls back to the text
+        val call = asStringMap(get(M_CALL))?.let { map ->
+            val callId = (map[K_ID] as? String)?.takeIf { it.isNotBlank() }
+            val kind = map[K_KIND] as? String
+            val outcome = (map[K_OUTCOME] as? String)?.takeIf { it.isNotBlank() }
+            if (callId == null || kind == null || outcome == null) {
+                null
+            } else {
+                CallLog(
+                    id = callId,
+                    video = kind == CALL_KIND_VIDEO,
+                    outcome = outcome,
+                    durationSec = (map[K_DURATION_SEC] as? Number)?.toInt()?.coerceAtLeast(0) ?: 0,
+                )
+            }
+        }
         val reactions = HashMap<String, String>()
         asStringMap(get(M_REACTIONS))?.forEach { (user, emoji) ->
             if (emoji is String && emoji.isNotEmpty()) reactions[user] = emoji
@@ -809,6 +833,7 @@ class ChatRepositoryImpl @Inject constructor(
             imageHeight = (get(M_IMAGE_HEIGHT) as? Number)?.toInt()?.takeIf { it > 0 },
             artwork = artwork,
             profile = profile,
+            call = call,
             replyTo = previewFrom(get(M_REPLY_TO, ESTIMATE)),
             reactions = reactions,
             createdAt = createdAt,
@@ -989,6 +1014,7 @@ class ChatRepositoryImpl @Inject constructor(
         const val M_IMAGE_HEIGHT = "imageHeight"
         const val M_ARTWORK = "artwork"
         const val M_PROFILE = "profile"
+        const val M_CALL = "call"
         const val M_REPLY_TO = "replyTo"
         const val M_REACTIONS = "reactions"
         const val M_UNSENT = "unsent"
@@ -1011,6 +1037,13 @@ class ChatRepositoryImpl @Inject constructor(
         const val R_NAME = "name"
         const val R_AVATAR = "avatar"
         const val R_SUBTITLE = "subtitle"
+
+        // call map (messages of type "call")
+        const val K_ID = "id"
+        const val K_KIND = "kind"
+        const val K_OUTCOME = "outcome"
+        const val K_DURATION_SEC = "durationSec"
+        const val CALL_KIND_VIDEO = "video"
 
         const val PREVIEW_PHOTO = "Sent a photo"
         const val PREVIEW_POST = "Shared a post"

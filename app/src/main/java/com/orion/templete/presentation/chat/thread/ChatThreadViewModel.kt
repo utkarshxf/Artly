@@ -15,6 +15,7 @@ import com.orion.templete.data.model.chat.Conversation
 import com.orion.templete.data.model.chat.MessagePage
 import com.orion.templete.data.model.chat.MessagePreview
 import com.orion.templete.data.model.chat.MessageType
+import com.orion.templete.domain.call.CallManager
 import com.orion.templete.domain.repository.chat.ChatRepository
 import com.orion.templete.domain.repository.chat.ChatSession
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -55,6 +56,7 @@ class ChatThreadViewModel @Inject constructor(
     private val repository: ChatRepository,
     private val session: ChatSession,
     private val outbox: ThreadOutbox,
+    private val callManager: CallManager,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -259,6 +261,19 @@ class ChatThreadViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThreadContent.Loading)
     }
 
+    // ---- Calls ----
+
+    // The audio / video buttons and "Call back" on call rows. Hidden only once the server says calls are off:
+    // while that isn't known yet (null) they are offered, so they don't pop in a moment after the chat opens.
+    // Never for a chat that can't exist (no peer, or yourself).
+    val canCall: StateFlow<Boolean> = if (!active) {
+        MutableStateFlow(false)
+    } else {
+        callManager.callsEnabled
+            .map { enabled -> enabled != false }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), callManager.callsEnabled.value != false)
+    }
+
     // ---- Typing ----
     private var typingSent = false
     private var lastTypingWrite = 0L
@@ -269,6 +284,8 @@ class ChatThreadViewModel @Inject constructor(
 
     init {
         if (active) {
+            // Asks whether calls are set up; it also wakes a sleeping backend before the first call is placed
+            callManager.refreshConfig()
             // The session may have failed earlier (e.g. the backend was asleep); opening a chat tries again
             if (session.authState.value is ChatAuthState.Error) session.start()
             viewModelScope.launch {
@@ -417,7 +434,8 @@ class ChatThreadViewModel @Inject constructor(
 
     fun unsend(message: ThreadMessageUi) {
         val source = message.source ?: return
-        if (!message.mine || !active) return
+        // canReact is false for call rows: the backend's call log can't be unsent
+        if (!message.mine || !message.canReact || !active) return
         if (replyTarget?.id == message.id) setReply(null)
         viewModelScope.launch {
             try {

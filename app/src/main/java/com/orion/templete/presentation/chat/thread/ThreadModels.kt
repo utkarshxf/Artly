@@ -74,6 +74,18 @@ enum class ThreadStatusKind { SENDING, SENT, SEEN, FAILED }
 @Immutable
 data class ThreadStatusUi(val kind: ThreadStatusKind, val label: String)
 
+// A call shown as a card in the thread, already worded for the person looking at it
+@Immutable
+data class ThreadCallUi(
+    val video: Boolean,
+    // A call I didn't take (missed, or declined): red, like Instagram's missed calls
+    val missed: Boolean,
+    val title: String, // "Video call", "Missed audio call", "No answer", "Declined"
+    val detail: String, // "2 min · 10:42", "Video call · 10:42", "10:42"
+    // "Call back" / "Call again"; null when the row can't say what kind of call it was (malformed document)
+    val action: String?,
+)
+
 @Immutable
 data class ThreadMessageUi(
     val key: String,
@@ -88,6 +100,7 @@ data class ThreadMessageUi(
     val image: ThreadImageUi?,
     val artwork: ArtworkRef?,
     val profile: ProfileRef?,
+    val call: ThreadCallUi?, // non-null for every MessageType.CALL row
     val replyTo: ThreadReplyUi?,
     val reactions: ThreadReactionsUi?,
     val createdAt: Long,
@@ -103,8 +116,9 @@ data class ThreadMessageUi(
 ) {
     val isLocal: Boolean get() = localId != null
 
-    // Reactions and replies need the message to exist on the server
-    val canReact: Boolean get() = localId == null
+    // Reactions and replies need the message to exist on the server. Call rows are written by the backend and are
+    // inert: no reaction, reply, swipe, copy or unsend.
+    val canReact: Boolean get() = localId == null && type != MessageType.CALL
 
     // Bubble-less content (big emoji / like) keeps its own look instead of a coloured bubble
     val bubbleless: Boolean get() = type == MessageType.LIKE || (type == MessageType.TEXT && emojiOnly)
@@ -121,7 +135,12 @@ sealed interface ThreadItem {
     @Immutable
     data class Message(val ui: ThreadMessageUi) : ThreadItem {
         override val key: String get() = ui.key
-        override val contentType: Int get() = if (ui.mine) TYPE_MINE else TYPE_PEER
+        override val contentType: Int
+            get() = when {
+                ui.type == MessageType.CALL -> TYPE_CALL
+                ui.mine -> TYPE_MINE
+                else -> TYPE_PEER
+            }
     }
 
     @Immutable
@@ -156,6 +175,7 @@ sealed interface ThreadItem {
         const val TYPE_TYPING = 4
         const val TYPE_HEADER = 5
         const val TYPE_LOADING = 6
+        const val TYPE_CALL = 7
     }
 }
 
@@ -177,7 +197,8 @@ data class ThreadListUi(
         for (item in items) {
             val ui = (item as? ThreadItem.Message)?.ui ?: continue
             if (ui.createdAt <= since) break
-            if (!ui.mine) count++
+            // A call row is not a message: it never adds to "N new messages"
+            if (!ui.mine && ui.type != MessageType.CALL) count++
         }
         return count
     }

@@ -12,6 +12,11 @@ import com.orion.templete.data.model.artwork_model.ArtworkStatsResponse
 import com.orion.templete.data.model.artwork_model.ArtworkUploadDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
+import com.orion.templete.data.model.call.CallCancelRequest
+import com.orion.templete.data.model.call.CallConfigResponse
+import com.orion.templete.data.model.call.CallDeclineRequest
+import com.orion.templete.data.model.call.CallSessionResponse
+import com.orion.templete.data.model.call.CallStartRequest
 import com.orion.templete.data.model.chat.ChatNotifyRequest
 import com.orion.templete.data.model.chat.ChatTokenResponse
 import com.orion.templete.data.model.favorits.favoritesDTO
@@ -363,6 +368,51 @@ interface ApiService {
      */
     @POST("chat/notify")
     suspend fun chatNotify(@Body request: ChatNotifyRequest): Response<ResponseBody>
+
+    /**
+     * Calls (1:1 audio / video in chat, Agora): whether the server can place calls, and the public App ID.
+     * Also wakes a sleeping backend.
+     */
+    @GET("chat/call/config")
+    suspend fun callConfig(): Response<CallConfigResponse>
+
+    /**
+     * Calls: create the call ("ringing") and push it to the callee. Answers with the channel and the caller's token.
+     * 404 unknown callee, 503 {"message":"Calls are not configured yet","status":false}.
+     */
+    @POST("chat/call/start")
+    suspend fun callStart(@Body request: CallStartRequest): Response<CallSessionResponse>
+
+    /**
+     * Calls: the callee picks up ("ringing" -> "accepted"). Answers with the channel and the callee's token;
+     * 409 (+ "callStatus") when the call is already over.
+     */
+    @POST("chat/call/{callId}/accept")
+    suspend fun callAccept(@Path("callId") callId: String): Response<CallSessionResponse>
+
+    /**
+     * Calls: a fresh token for the same channel and uid (the first one is valid for an hour)
+     */
+    @POST("chat/call/{callId}/token")
+    suspend fun callToken(@Path("callId") callId: String): Response<CallSessionResponse>
+
+    /**
+     * Calls: decline / cancel / end. The body of the answer is only informative, so it is read leniently.
+     */
+    @POST("chat/call/{callId}/decline")
+    suspend fun callDecline(
+        @Path("callId") callId: String,
+        @Body request: CallDeclineRequest
+    ): Response<ResponseBody>
+
+    @POST("chat/call/{callId}/cancel")
+    suspend fun callCancel(
+        @Path("callId") callId: String,
+        @Body request: CallCancelRequest
+    ): Response<ResponseBody>
+
+    @POST("chat/call/{callId}/end")
+    suspend fun callEnd(@Path("callId") callId: String): Response<ResponseBody>
 
     companion object {
         var baseurl = "https://artly-backend.azurewebsites.net/"

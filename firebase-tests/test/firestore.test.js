@@ -764,6 +764,135 @@ describe('messages: unsend + edits + deletes', () => {
 });
 
 // =====================================================================================================
+describe('calls (written by the backend only)', () => {
+  const call = (extra = {}) => ({
+    usernames: ['alice', 'bob'],
+    conversationId: 'alice__bob',
+    caller: 'alice',
+    callee: 'bob',
+    kind: 'video',
+    status: 'ringing',
+    createdAt: Timestamp.now(),
+    answeredAt: null,
+    endedAt: null,
+    endedBy: null,
+    durationSec: 0,
+    ...extra,
+  });
+
+  // What CallService writes when a call is over: the row in the thread and the inbox preview
+  async function seedCallRow(cid, outcome = 'missed', preview = 'Missed video call') {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, 'conversations', cid, 'messages', 'call-1'), {
+        sender: 'alice',
+        type: 'call',
+        text: preview,
+        call: { id: 'call-1', kind: 'video', outcome, durationSec: 0 },
+        reactions: {},
+        unsent: false,
+        createdAt: Timestamp.now(),
+      });
+      await updateDoc(doc(db, 'conversations', cid),
+        new FieldPath('lastMessage'), { id: 'call-1', sender: 'alice', type: 'call', preview, createdAt: Timestamp.now() },
+        new FieldPath('updatedAt'), Timestamp.now(),
+        new FieldPath('unread', 'bob'), increment(1));
+    });
+  }
+
+  it('both participants read (listen to) their call; nobody else does', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'calls/c1'), call()));
+    for (const who of ['alice', 'bob']) {
+      const snap = await assertSucceeds(getDoc(doc(chatDb(env, who), 'calls/c1')));
+      assert.equal(snap.data().status, 'ringing');
+    }
+    await assertFails(getDoc(doc(chatDb(env, 'carol'), 'calls/c1')));
+    await assertFails(getDoc(doc(anonDb(env), 'calls/c1')));
+    // a Phone/Google session whose uid happens to match is not the chat session
+    await assertFails(getDoc(doc(googleDb(env, 'alice'), 'calls/c1')));
+    // a call that does not exist tells nothing, not even to a signed-in user
+    await assertFails(getDoc(doc(chatDb(env, 'alice'), 'calls/nope')));
+  });
+
+  it('nobody lists calls, not even their own', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'calls/c1'), call()));
+    const alice = chatDb(env, 'alice');
+    await assertFails(getDocs(collection(alice, 'calls')));
+    await assertFails(getDocs(query(collection(alice, 'calls'), where('usernames', 'array-contains', 'alice'))));
+  });
+
+  it('clients cannot start, answer, end or delete a call themselves', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'calls/c1'), call()));
+    for (const who of ['alice', 'bob', 'carol']) {
+      const db = chatDb(env, who);
+      await assertFails(setDoc(doc(db, 'calls/c2'), call()));
+      await assertFails(updateDoc(doc(db, 'calls/c1'), { status: 'accepted' }));
+      await assertFails(updateDoc(doc(db, 'calls/c1'), { status: 'ended', durationSec: 3600 }));
+      await assertFails(updateDoc(doc(db, 'calls/c1'), { usernames: ['alice', who] }));
+      await assertFails(deleteDoc(doc(db, 'calls/c1')));
+    }
+    assert.equal((await readAsAdmin(env, 'calls/c1')).status, 'ringing');
+  });
+
+  it("members read a call's row in the thread", async () => {
+    const { cid } = await conversationWithMessage(env);
+    await seedCallRow(cid);
+    for (const who of ['alice', 'bob']) {
+      const snap = await assertSucceeds(getDoc(doc(chatDb(env, who), 'conversations', cid, 'messages', 'call-1')));
+      assert.equal(snap.data().call.outcome, 'missed');
+    }
+    await assertFails(getDoc(doc(chatDb(env, 'carol'), 'conversations', cid, 'messages', 'call-1')));
+  });
+
+  it('clients cannot write call rows: not as a message, a reply target or a preview', async () => {
+    const { cid, mid } = await conversationWithMessage(env);
+    const alice = chatDb(env, 'alice');
+    const row = { ...messageData('alice', { type: 'call', text: 'Video call' }), call: { id: 'x', kind: 'video', outcome: 'completed', durationSec: 9999 } };
+    await assertFails(setDoc(doc(alice, 'conversations', cid, 'messages', 'fake-call'), row));
+    await assertFails(setDoc(doc(alice, 'conversations', cid, 'messages', 'fake-call'), messageData('alice', { type: 'call', text: 'Video call' })));
+    await assertFails(send(alice, 'alice', 'bob', { type: 'call', text: 'Missed video call' }, { lastMessage: { preview: 'Missed video call' } }));
+    // a normal message may not carry a call log either
+    await assertFails(setDoc(doc(alice, 'conversations', cid, 'messages', 'fake-call'),
+      { ...messageData('alice'), call: { id: 'x', kind: 'audio', outcome: 'missed', durationSec: 0 } }));
+    await assertFails(send(alice, 'alice', 'bob', { text: 're', replyTo: { id: mid, sender: 'alice', type: 'call', preview: 'Video call' } }));
+  });
+
+  it("a call's row cannot be reacted to, unsent, edited or deleted", async () => {
+    const { cid } = await conversationWithMessage(env);
+    await seedCallRow(cid);
+    for (const who of ['alice', 'bob']) {
+      const ref = doc(chatDb(env, who), 'conversations', cid, 'messages', 'call-1');
+      await assertFails(updateDoc(ref, new FieldPath('reactions', who), '❤️'));
+      await assertFails(updateDoc(ref, { unsent: true, text: '', imageUrl: null, artwork: null, replyTo: null, reactions: {} }));
+      await assertFails(updateDoc(ref, new FieldPath('call', 'outcome'), 'completed'));
+      await assertFails(updateDoc(ref, { text: 'Video call' }));
+      await assertFails(deleteDoc(ref));
+    }
+    // the caller cannot disguise a missed call in the inbox either
+    await assertFails(updateDoc(doc(chatDb(env, 'alice'), 'conversations', cid), new FieldPath('lastMessage', 'preview'), 'Unsent a message'));
+    const row = await readAsAdmin(env, `conversations/${cid}/messages/call-1`);
+    assert.equal(row.text, 'Missed video call');
+    assert.deepEqual(row.reactions, {});
+  });
+
+  it('the chat goes on after a call: mark read, reply, send', async () => {
+    const { cid } = await conversationWithMessage(env);
+    await seedCallRow(cid);
+    const bob = chatDb(env, 'bob');
+    assert.equal((await readAsAdmin(env, `conversations/${cid}`)).unread.bob, 2);
+    // bob opens the thread
+    await assertSucceeds(updateDoc(doc(bob, 'conversations', cid),
+      new FieldPath('unread', 'bob'), 0,
+      new FieldPath('lastRead', 'bob'), serverTimestamp(),
+      new FieldPath('markedUnread', 'bob'), deleteField()));
+    await assertSucceeds(send(bob, 'bob', 'alice', { text: 'sorry, missed your call' }));
+    await assertSucceeds(send(chatDb(env, 'alice'), 'alice', 'bob', { text: 'np' }));
+    const c = await readAsAdmin(env, `conversations/${cid}`);
+    assert.equal(c.lastMessage.type, 'text');
+    assert.deepEqual(c.unread, { alice: 0, bob: 1 });
+  });
+});
+
+// =====================================================================================================
 describe('everything else', () => {
   it('unknown collections are denied', async () => {
     const db = chatDb(env, 'alice');

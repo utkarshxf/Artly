@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
+import com.orion.templete.data.call.CallManagerImpl
 import com.orion.templete.data.chat.ChatSessionImpl
 import com.orion.templete.data.network.ApiService
 import com.orion.templete.data.network.ApiService.Companion.baseurl
@@ -18,6 +19,7 @@ import com.orion.templete.data.repository.ArtworkRepositoryImplementation
 import com.orion.templete.data.repository.LoginRepositoryImplementation
 import com.orion.templete.data.repository.UserRepositoryImplementation
 import com.orion.templete.data.repository.chat.ChatRepositoryImpl
+import com.orion.templete.domain.call.CallManager
 import com.orion.templete.domain.repository.uploadRepository
 import com.orion.templete.domain.repository.ArtistRepository
 import com.orion.templete.domain.repository.ArtworkRepository
@@ -168,6 +170,14 @@ object  AppModule {
     @Provides
     @Singleton
     fun provideChatRepository(impl: ChatRepositoryImpl): ChatRepository {
+        return impl
+    }
+
+    // ---- Calls (1:1 audio / video in chat, Agora): one manager for the process; the call screen, the foreground
+    // service and the notification buttons all talk to it
+    @Provides
+    @Singleton
+    fun provideCallManager(impl: CallManagerImpl): CallManager {
         return impl
     }
 

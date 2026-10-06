@@ -7,6 +7,32 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="replace"/>
 
+    <!-- Audio / video calls in chat (Agora). Microphone and camera are asked at runtime before the first call;
+         Bluetooth (headsets) is asked with them on Android 12+ and never blocks a call. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Bluetooth headsets on Android 11 and older (no runtime prompt there) -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <!-- CallService keeps the call (and its microphone / camera) alive when the app is not on screen.
+         MANAGE_OWN_CALLS is what Android 14+ requires for the phoneCall type of an app that is not the dialer. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+    <!-- Incoming call screen over the lock screen; ringing vibration; screen off at the ear -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- The permissions above must not hide the app from devices without this hardware -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+
     <application
         android:name=".MyApplication"
         android:usesCleartextTraffic="true"
@@ -65,6 +91,29 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- Calls. The call screen shows over the lock screen and turns the display on for an incoming call;
+             singleTop so "Answer" / "return to call" reach the screen that is already open (onNewIntent);
+             the config changes keep it alive through rotation and picture-in-picture resizing. -->
+        <activity
+            android:name=".presentation.call.CallActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"
+            android:theme="@style/Theme.Template" />
+        <!-- Runs for the whole call: phoneCall while it rings, plus microphone (and camera) once it is placed or
+             answered. It is only ever started by the app itself and stops itself. -->
+        <service
+            android:name=".data.call.CallService"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall|microphone|camera" />
+        <!-- Decline / Hang up buttons of the call notification -->
+        <receiver
+            android:name=".data.call.CallActionReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

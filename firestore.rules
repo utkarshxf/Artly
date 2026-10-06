@@ -2,6 +2,9 @@ rules_version = '2';
 
 // Artistry chat v2 (Instagram-style DMs). Wire format: chat_spec.md "Firestore schema" + "Writes".
 //
+// Audio / video calls: the backend (admin credentials, not subject to these rules) is the only writer of
+// calls/{callId} and of a call's row in the thread (a message of type "call"); the app only reads them.
+//
 // Identity: the app signs in to Firebase with a custom token minted by the backend (POST /chat/token), so
 // request.auth.uid == Artistry username and the sign-in provider is "custom". Phone/Google Firebase sessions
 // (random uids) can read public profiles but take no part in chat.
@@ -43,6 +46,7 @@ service cloud.firestore {
       return /databases/$(database)/documents/conversations/$(cid)/messages/$(mid);
     }
 
+    // What the app may write. A call's row in the thread has type "call" and only the backend writes it.
     function messageTypes() {
       return ['text', 'image', 'artwork', 'like', 'profile'];
     }
@@ -151,6 +155,7 @@ service cloud.firestore {
       let n = request.resource.data.lastMessage;
       return o is map && n is map
         && o.sender == me()
+        && o.get('type', '') in messageTypes()
         && n.diff(o).affectedKeys().hasOnly(['preview'])
         && n.preview == 'Unsent a message';
     }
@@ -323,12 +328,23 @@ service cloud.firestore {
           && isConversationMemberAfter(cid)
           && validNewMessage();
 
+        // a call's row (type "call") never changes: no reactions, no unsend
         allow update: if chatUser()
           && isConversationMember(cid)
+          && resource.data.get('type', '') in messageTypes()
           && (validReactionUpdate() || validUnsend());
 
         allow delete: if false;
       }
+    }
+
+    // ---------------------------------------------------------------- calls/{callId}
+
+    // A call's state (ringing / accepted / ended ...). Its two participants listen to their own call; nobody
+    // lists calls and no client writes them.
+    match /calls/{callId} {
+      allow get: if chatUser() && me() in resource.data.usernames;
+      allow list, create, update, delete: if false;
     }
 
     // Everything else is denied (no other match blocks).

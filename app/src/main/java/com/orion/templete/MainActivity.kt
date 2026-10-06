@@ -8,12 +8,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.orion.templete.data.model.chat.ChatDeepLink
+import com.orion.templete.domain.call.CallManager
+import com.orion.templete.presentation.call.ReturnToCallBar
 import com.orion.templete.util.GalleryLauncher
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.ui.theme.TempleteTheme
@@ -21,10 +25,15 @@ import com.orion.templete.util.ImageCropper
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @RequiresApi(Build.VERSION_CODES.O)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    // The call in progress, if any: the root shows the "return to call" bar from its state
+    @Inject
+    lateinit var callManager: CallManager
+
     private var imageCropper = ImageCropper(this)
     private var galleryLauncher = GalleryLauncher(this, imageCropper)
 
@@ -68,8 +77,12 @@ class MainActivity : ComponentActivity() {
 //                WindowCompat.setDecorFitsSystemWindows(window, false)
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Android 15+ draws apps edge-to-edge; keep every screen clear of the status and navigation bars
-                    Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-                        Navigation(startDestination , this@MainActivity)
+                    Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+                        // "Tap to return to call" while a call goes on behind the app; no room taken otherwise
+                        ReturnToCallBar(callManager = callManager)
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            Navigation(startDestination , this@MainActivity)
+                        }
                     }
                 }
             }

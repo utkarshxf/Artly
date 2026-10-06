@@ -98,6 +98,7 @@ class ThreadRowCallbacks(
     val onRetry: (message: ThreadMessageUi) -> Unit,
     val onReactionsClick: (message: ThreadMessageUi) -> Unit,
     val onPeerClick: () -> Unit,
+    val onCall: (video: Boolean) -> Unit, // "Call back" / "Call again" on a call row
 )
 
 // Laid-out text of a bubble, for link hit-testing. Plain holder: writing it never recomposes anything.
@@ -139,6 +140,8 @@ fun ThreadMessageRow(
     maxBubbleWidth: Dp,
     callbacks: ThreadRowCallbacks,
     modifier: Modifier = Modifier,
+    // Calls can be placed from here (false hides "Call back" / "Call again" on call rows)
+    canCall: Boolean = true,
 ) {
     val current by rememberUpdatedState(message)
     val haptics = LocalHapticFeedback.current
@@ -249,12 +252,23 @@ fun ThreadMessageRow(
                     }
                     Spacer(Modifier.width(ThreadDimens.AvatarGap))
                 }
-                ThreadBubble(
-                    message = message,
-                    colors = colors,
-                    maxBubbleWidth = maxBubbleWidth,
-                    callbacks = callbacks,
-                )
+                val call = message.call
+                if (call != null) {
+                    // A call card instead of a bubble. No tap / double-tap / long-press handling at all: a call
+                    // can't be opened, liked, replied to, copied or unsent. Only its button does something.
+                    ThreadCallCard(
+                        call = call,
+                        colors = colors,
+                        onAction = if (canCall) ({ callbacks.onCall(call.video) }) else null,
+                    )
+                } else {
+                    ThreadBubble(
+                        message = message,
+                        colors = colors,
+                        maxBubbleWidth = maxBubbleWidth,
+                        callbacks = callbacks,
+                    )
+                }
             }
             message.status?.let { status ->
                 val failed = status.kind == ThreadStatusKind.FAILED
@@ -364,7 +378,11 @@ fun ThreadBubbleContent(
     val image = message.image
     val artwork = message.artwork
     val profile = message.profile
+    val call = message.call
     when {
+        // Never reached through the long-press overlay (call rows have no long press); kept so a call can't
+        // fall through to the text bubble
+        call != null -> ThreadCallCard(call = call, colors = colors, onAction = null, modifier = modifier)
         message.type == MessageType.LIKE -> Text(
             text = THREAD_HEART,
             fontSize = 48.sp,
