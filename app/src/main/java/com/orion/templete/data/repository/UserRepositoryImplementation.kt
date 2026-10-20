@@ -2,15 +2,23 @@ package com.orion.templete.data.repository
 
 import android.content.Context
 import android.util.Log
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import com.flashcall.me.data.local.dao.UserDao
 import com.orion.templete.data.model.artist_model.ArtistDTO
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
+import com.orion.templete.data.model.user_model.RegisterArtistRequest
+import com.orion.templete.data.model.user_model.TopUserProjection
+import com.orion.templete.data.model.user_model.TopCreatorProjection
 import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.data.model.user_model.UserDetails
 import com.orion.templete.data.network.ApiService
+import com.orion.templete.data.paging.TopUsersPagingSource
+import com.orion.templete.data.paging.TopCreatorsPagingSource
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SafeApiRequest
@@ -218,10 +226,111 @@ class UserRepositoryImplementation @Inject constructor(
         emit(ResponseStates.Loading)
         try {
             val response = safeApiRequest { apiService.getArtistArtworks(userId , artistId) }
-            emit(ResponseStates.Success(response))
+            // older backends return one empty row for an artist without artworks; never show it as "Untitled"
+            emit(ResponseStates.Success(response.filter { !it.id.isNullOrBlank() }))
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
+    }
+
+    override suspend fun registerAsArtist (artistData:RegisterArtistRequest): Flow<ResponseStates<RegisterArtistRequest>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.registerAsArtist(currentUserId = artistData.id , artistData) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun updateArtist(artistId: String, artistData: RegisterArtistRequest): Flow<ResponseStates<RegisterArtistRequest>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.updateArtist(artistId, artistData) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getCurrentArtistDetails(artistId: String): Flow<ResponseStates<RegisterArtistRequest>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getArtistDetails(artistId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getArtistStats(artistId: String): Flow<ResponseStates<com.orion.templete.data.model.artist_model.ArtistStatsResponse>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getArtistStats(artistId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun isUserArtist(userId: String): Flow<ResponseStates<Boolean>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.isUserArtist(userId) }
+            emit(ResponseStates.Success(response))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override suspend fun getTopViewers(): Flow<ResponseStates<List<TopUserProjection>>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getTopViewers(page = 0, size = 10) }
+            Log.d("TopViewersResponse", response.toString())
+            emit(ResponseStates.Success(response.users ?: emptyList()))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override fun getTopViewersPaged(): Flow<PagingData<TopUserProjection>> {
+        return Pager(
+            config = PagingConfig(
+                pageSize = 10,
+                enablePlaceholders = false,
+                initialLoadSize = 10
+            ),
+            pagingSourceFactory = { TopUsersPagingSource(apiService, context) }
+        ).flow
+    }
+
+    override suspend fun getTopCreators(): Flow<ResponseStates<List<TopCreatorProjection>>> = flow {
+        emit(ResponseStates.Loading)
+        try {
+            val response = safeApiRequest { apiService.getTopCreators(page = 0, size = 10) }
+            emit(ResponseStates.Success(response.creators ?: emptyList()))
+        } catch (e: Exception) {
+            Log.d("Exception", e.message.toString())
+            emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
+        }
+    }
+
+    override fun getTopCreatorsPaged(): Flow<PagingData<TopCreatorProjection>> {
+        return Pager(
+            config = PagingConfig(
+                pageSize = 10,
+                enablePlaceholders = false,
+                initialLoadSize = 10
+            ),
+            pagingSourceFactory = { TopCreatorsPagingSource(apiService, context) }
+        ).flow
     }
 }

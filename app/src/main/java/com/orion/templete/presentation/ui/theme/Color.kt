@@ -7,6 +7,8 @@ import androidx.compose.ui.graphics.Color
 
 
 val Black = Color(0xFF121212)
+val DarkPink = Color(0xFF750027)
+val LightPink = Color(0xFF91002F)
 val White = Color(0xFFFDFEFF)
 val LiteGray = Color(0xFFE6E6E6)
 val Blue = Color(0xFF3897F0)
@@ -18,7 +20,7 @@ val ErrorRed = Color(0xFFF63D68)
 val LighterGray = Color(0xFFDBDBDB)
 
 internal val LightColors = lightColorScheme(
-    primary = Black,
+    primary = LightPink,
     onPrimary = White,
     primaryContainer = Blue,
     onPrimaryContainer = White,
@@ -39,8 +41,8 @@ internal val LightColors = lightColorScheme(
 )
 
 internal val DarkColors = darkColorScheme(
-    primary = White,
-    onPrimary = Black,
+    primary = DarkPink,
+    onPrimary = White,
     primaryContainer = White,
     onPrimaryContainer = Blue,
     inversePrimary = Black,

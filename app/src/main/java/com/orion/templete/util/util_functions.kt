@@ -5,24 +5,58 @@ import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageMetadata
+import com.orion.templete.domain.repository.chat.ChatSession
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
-//Firebase Fun to Upload
-fun uploadImage(uri: Uri?, context: Context, onSuccess: (String) -> Unit) {
-    Log.d("UploadingImageToFirebase","Image Url: ${uri.toString()}")
-    val storage = FirebaseStorage.getInstance()
-    val storageRef = storage.reference
-    val imageRef = storageRef.child("images/${uri!!.lastPathSegment}")
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface UploadEntryPoint {
+    fun chatSession(): ChatSession
+}
 
-    val uploadTask = uri.let {
-        imageRef.putFile(it)
-    }
+private val uploadScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    uploadTask.addOnSuccessListener {
-        imageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-            onSuccess(downloadUrl.toString())
+// Uploads a picked/cropped image to Firebase Storage (images/<random>.jpg) and returns its download URL.
+// Exactly one of onSuccess / onFailure is called; failures are logged and shown as a toast.
+fun uploadImage(
+    uri: Uri?,
+    context: Context,
+    onFailure: (Exception) -> Unit = {},
+    onSuccess: (String) -> Unit,
+) {
+    val appContext = context.applicationContext
+    uploadScope.launch {
+        try {
+            requireNotNull(uri) { "No image selected" }
+            // Storage rules only accept signed-in uploads. The Firebase session is created at app start (chat
+            // sign-in), which can fail while the backend is waking up, so make sure it exists first.
+            try {
+                EntryPointAccessors.fromApplication(appContext, UploadEntryPoint::class.java)
+                    .chatSession().ensureSignedIn()
+            } catch (e: Exception) {
+                Log.w("UploadingImageToFirebase", "Firebase sign-in before upload failed", e)
+            }
+            val type = appContext.contentResolver.getType(uri)?.takeIf { it.startsWith("image/") } ?: "image/jpeg"
+            val ref = FirebaseStorage.getInstance().reference.child("images/${UUID.randomUUID()}.jpg")
+            ref.putFile(uri, StorageMetadata.Builder().setContentType(type).build()).await()
+            val url = ref.downloadUrl.await().toString()
+            Log.d("UploadingImageToFirebase", "Uploaded ${ref.path}")
+            onSuccess(url)
+        } catch (e: Exception) {
+            Log.e("UploadingImageToFirebase", "Image upload failed", e)
+            Toast.makeText(appContext, "Image upload failed. Please try again.", Toast.LENGTH_SHORT).show()
+            onFailure(e)
         }
-    }.addOnFailureListener {
-        Toast.makeText(context, "Image upload failed", Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -59,14 +93,5 @@ fun getSourceUrlSiteName(url: String): String {
         }
     } catch (e: Exception) {
         "Unknown site"
-    }
-}
-
-fun getDefaultProfileUrl(gender: String): String {
-    return when (gender) {
-        "Male" -> "https://dxvnlnyzij172.cloudfront.net/users/M_preview.png"
-        "Female" -> "https://dxvnlnyzij172.cloudfront.net/users/F_preview.png"
-        "Others" -> "https://dxvnlnyzij172.cloudfront.net/users/Others_preview.png"
-        else -> "https://dxvnlnyzij172.cloudfront.net/users/M_preview.png"
     }
 }

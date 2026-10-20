@@ -11,6 +11,7 @@ import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CollectionViewModel @Inject constructor(
     private val artworkRepository: ArtworkRepository,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val trackEvents: TrackEvents
 ) : ViewModel() {
     var collectionScreenUiState by mutableStateOf<CollectionScreenUiState>(CollectionScreenUiState.Loading)
         private set
@@ -45,7 +47,10 @@ class CollectionViewModel @Inject constructor(
             artworkRepository.getArtworkByFavoriteId(favoriteId).collect { response ->
                 collectionScreenUiState = when (response) {
                     is ResponseStates.Loading -> CollectionScreenUiState.Loading
-                    is ResponseStates.Success -> CollectionScreenUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        trackEvents.trackFavoritesViewed(favoriteId)
+                        CollectionScreenUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> CollectionScreenUiState.Error(response.error)
                 }
             }

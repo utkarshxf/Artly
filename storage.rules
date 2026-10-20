@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// Artistry Storage. Chat identity = backend-minted custom token (uid == Artistry username); see firestore.rules.
+// Tested by firebase-tests/ against the emulator.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isImage(maxBytes) {
+      return request.resource != null
+        && request.resource.size < maxBytes
+        && request.resource.contentType != null
+        && request.resource.contentType.matches('image/.+');
+    }
+
+    // The existing artwork upload (util/uploadImage: putFile of the uCrop output, a file:// uri, without metadata)
+    // reaches Storage as application/octet-stream: the Android SDK only asks the ContentResolver for a type, which
+    // has none for file:// uris. Accept that for image file names so the upload keeps working. The declared type
+    // is client-chosen either way, so this is no weaker than 'image/*'.
+    function isImageFile(maxBytes) {
+      return isImage(maxBytes)
+        || (request.resource != null
+            && request.resource.size < maxBytes
+            && request.resource.contentType == 'application/octet-stream'
+            && request.resource.name.lower().matches('.*[.](jpe?g|png|webp|gif|heic|heif)$'));
+    }
+
+    // cid is "<uid>__<other>" or "<other>__<uid>"
+    function cidHasUser(cid, uid) {
+      let n = uid.size() + 2;
+      return cid.size() > n
+        && (cid[0:n] == uid + '__' || cid[cid.size() - n:cid.size()] == '__' + uid);
+    }
+
+    // Artwork uploads (existing app code writes images/<name>.jpg): public read, any signed-in user uploads an
+    // image under 20 MB. Listing and deleting are denied.
+    match /images/{allPaths=**} {
+      allow get: if true;
+      allow create, update: if request.auth != null && isImageFile(20 * 1024 * 1024);
+    }
+
+    // Chat photos: chat/{conversationId}/{uploader}/{uuid}.jpg. Only the uploader (a party of the conversation,
+    // chat session) writes its own folder; images under 10 MB. Read by the conversation's parties (the app shows
+    // them through tokenised download URLs). Listing and deleting are denied.
+    match /chat/{cid}/{uid}/{file} {
+      allow get: if request.auth != null && cidHasUser(cid, request.auth.uid);
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'custom'
+        && cidHasUser(cid, uid)
+        && isImage(10 * 1024 * 1024);
+    }
+
+    // Everything else is denied (no other match blocks).
+  }
+}

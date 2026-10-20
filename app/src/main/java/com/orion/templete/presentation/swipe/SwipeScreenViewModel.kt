@@ -7,29 +7,92 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.data.model.chat.ChatAuthState
 import com.orion.templete.domain.paginator.DefaultPaginator
 import com.orion.templete.domain.repository.ArtworkRepository
+import com.orion.templete.domain.repository.chat.ChatRepository
+import com.orion.templete.domain.repository.chat.ChatSession
 import com.orion.templete.usecase.GetArtworkUseCase
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SwipeScreenViewModel @Inject constructor(
     private val repository: ArtworkRepository,
     private val likeArtworkUseCase: GetArtworkUseCase,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val trackEvents: TrackEvents, // Add TrackEvents dependency
+    private val chatRepository: ChatRepository,
+    private val chatSession: ChatSession
 ) : ViewModel() {
     val userId = secureStorage.getUserId()?:""
+
+    // Instagram-style red badge on the message icon: number of conversations with unread messages.
+    // Only listens while chat is signed in; any chat failure just hides the badge (and retries with backoff),
+    // it must never take the swipe screen down.
+    val unreadConversationCount: StateFlow<Int> = chatSession.authState
+        .map { it is ChatAuthState.Ready }
+        .distinctUntilChanged()
+        .flatMapLatest { ready ->
+            if (!ready) {
+                flowOf(0)
+            } else {
+                chatRepository.observeUnreadConversationCount()
+                    .map { it.coerceAtLeast(0) }
+                    .retryWhen { cause, attempt ->
+                        if (cause is CancellationException) return@retryWhen false
+                        Log.w("SwipeScreenViewModel", "Unread badge failed (attempt $attempt)", cause)
+                        emit(0)
+                        delay((2_000L shl attempt.coerceAtMost(5L).toInt()).coerceAtMost(60_000L))
+                        true
+                    }
+            }
+        }
+        .catch { e ->
+            Log.w("SwipeScreenViewModel", "Unread badge stopped", e)
+            emit(0)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     var state by mutableStateOf(ScreenState())
         private set
     var likeArtworkState by mutableStateOf<ResponseStates<Boolean>>(ResponseStates.Loading)
         private set
-    var disLikeArtworkState by mutableStateOf<ResponseStates<Boolean>>(ResponseStates.Loading)
+        var disLikeArtworkState by mutableStateOf<ResponseStates<Boolean>>(ResponseStates.Loading)
         private set
+
+    var shouldShowBecomeArtist by mutableStateOf(false)
+        private set
+
+    fun onCardSwiped() {
+        val count = secureStorage.incrementSwipeCount()
+        if (count >= 5 && !secureStorage.isUserArtist() && !secureStorage.hasShownBecomeArtist()) {
+            shouldShowBecomeArtist = true
+        }
+    }
+
+    fun dismissBecomeArtist() {
+        shouldShowBecomeArtist = false
+        secureStorage.setHasShownBecomeArtist(true)
+    }
 
     private val pagination: DefaultPaginator<Int, ArtworkDTO> = DefaultPaginator(
         initialKey = state.page,
@@ -37,7 +100,7 @@ class SwipeScreenViewModel @Inject constructor(
             state = state.copy(isLoading = isLoading)
         },
         onRequest = { nextPage ->
-            repository.paginationArtwork(userId =userId , nextPage, 10)
+            repository.paginationArtwork(userId = userId, nextPage, 10)
         },
         getNextKey = {
             state.page + 1
@@ -46,6 +109,11 @@ class SwipeScreenViewModel @Inject constructor(
             state = state.copy(error = throwable?.localizedMessage)
         },
         onSuccess = { items, newKey ->
+            // Track when new artworks are loaded for recommendation views
+            if (items.isNotEmpty()) {
+                trackEvents.trackScreenViewed("Swipe Screen - Page ${newKey}")
+            }
+
             state = state.copy(
                 items = items,
                 page = newKey,
@@ -56,6 +124,8 @@ class SwipeScreenViewModel @Inject constructor(
 
     init {
         loadNextItems()
+        // Track when app swipe screen is opened
+        trackEvents.trackAppOpened()
     }
 
     fun loadNextItems() {
@@ -78,18 +148,51 @@ class SwipeScreenViewModel @Inject constructor(
         viewModelScope.launch {
             likeArtworkUseCase.likeArtwork(artworkId, userId).collect { resource ->
                 likeArtworkState = resource
+
+                // Track when artwork is liked successfully
+                if (resource is ResponseStates.Success && resource.data) {
+                    trackEvents.trackArtworkLiked(artworkId)
+                }
             }
         }
     }
+
     fun disLikeArtwork(artworkId: String) {
         viewModelScope.launch {
             likeArtworkUseCase.disLikeArtwork(artworkId, userId).collect { resource ->
                 disLikeArtworkState = resource
+
+                // Track when artwork is disliked successfully
+                if (resource is ResponseStates.Success && resource.data) {
+                    trackEvents.trackArtworkDisliked(artworkId)
+                }
             }
         }
     }
-}
 
+    // Additional tracking methods for specific user interactions
+    fun trackArtworkView(artworkId: String) {
+        trackEvents.trackArtworkViewed(artworkId)
+    }
+
+    fun trackRecommendedArtworkView(artworkId: String) {
+        trackEvents.trackRecommendedArtworkViewed(artworkId, "Swipe Card")
+    }
+
+    fun trackArtworkSavedToFavorites(artworkId: String) {
+        trackEvents.trackArtworkSavedToFavorites(artworkId)
+    }
+
+    fun trackArtistProfileView(artistId: String) {
+        trackEvents.trackArtistProfileViewed(artistId)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Track when user leaves the swipe screen
+        trackEvents.trackAppClosed()
+    }
+}
 
 data class ScreenState(
     val isLoading: Boolean = false,

@@ -1,5 +1,7 @@
 package com.orion.templete.presentation.artwork_detail
 
+import com.orion.templete.presentation.artist_profile.FollowArtistUiState
+import com.orion.templete.presentation.artist_profile.UnFollowArtistUiState
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
@@ -19,7 +21,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,10 +42,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,13 +52,11 @@ import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -67,16 +65,16 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Gray
@@ -85,14 +83,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.font.FontWeight.Companion.Medium
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,31 +97,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
-import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.presentation.artist_profile.ArtistProfileScreenUiState
 import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
 import com.orion.templete.presentation.artist_profile.GetCommentsOnArtworkUiState
+import com.orion.templete.presentation.chat.share.PaperPlaneIcon
+import com.orion.templete.presentation.chat.share.ShareToChatSheet
+import com.orion.templete.presentation.chat.share.toArtworkRef
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.common.ArtistProfileCard
 import com.orion.templete.presentation.components.GenreSection
-import com.orion.templete.presentation.favorites.AddToFavoritesUiState
+import com.orion.templete.presentation.favorites.AddCollectionDialog
 import com.orion.templete.presentation.favorites.CollectionCard
 import com.orion.templete.presentation.favorites.CollectionViewModel
 import com.orion.templete.presentation.favorites.CreateFavoritesUiState
 import com.orion.templete.presentation.favorites.FavoritesUiState
-import com.orion.templete.presentation.search.dummyArtworks
 import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.presentation.ui.theme.AppBarCollapsedHeight
 import com.orion.templete.presentation.ui.theme.AppBarExpendedHeight
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.ShareUtils
 import com.orion.templete.util.extractYear
 import com.orion.templete.util.getSourceUrlSiteName
 import kotlin.math.max
@@ -137,6 +134,8 @@ import kotlin.math.min
 fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewModel: ArtworkDetailViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
         viewModel.getArtworkById(artworkId)
+        // MVVM: Fetch artwork statistics
+        viewModel.getArtworkStats(artworkId)
     }
     when (val uiState = viewModel.artworkDetailScreenUiState) {
         is ArtworkDetailScreenUiState.Loading -> {
@@ -148,7 +147,7 @@ fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewMo
         }
 
         is ArtworkDetailScreenUiState.Success -> {
-            ArtworkDetailContent(uiState.artwork , navController)
+            ArtworkDetailContent(uiState.artwork , navController, viewModel)
             Log.d("qwerty" , uiState.artwork.toString())
         }
 
@@ -164,14 +163,30 @@ fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewMo
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavController) {
+fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavController, viewModel: ArtworkDetailViewModel? = null) {
     val scrollState = rememberLazyListState()
     var isLiked = remember { mutableStateOf(artworkDetailsDTO.liked) }
+    // Instagram-style "send to a chat" (paper plane). Kept open across rotation and process death.
+    val shareRef = remember(artworkDetailsDTO) { artworkDetailsDTO.toArtworkRef() }
+    var showShareToChat by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val openShare: (() -> Unit)? = if (shareRef != null) ({ showShareToChat = true }) else null
     Box {
-        Details(artworkDetailsDTO, scrollState , isLiked , navController)
-        ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked ,navController)
+        Details(
+            artworkDetailsDTO, scrollState, isLiked, navController, viewModel,
+            onShareToChat = openShare
+        )
+        ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked ,navController, onShare = openShare)
+    }
+    if (showShareToChat && shareRef != null) {
+        ShareToChatSheet(
+            artwork = shareRef,
+            onDismiss = { showShareToChat = false },
+            onShareExternally = { ShareUtils.shareArtwork(context, artworkDetailsDTO) }
+        )
     }
 }
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -179,7 +194,9 @@ private fun Details(
     artworkDetailsDTO: ArtworkDTO,
     scrollState: LazyListState,
     isLiked: MutableState<Boolean?>,
-    navController: NavController
+    navController: NavController,
+    viewModel: ArtworkDetailViewModel? = null,
+    onShareToChat: (() -> Unit)? = null
 ) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight),
@@ -187,7 +204,7 @@ private fun Details(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            BasicInfo(artworkDetailsDTO, isLiked)
+            BasicInfo(artworkDetailsDTO, isLiked, viewModel, onShareToChat)
             Description(artworkDetailsDTO)
             ArtworkDetails(artworkDetailsDTO)
             AboutTheArtist(navController, artworkDetailsDTO.id)
@@ -206,7 +223,37 @@ fun AboutTheArtist(navController: NavController , id: String? , vm: ArtistProfil
     Log.d("artistProfileUiState" , artistProfileUiState.toString())
     if(artistProfileUiState is ArtistProfileScreenUiState.Success){
         val it  = artistProfileUiState.artist
-        ArtistProfileCard(it.name ?: "name", it.id ?: "id", it.image_url ?: "profilePicture") {
+        // Follow right from the artwork (not on your own artist profile)
+        val isMe = it.id.equals(vm.currentUserId, ignoreCase = true)
+        var following by remember(it.id) { mutableStateOf(it.follow) }
+        var followBusy by remember { mutableStateOf(false) }
+        LaunchedEffect(vm.followArtistUiState) {
+            when (vm.followArtistUiState) {
+                is FollowArtistUiState.Loading -> followBusy = true
+                is FollowArtistUiState.Success -> {
+                    followBusy = false
+                    following = true
+                }
+                else -> followBusy = false
+            }
+        }
+        LaunchedEffect(vm.unFollowArtistUiState) {
+            when (vm.unFollowArtistUiState) {
+                is UnFollowArtistUiState.Loading -> followBusy = true
+                is UnFollowArtistUiState.Success -> {
+                    followBusy = false
+                    following = false
+                }
+                else -> followBusy = false
+            }
+        }
+        ArtistProfileCard(
+            it.name ?: "name", it.id ?: "id", it.image_url ?: "profilePicture",
+            verified = it.verified == true,
+            following = if (isMe) null else following,
+            followBusy = followBusy,
+            onFollowClick = { if (following) vm.unfollowArtist(it.id) else vm.followUser(it.id) }
+        ) {
             navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it.id)
             navController.navigate(Screens.UserProfile.route)
         }
@@ -291,27 +338,62 @@ fun Description(artworkDetailsDTO: ArtworkDTO) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
+fun BasicInfo(
+    artworkDetailsDTO: ArtworkDTO,
+    isLiked: MutableState<Boolean?>,
+    viewModel: ArtworkDetailViewModel? = null,
+    onShareToChat: (() -> Unit)? = null
+) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     var showComments by remember { mutableStateOf(false) }
     var showSavedFolders by remember { mutableStateOf(false) }
     val collectionVm : CollectionViewModel = hiltViewModel()
+    val context = LocalContext.current
+
+    // MVVM: Collect artwork stats from ViewModel
+    val artworkStatsState by viewModel?.artworkStatsUiState?.collectAsState() ?: remember { mutableStateOf(ArtworkStatsUiState.Loading) }
+
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 16.dp)
     ) {
-        ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "Like" ){
-            if(isLiked.value == true){
-                artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
-            }else{
-                artworkDetailsDTO.id?.let { vm.likeArtwork(it) }
+        // MVVM: Display likes from API stats
+        when (artworkStatsState) {
+            is ArtworkStatsUiState.Success -> {
+                var update = remember { mutableStateOf(0) }
+                val stats = (artworkStatsState as ArtworkStatsUiState.Success).stats
+                ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = viewModel?.showLikes(stats.likes , update)?:stats.likes){
+                    if(isLiked.value == true){
+                        artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
+                        update.value --;
+                    }else{
+                        artworkDetailsDTO.id?.let { vm.likeArtwork(it) }
+                        update.value ++;
+                    }
+                    isLiked.value = !isLiked.value!!
+                }
+                InfoColumn(R.drawable.ic_comment, stats.comments){
+                    showComments = true
+                }
             }
-            isLiked.value = !isLiked.value!!
+            else -> {
+                ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "" ){
+                    if(isLiked.value == true){
+                        artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
+                    }else{
+                        artworkDetailsDTO.id?.let { vm.likeArtwork(it) }
+                    }
+                    isLiked.value = !isLiked.value!!
+                }
+                InfoColumn(R.drawable.ic_comment, ""){
+                    showComments = true
+                }
+            }
         }
-        InfoColumn(R.drawable.ic_comment, "Comment"){
-            showComments = true
+        if (onShareToChat != null) {
+            ShareToChatAction(onClick = onShareToChat)
         }
         InfoColumn(R.drawable.ic_save, "Save"){
             showSavedFolders = true
@@ -348,12 +430,14 @@ fun BasicInfo(artworkDetailsDTO:ArtworkDTO, isLiked: MutableState<Boolean?>) {
                     CommentSection(
                         comments = comments,
                         onSendComment = { newComment ->
-                            comments = listOf(GetCommentsDTO(
-                                userId = currentUser?.id,
-                                userName = currentUser?.name,
-                                userProfilePicture = currentUser?.profilePicture,
-                                text = newComment
-                            )) + comments
+                            comments = listOf(
+                                GetCommentsDTO(
+                                    userId = currentUser?.id,
+                                    userName = currentUser?.name,
+                                    userProfilePicture = currentUser?.profilePicture,
+                                    text = newComment
+                                )
+                            ) + comments
                             artworkDetailsDTO.id?.let {
                                 vm.commentOnArtwork(
                                     it,
@@ -449,28 +533,78 @@ fun SaveSection(
     artworkId: String? = null,
     vm: CollectionViewModel = hiltViewModel()
 ) {
+    var addCollectionDialog by remember { mutableStateOf(false) }
     val state = vm.favoritesUiState
     LaunchedEffect(key1 = vm.createFavoritesUiState) {
-        if (vm.createFavoritesUiState is CreateFavoritesUiState.Success) {
+        if (vm.createFavoritesUiState is CreateFavoritesUiState.Success || vm.createFavoritesUiState is CreateFavoritesUiState.Error) {
             vm.getFavoritesByUserId()
+            vm.resetState()
         }
+    }
+    if (addCollectionDialog){
+        var isCreating by remember {
+            mutableStateOf(false)
+        }
+        isCreating = when(vm.createFavoritesUiState){
+            is CreateFavoritesUiState.Error -> false
+            is CreateFavoritesUiState.Loading -> true
+            is CreateFavoritesUiState.Ideal -> false
+            is CreateFavoritesUiState.Success -> false
+        }
+        AddCollectionDialog(
+            onDismiss = {
+                addCollectionDialog = !addCollectionDialog
+            },
+            onCreateCollection = {
+                vm.createNewFavorites(it)
+            },
+            isCreating = isCreating,
+        )
     }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Save",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Text(
+                text = "Save",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = {
+                addCollectionDialog = true
+            }) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "New",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+//        Text(
+//            text = "Save",
+//            style = MaterialTheme.typography.headlineSmall,
+//            modifier = Modifier.padding(bottom = 8.dp)
+//        )
         Spacer(modifier = Modifier.height(8.dp))
         HorizontalDivider(
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         )
         Spacer(modifier = Modifier.height(8.dp))
+        val context = LocalContext.current
         when (state) {
             is FavoritesUiState.Loading -> {
                 CircularProgressIndicator(
@@ -494,6 +628,7 @@ fun SaveSection(
                                 it.id?.let { it1 ->
                                     if (artworkId != null) {
                                         vm.saveOnFavorites(favoritesId = it1 , artworkId =artworkId)
+                                        Toast.makeText(context , "Saved" , Toast.LENGTH_SHORT).show()
                                         dismiss()
                                     }
                                 }
@@ -538,6 +673,28 @@ private fun CommentItem(comment: GetCommentsDTO) {
     }
 }
 
+// Paper plane next to like / comment / save: opens the "send to a chat" sheet
+@Composable
+private fun ShareToChatAction(onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable(
+            onClickLabel = "Send to a chat",
+            role = Role.Button,
+            onClick = onClick
+        )
+    ) {
+        Icon(
+            imageVector = PaperPlaneIcon,
+            contentDescription = null,
+            tint = if (isSystemInDarkTheme()) Color.White else Color.Black,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = "Share", fontWeight = Bold)
+    }
+}
+
 @Composable
 fun InfoColumn(@DrawableRes iconResource: Int, text: String , onClick: () -> Unit ={}) {
     Row(verticalAlignment = Alignment.CenterVertically , modifier = Modifier.clickable { onClick() }) {
@@ -571,7 +728,8 @@ private fun ParallaxToolbar(
     artworkDTO: ArtworkDTO,
     scrollState: LazyListState,
     isLiked: MutableState<Boolean?>,
-    navController: NavController
+    navController: NavController,
+    onShare: (() -> Unit)? = null
 ) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     val imageHeight = AppBarExpendedHeight - AppBarCollapsedHeight
@@ -580,6 +738,7 @@ private fun ParallaxToolbar(
     } - WindowInsets.systemBars.getTop(LocalDensity.current)
     val offset = min(scrollState.firstVisibleItemScrollOffset, maxOffset)
     val offsetprogress = max(0f, offset * 3f - 2f * maxOffset) / maxOffset
+    val context = LocalContext.current
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -621,6 +780,31 @@ private fun ParallaxToolbar(
                         contentAlignment = Alignment.BottomStart
                     ){
                         GenreSection(artworkDTO.medium)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .clickable {
+                                // Instagram-style: send it to a chat (the sheet also has "Share to…" other apps)
+                                onShare?.invoke() ?: ShareUtils.shareArtwork(context, artworkDTO)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = PaperPlaneIcon,
+                                contentDescription = "Share",
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = "Share",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }

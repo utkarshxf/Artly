@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.orion.templete.R
 import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.components.AnimatedPreloader
@@ -42,6 +43,10 @@ fun CollectionsScreen(
             viewModel.getFavoritesByUserId()
             viewModel.resetState()
         }
+    }
+    LaunchedEffect(Unit) {
+        viewModel.getFavoritesByUserId()
+        viewModel.resetState()
     }
 
     Scaffold(
@@ -77,7 +82,7 @@ fun CollectionsScreen(
         ) {
             when (favoritesUiState) {
                 is FavoritesUiState.Loading -> {
-                    AnimatedPreloader()
+                    AnimatedPreloader(R.raw.loading_app)
                 }
                 is FavoritesUiState.Success -> {
                     if (favoritesUiState.favorites.isEmpty()) {
