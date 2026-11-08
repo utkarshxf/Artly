@@ -16,14 +16,15 @@ fun ArtworkDTO.toArtworkRef(): ArtworkRef? {
     )
 }
 
-// Text for "Copy link": there is no per-artwork web page, so it names the artwork and links the app's site
+// Text for "Copy link": there is no per-artwork web page, so it names the artwork and links the app's
+// Play Store listing (artwrk.studio does not resolve, so linking the site's domain sent people nowhere)
 fun ArtworkRef.shareLinkText(): String = buildString {
     title?.let { append("“").append(it).append("”") } ?: append("An artwork")
     artistName?.let { append(" by ").append(it) }
-    append(" on Artistry\n").append(ARTISTRY_SITE)
+    append(" on Artistry\n").append(ARTISTRY_STORE_LINK)
 }
 
-const val ARTISTRY_SITE = "https://artwrk.studio/"
+const val ARTISTRY_STORE_LINK = "https://play.google.com/store/apps/details?id=com.orion.templete"
 
 // What the share sheet sends: an artwork (post card) or a profile (profile card)
 sealed interface SharePayload {

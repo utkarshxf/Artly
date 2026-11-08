@@ -41,6 +41,9 @@ object ShareUtils {
                 append("($year) ")
             }
             append("by $artist")
+            // Every share should lead back to the app; without the link a share advertises nothing
+            append("\n\nSee it on Artistry: ")
+            append("https://play.google.com/store/apps/details?id=com.orion.templete")
         }
 
         // Only share if image URL is available
