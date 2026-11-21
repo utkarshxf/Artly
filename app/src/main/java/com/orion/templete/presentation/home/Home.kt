@@ -111,7 +111,6 @@ fun Home(
 
     val screens = listOf(
         Screens.Profile,
-        Screens.Search,
         Screens.UploadImageScreen,
         Screens.FavoritesScreen,
         Screens.Swipe,
