@@ -167,16 +167,6 @@ fun DrawerContent(navController: NavController ,logOut:()->Unit ,  onClose: () -
 
 
 
-        NavigationDrawerItem(colors = drawerItemColor,icon = { Icon(painterResource(id =R.drawable.ic_save), contentDescription = null) },
-            label = { Text("Favorites") },
-            selected = false,
-            onClick = {
-                navController.navigate(Screens.FavoritesScreen.route){
-                    popUpTo(0){
-                        inclusive = true
-                    }
-                }
-            })
 //        NavigationDrawerItem(colors = drawerItemColor,icon = { Icon(painterResource(id =R.drawable.ic_add), contentDescription = null) },
 //            label = { Text("Custom Print") },
 //            selected = false,
