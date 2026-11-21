@@ -32,6 +32,9 @@ class CollectionViewModel @Inject constructor(
     var favoritesUiState by mutableStateOf<FavoritesUiState>(FavoritesUiState.Loading)
         private set
 
+    var savedArtworksUiState by mutableStateOf<SavedArtworksUiState>(SavedArtworksUiState.Loading)
+        private set
+
     var createFavoritesUiState by mutableStateOf<CreateFavoritesUiState>(CreateFavoritesUiState.Ideal)
         private set
 
@@ -114,6 +117,43 @@ class CollectionViewModel @Inject constructor(
     fun refreshArtwork(favoriteId: String) {
         getArtworkByFavoriteId(favoriteId)
     }
+
+    // Flat view of every saved artwork across all of the user's collections (profile Favorites tab), newest first
+    fun getAllSavedArtworks() {
+        viewModelScope.launch {
+            savedArtworksUiState = SavedArtworksUiState.Loading
+            artworkRepository.getAllFavorites(currentUserId).collect { response ->
+                when (response) {
+                    is ResponseStates.Loading -> {}
+                    is ResponseStates.Error -> savedArtworksUiState = SavedArtworksUiState.Error(response.error)
+                    is ResponseStates.Success -> {
+                        val collections = response.data
+                        if (collections.isEmpty()) {
+                            savedArtworksUiState = SavedArtworksUiState.Success(emptyList())
+                            return@collect
+                        }
+                        val all = mutableListOf<ArtworkDTO>()
+                        var failed: String? = null
+                        for (favorite in collections) {
+                            val favoriteId = favorite.id ?: continue
+                            artworkRepository.getArtworkByFavoriteId(favoriteId).collect { artworks ->
+                                when (artworks) {
+                                    is ResponseStates.Loading -> {}
+                                    is ResponseStates.Success -> all.addAll(artworks.data)
+                                    is ResponseStates.Error -> failed = artworks.error
+                                }
+                            }
+                        }
+                        savedArtworksUiState = if (all.isEmpty() && failed != null) {
+                            SavedArtworksUiState.Error(failed!!)
+                        } else {
+                            SavedArtworksUiState.Success(all.distinctBy { it.id }.asReversed())
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 sealed interface CollectionScreenUiState {
@@ -131,6 +171,12 @@ sealed interface FavoritesUiState {
     object Loading : FavoritesUiState
     data class Success(val favorites: List<favoritesDTO>) : FavoritesUiState
     data class Error(val message: String) : FavoritesUiState
+}
+
+sealed interface SavedArtworksUiState {
+    object Loading : SavedArtworksUiState
+    data class Success(val artworks: List<ArtworkDTO>) : SavedArtworksUiState
+    data class Error(val message: String) : SavedArtworksUiState
 }
 
 sealed interface CreateFavoritesUiState {

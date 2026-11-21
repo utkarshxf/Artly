@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,8 @@ import com.orion.templete.presentation.artist_profile.ArtistStatsSection
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.Screens
+import com.orion.templete.presentation.favorites.CollectionViewModel
+import com.orion.templete.presentation.favorites.SavedArtworksUiState
 import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.profile.common.DrawerContent
@@ -62,7 +65,8 @@ import kotlin.math.min
 fun ProfileScreen(
     navController: NavController,
     logOut: () -> Unit = {},
-    viewModel: ProfileScreenViewModel = hiltViewModel()
+    viewModel: ProfileScreenViewModel = hiltViewModel(),
+    collectionViewModel: CollectionViewModel = hiltViewModel()
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -108,7 +112,8 @@ fun ProfileScreen(
                                     navController.navigate(Screens.EditArtist.route)
                                 },
                                 navController = navController,
-                                viewModel = viewModel
+                                viewModel = viewModel,
+                                collectionViewModel = collectionViewModel
                             )
                         } else {
                             ProfileContent(
@@ -164,9 +169,10 @@ private fun ArtistProfileContent(
     onMenuClick: () -> Unit,
     onEditClick: () -> Unit,
     navController: NavController,
-    viewModel: ProfileScreenViewModel
+    viewModel: ProfileScreenViewModel,
+    collectionViewModel: CollectionViewModel
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     var showImagePopup by remember { mutableStateOf(false) }
     val artWorksUiState = viewModel.artWorksUiState
 
@@ -186,6 +192,11 @@ private fun ArtistProfileContent(
                 (scrollOffset / maxOffset).coerceIn(0f, 1f)
             }
         }
+    }
+
+    // Fetch the flat saved-artworks list when the Favorites tab is opened
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex == 2) collectionViewModel.getAllSavedArtworks()
     }
 
     if (showImagePopup) {
@@ -241,7 +252,44 @@ private fun ArtistProfileContent(
         }
 
         // Content Section
-        when (artWorksUiState) {
+        if (selectedTabIndex == 2) {
+            when (val savedState = collectionViewModel.savedArtworksUiState) {
+                is SavedArtworksUiState.Loading -> {
+                    item(key = "saved_loading") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+                is SavedArtworksUiState.Success -> {
+                    if (savedState.artworks.isEmpty()) {
+                        item(key = "saved_empty") {
+                            EmptyFavoritesState(onDiscoverClick = {
+                                navController.navigate(Screens.Swipe.route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    restoreState = true
+                                }
+                            })
+                        }
+                    } else {
+                        savedArtworkGridItems(savedState.artworks, navController)
+                    }
+                }
+                is SavedArtworksUiState.Error -> {
+                    item(key = "saved_error") {
+                        ErrorScreen(
+                            message = savedState.message,
+                            onRetry = { collectionViewModel.getAllSavedArtworks() }
+                        )
+                    }
+                }
+            }
+        } else when (artWorksUiState) {
             is ArtWorksUiState.Loading -> {
                 item(key = "loading") {
                     Box(
@@ -348,6 +396,84 @@ private fun LazyListScope.artworkListItems(
     }
 }
 
+// Extension function for the Favorites tab: flat saved artworks in 3-column rows
+private fun LazyListScope.savedArtworkGridItems(
+    artworks: List<ArtworkDTO>,
+    navController: NavController
+) {
+    val rows = artworks.chunked(3)
+
+    items(
+        count = rows.size,
+        key = { index -> rows[index].firstOrNull()?.id ?: "saved_grid_row_$index" }
+    ) { index ->
+        val row = rows[index]
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            row.forEach { artwork ->
+                Box(modifier = Modifier.weight(1f)) {
+                    ArtworkItem(
+                        artwork = artwork,
+                        showArtistName = false,
+                        onArtworkClick = {
+                            artwork.id?.let { id ->
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    key = "artworkId",
+                                    value = id
+                                )
+                                navController.navigate(Screens.ArtworkDetail.route)
+                            }
+                        }
+                    )
+                }
+            }
+            repeat(3 - row.size) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyFavoritesState(onDiscoverClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_save),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Save artworks you love",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Tap the bookmark on any artwork to keep it here.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        TextButton(onClick = onDiscoverClick) {
+            Text("Discover artworks")
+        }
+    }
+}
+
 @Composable
 private fun ArtworkTabs(
     selectedTabIndex: Int,
@@ -382,6 +508,17 @@ private fun ArtworkTabs(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_gird),
                     contentDescription = "Grid View",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        )
+        Tab(
+            selected = selectedTabIndex == 2,
+            onClick = { onTabSelected(2) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_save),
+                    contentDescription = "Favorites",
                     modifier = Modifier.size(24.dp)
                 )
             }
