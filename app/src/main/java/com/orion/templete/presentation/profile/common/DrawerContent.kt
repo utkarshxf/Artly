@@ -55,6 +55,7 @@ import com.freshchat.consumer.sdk.Freshchat
 import com.orion.templete.R
 import com.orion.templete.domain.repository.chat.ChatSession
 import com.orion.templete.presentation.common.Screens
+import com.orion.templete.util.GuestGate
 import com.orion.templete.util.SecureStorage
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -133,6 +134,7 @@ fun DrawerContent(navController: NavController ,logOut:()->Unit ,  onClose: () -
             .padding(16.dp)
     ) {
         val context = LocalContext.current
+        val isGuest = remember { GuestGate.isGuest(context) }
         val drawerItemColor = NavigationDrawerItemDefaults.colors(
             unselectedBadgeColor = Color.Transparent,
             selectedBadgeColor = Color.Transparent,
@@ -217,6 +219,16 @@ fun DrawerContent(navController: NavController ,logOut:()->Unit ,  onClose: () -
 
         // Add logout at bottom
         Spacer(modifier = Modifier.weight(1f))
+
+        // Guests have no account to delete or log out of: offer sign-in instead
+        if (isGuest) {
+            NavigationDrawerItem(colors = drawerItemColor,
+                icon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                label = { Text("Sign in / Create account", color = MaterialTheme.colorScheme.primary) },
+                selected = false,
+                onClick = { GuestGate.check(context) })
+            return@Column
+        }
 
         val logoutScope = rememberCoroutineScope()
         var loggingOut by remember { mutableStateOf(false) }

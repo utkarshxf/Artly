@@ -36,8 +36,8 @@ android {
         applicationId "com.orion.templete"
         minSdk 24
         targetSdk 36
-        versionCode 26
-        versionName "2.6.0"
+        versionCode 30
+        versionName "2.7.6"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

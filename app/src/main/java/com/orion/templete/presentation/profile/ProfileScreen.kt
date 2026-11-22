@@ -63,6 +63,7 @@ import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.profile.common.DrawerContent
 import com.orion.templete.presentation.ui.theme.TempleteTheme
+import com.orion.templete.util.GuestGate
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
@@ -77,8 +78,10 @@ fun ProfileScreen(
     val scope = rememberCoroutineScope()
     val isUserArtist = viewModel.isUserArtist
     val uiState = viewModel.userData
-    LaunchedEffect(Unit) {
-        viewModel.refreshProfile()
+    val context = LocalContext.current
+    val isGuest = remember { GuestGate.isGuest(context) }
+    LaunchedEffect(isGuest) {
+        if (!isGuest) viewModel.refreshProfile()
     }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         ModalNavigationDrawer(
@@ -99,7 +102,9 @@ fun ProfileScreen(
             }
         ) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                when (uiState) {
+                if (isGuest) {
+                    GuestProfileContent(onSignIn = { GuestGate.check(context) })
+                } else when (uiState) {
                     is ProfileScreenUiState.Loading -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -138,6 +143,43 @@ fun ProfileScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+// Guests never get a profile payload; show a proper sign-in state instead of a spinner that never ends
+@Composable
+private fun GuestProfileContent(onSignIn: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_logo_no_bacground),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "You're browsing as a guest",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Create a free account to like and save artworks, follow artists and chat with them.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(onClick = onSignIn, shape = RoundedCornerShape(12.dp)) {
+            Text("Sign in / Create account")
         }
     }
 }

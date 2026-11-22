@@ -41,7 +41,8 @@ class CollectionViewModel @Inject constructor(
     val currentUserId = secureStorage.getUserId()?:""
 
     init {
-        getFavoritesByUserId()
+        // Guests have no collections; skip the call that would 401
+        if (currentUserId.isNotBlank()) getFavoritesByUserId()
     }
 
 

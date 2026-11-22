@@ -43,7 +43,8 @@ class HomeViewModel @Inject constructor(
 
     // Preload the first feed batch (images + story text/audio) at launch so the reels tab opens with no loading.
     private fun warmupFirstBatch() {
-        val userId = currentUserId ?: return
+        // Guests get the same warmup (anonymous feed), otherwise their reels tab opens cold
+        val userId = currentUserId ?: "guest"
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val region = Locale.getDefault().country ?: ""

@@ -61,16 +61,15 @@ class SearchScreenViewModel @Inject constructor(
     val topCreators: StateFlow<TopCreatorsUiState> = _topCreators
 
     init {
-        val currentUserId = secureStorage.getUserId()
-        currentUserId?.let {
-            getPopularArtworks(it)
-            getNewArtworks(it)
-            getRecommendedForToday(it)
-            getTodayBiggestHit()
-            getTopUsers()
-            getTopArtists()
-            getTopCreators()
-        }
+        // Guests get the same default content; the backend accepts the "guest" id anonymously
+        val currentUserId = secureStorage.getUserId() ?: "guest"
+        getPopularArtworks(currentUserId)
+        getNewArtworks(currentUserId)
+        getRecommendedForToday(currentUserId)
+        getTodayBiggestHit()
+        getTopUsers()
+        getTopArtists()
+        getTopCreators()
     }
 
     // Function to search for artists
