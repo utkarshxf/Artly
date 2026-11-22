@@ -550,10 +550,12 @@ fun SwipeCard(
                                                         )
                                                     }
                                                     Direction.Up -> {
-                                                        artwork.id?.let { id ->
-                                                            swipeScreenViewModel.trackArtworkSavedToFavorites(id)
-                                                            currentArtworkIdToSave = id
-                                                            showSavedFolders = true
+                                                        if (!GuestGate.check(context)) {
+                                                            artwork.id?.let { id ->
+                                                                swipeScreenViewModel.trackArtworkSavedToFavorites(id)
+                                                                currentArtworkIdToSave = id
+                                                                showSavedFolders = true
+                                                            }
                                                         }
                                                     }
                                                     else -> {}

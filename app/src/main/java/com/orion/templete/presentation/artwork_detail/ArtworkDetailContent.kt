@@ -259,7 +259,7 @@ fun AboutTheArtist(navController: NavController , id: String? , vm: ArtistProfil
             verified = it.verified == true,
             following = if (isMe) null else following,
             followBusy = followBusy,
-            onFollowClick = { if (following) vm.unfollowArtist(it.id) else vm.followUser(it.id) }
+            onFollowClick = { if (!GuestGate.check(context)) { if (following) vm.unfollowArtist(it.id) else vm.followUser(it.id) } }
         ) {
             navController.currentBackStackEntry?.savedStateHandle?.set(key = "UserID", value = it.id)
             navController.navigate(Screens.UserProfile.route)
@@ -406,7 +406,7 @@ fun BasicInfo(
             ShareToChatAction(onClick = { if (!GuestGate.check(context)) onShareToChat() })
         }
         InfoColumn(R.drawable.ic_save, "Save"){
-            showSavedFolders = true
+            if (!GuestGate.check(context)) showSavedFolders = true
         }
         if (onWatchReel != null) {
             InfoColumn(R.drawable.ic_reels, "Reel") {

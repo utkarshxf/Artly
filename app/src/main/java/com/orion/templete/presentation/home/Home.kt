@@ -473,6 +473,7 @@ fun Home(
         },
         onBecomeArtist = {
             swipeViewModel.dismissBecomeArtist()
+            if (GuestGate.check(context)) return@BecomeArtistBottomSheet
             navController.navigate(Screens.ArtistRegister.route)
         }
     )
