@@ -41,6 +41,10 @@ object ShareUtils {
                 append("($year) ")
             }
             append("by $artist")
+            artwork.id?.let {
+                append("\n\nOpen in Artistry: artistry://artwork/$it")
+            }
+            append("\nGet the app: https://play.google.com/store/apps/details?id=com.orion.templete")
         }
 
         // Only share if image URL is available

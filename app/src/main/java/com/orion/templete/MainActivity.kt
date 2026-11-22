@@ -41,6 +41,17 @@ class MainActivity : ComponentActivity() {
     // True when this copy only handed a chat notification over to the copy that was already running
     private var forwardedChatDeepLink = false
 
+    // Latest shared-artwork link (artistry://artwork/<id>); Navigation opens its detail page
+    private val deepLinkArtwork = androidx.compose.runtime.mutableStateOf<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.data
+            ?.takeIf { it.scheme == "artistry" && it.host == "artwork" }
+            ?.lastPathSegment
+            ?.let { deepLinkArtwork.value = it }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val storage = SecureStorage(this)
@@ -54,6 +65,11 @@ class MainActivity : ComponentActivity() {
             storage.clearUserDetails()
         }
         installSplashScreen()
+
+        // Shared-artwork link: artistry://artwork/<id> opens that artwork's detail page
+        deepLinkArtwork.value = intent?.data
+            ?.takeIf { it.scheme == "artistry" && it.host == "artwork" }
+            ?.lastPathSegment
         ReviewPrompt.maybeRequestReview(this, storage)
 
         // A chat notification opens the conversation. Only a fresh launch reads it: after a rotation or process
@@ -83,7 +99,7 @@ class MainActivity : ComponentActivity() {
                         // "Tap to return to call" while a call goes on behind the app; no room taken otherwise
                         ReturnToCallBar(callManager = callManager)
                         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                            Navigation(startDestination , this@MainActivity)
+                            Navigation(startDestination , this@MainActivity, deepLinkArtwork.value)
                         }
                     }
                 }

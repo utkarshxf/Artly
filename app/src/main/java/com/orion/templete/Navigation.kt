@@ -25,8 +25,14 @@ import com.orion.templete.presentation.common.Screens
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun Navigation(startDest: String, activity: MainActivity) {
+fun Navigation(startDest: String, activity: MainActivity, deepLinkArtworkId: String? = null) {
     val navController = rememberNavController()
+    LaunchedEffect(deepLinkArtworkId) {
+        if (deepLinkArtworkId != null && startDest == Screens.Home.route) {
+            navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = deepLinkArtworkId)
+            navController.navigate(Screens.ArtworkDetail.route)
+        }
+    }
     NavHost(navController = navController, startDestination = startDest) {
         composable(Screens.Login.route) {
             Login(navController = navController)
