@@ -204,7 +204,13 @@ private fun Details(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            BasicInfo(artworkDetailsDTO, isLiked, viewModel, onShareToChat)
+            BasicInfo(artworkDetailsDTO, isLiked, viewModel, onShareToChat, onWatchReel = {
+                artworkDetailsDTO.id?.let { reelId ->
+                    navController.currentBackStackEntry?.savedStateHandle?.set(key = "reelsMode", value = "similar")
+                    navController.currentBackStackEntry?.savedStateHandle?.set(key = "reelsRefId", value = reelId)
+                    navController.navigate(Screens.ReelsFlow.route)
+                }
+            })
             Description(artworkDetailsDTO)
             ArtworkDetails(artworkDetailsDTO)
             AboutTheArtist(navController, artworkDetailsDTO.id)
@@ -342,7 +348,8 @@ fun BasicInfo(
     artworkDetailsDTO: ArtworkDTO,
     isLiked: MutableState<Boolean?>,
     viewModel: ArtworkDetailViewModel? = null,
-    onShareToChat: (() -> Unit)? = null
+    onShareToChat: (() -> Unit)? = null,
+    onWatchReel: (() -> Unit)? = null
 ) {
     val vm: ArtistProfileViewModel = hiltViewModel()
     var showComments by remember { mutableStateOf(false) }
@@ -397,6 +404,11 @@ fun BasicInfo(
         }
         InfoColumn(R.drawable.ic_save, "Save"){
             showSavedFolders = true
+        }
+        if (onWatchReel != null) {
+            InfoColumn(R.drawable.ic_reels, "Reel") {
+                onWatchReel()
+            }
         }
     }
     if (showSavedFolders){

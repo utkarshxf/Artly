@@ -60,7 +60,13 @@ import com.orion.templete.util.extractYear
  * rail (like, comment, share, save, narration play-pause).
  */
 @Composable
-fun ReelsScreen(viewModel: ReelsViewModel, onOpenArtwork: (ArtworkDTO) -> Unit) {
+fun ReelsScreen(
+    viewModel: ReelsViewModel,
+    onOpenArtwork: (ArtworkDTO) -> Unit,
+    reelsMode: String? = null,
+    reelsRefId: String? = null
+) {
+    LaunchedEffect(Unit) { viewModel.setSource(reelsMode, reelsRefId) }
     val state = viewModel.state
 
     // Audio stops the moment the feed leaves the screen: tab change/back (dispose)

@@ -173,6 +173,14 @@ fun Home(
                 navController.navigate(Screens.ArtworkDetail.route)
             })
         }
+        composable(Screens.ReelsFlow.route) {
+            val reelsMode = navController.previousBackStackEntry?.savedStateHandle?.get<String>("reelsMode")
+            val reelsRefId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("reelsRefId")
+            ReelsScreen(hiltViewModel(), reelsMode = reelsMode, reelsRefId = reelsRefId, onOpenArtwork = { data->
+                navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
+                navController.navigate(Screens.ArtworkDetail.route)
+            })
+        }
         composable(Screens.Search.route) {
             SearchScreen(navController , searchScreenViewModel)
         }

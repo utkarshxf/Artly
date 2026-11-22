@@ -19,6 +19,7 @@ import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
@@ -62,6 +63,12 @@ class ReelsViewModel @Inject constructor(
     var state by mutableStateOf(ReelsUiState())
         private set
 
+    // "feed" (default) pages the main feed; "similar" is the reel of one artwork followed by its
+    // similar artworks; "artist" is one artist's artworks. Set once from the hosting screen.
+    private var sourceMode: String = "feed"
+    private var sourceRefId: String? = null
+    private var sourceSet = false
+
     private var userPausedCurrent = false
     private var mediaPlayer: MediaPlayer? = null
 
@@ -79,7 +86,13 @@ class ReelsViewModel @Inject constructor(
             state = state.copy(isLoading = isLoading)
         },
         onRequest = { nextPage ->
-            repository.paginationArtwork(userId = userId, nextPage, 10)
+            when {
+                sourceMode == "similar" && sourceRefId != null ->
+                    if (nextPage == 0) similarFirstPage(sourceRefId!!) else emptyList()
+                sourceMode == "artist" && sourceRefId != null ->
+                    if (nextPage == 0) artistFirstPage(sourceRefId!!) else emptyList()
+                else -> repository.paginationArtwork(userId = userId, nextPage, 10)
+            }
         },
         getNextKey = { state.page + 1 },
         onError = { throwable ->
@@ -100,9 +113,31 @@ class ReelsViewModel @Inject constructor(
                 state = state.copy(speakingArtworkId = null)
             }
         }
-        loadNextItems()
         refreshVoices()
     }
+
+    fun setSource(mode: String?, refId: String?) {
+        if (sourceSet) return
+        sourceSet = true
+        sourceMode = mode ?: "feed"
+        sourceRefId = refId
+        loadNextItems()
+    }
+
+    private suspend fun similarFirstPage(artworkId: String): List<ArtworkDTO> {
+        val current = repository.getArtworkById(userId, artworkId)
+            .first { it is ResponseStates.Success }
+            .let { (it as ResponseStates.Success).data }
+        val similar = repository.getSimilarArtwork(userId, artworkId)
+            .first { it is ResponseStates.Success }
+            .let { (it as ResponseStates.Success).data }
+        return listOf(current) + similar.filter { it.id != current.id }
+    }
+
+    private suspend fun artistFirstPage(artistId: String): List<ArtworkDTO> =
+        repository.getArtworkByArtistId(userId, artistId, "")
+            .first { it is ResponseStates.Success }
+            .let { (it as ResponseStates.Success).data }
 
     fun loadNextItems() {
         viewModelScope.launch {

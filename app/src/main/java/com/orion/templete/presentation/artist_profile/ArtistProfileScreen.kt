@@ -48,6 +48,7 @@ import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.ProfileHeader
 import com.orion.templete.presentation.common.Screens
+import com.orion.templete.presentation.reels.ReelsScreen
 import com.orion.templete.presentation.components.GenreSection
 import com.orion.templete.util.ImageWithText
 
@@ -156,7 +157,26 @@ private fun ProfileContent(
         }
     }
 
-    LazyColumn(
+    if (selectedTabIndex == 1) {
+        // Reels tab: the artist's artworks as a full-screen reel feed
+        Column(modifier = Modifier.fillMaxSize()) {
+            ArtworkTabs(
+                selectedTabIndex = selectedTabIndex,
+                onTabSelected = { selectedTabIndex = it }
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                ReelsScreen(
+                    hiltViewModel(),
+                    reelsMode = "artist",
+                    reelsRefId = artist.id,
+                    onOpenArtwork = { data ->
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
+                        navController.navigate(Screens.ArtworkDetail.route)
+                    }
+                )
+            }
+        }
+    } else LazyColumn(
         state = lazyListState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 12.dp)
@@ -341,8 +361,8 @@ private fun ArtworkTabs(
             onClick = { onTabSelected(1) },
             icon = {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_list),
-                    contentDescription = "List View",
+                    painter = painterResource(id = R.drawable.ic_reels),
+                    contentDescription = "Reels",
                     modifier = Modifier.size(24.dp)
                 )
             }
