@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Chat message notifications (asked at runtime on Android 13+ when the inbox first opens) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="replace"/>
 
     <!-- Audio / video calls in chat (Agora). Microphone and camera are asked at runtime before the first call;
          Bluetooth (headsets) is asked with them on Android 12+ and never blocks a call. -->
@@ -45,12 +44,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Template"
         tools:targetApi="31">
-        <meta-data
-            android:name="com.facebook.sdk.ApplicationId"
-            android:value="@string/facebook_app_id" />
-        <meta-data
-            android:name="com.facebook.sdk.ClientToken"
-            android:value="@string/facebook_client_token" />
         <!-- Chat push: the app posts its own notifications from FCM data messages (ChatMessagingService); these
              defaults only apply to notification messages sent from the Firebase console -->
         <meta-data

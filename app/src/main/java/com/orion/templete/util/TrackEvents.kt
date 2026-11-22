@@ -2,7 +2,6 @@ package com.orion.templete.util
 
 import android.content.Context
 import android.os.Bundle
-import com.facebook.appevents.AppEventsLogger
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import com.orion.templete.R
 import com.orion.templete.data.model.user_model.UserDetails
@@ -16,7 +15,6 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
     private val mp: MixpanelAPI =
         MixpanelAPI.getInstance(context, context.getString(R.string.MIXPANEL_TOKEN), false)
 
-    private val logger: AppEventsLogger = AppEventsLogger.newLogger(context)
 
     private val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
@@ -61,8 +59,6 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
         }
         mp.track("Login_Attempted", obj)
 
-        // Facebook event tracking
-        logger.logEvent("fb_mobile_login_start")
     }
 
     fun trackLoginSuccess() {
@@ -73,9 +69,6 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
             put("First_Seen", sharedPreferences.getString("createdAt", null))
         }
         mp.track("Login_Success", obj)
-
-        // Facebook event tracking
-        logger.logEvent("fb_mobile_complete_registration")
 
         // Identify user in Mixpanel
         secureStorage.getUserDetails()?.let { userDetails ->
@@ -470,10 +463,6 @@ class TrackEvents @Inject constructor(@ApplicationContext private val context: C
         }
         mp.track("Login_Error", obj)
 
-        // Facebook event tracking
-        val params = Bundle()
-        params.putString("error_message", toString)
-        logger.logEvent("fb_mobile_login_error", params)
     }
 
     fun tackUserBecomeArtist(userId: String) {

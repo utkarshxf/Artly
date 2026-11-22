@@ -8,7 +8,6 @@ import coil.Coil
 import coil.ImageLoader
 import coil.request.CachePolicy
 import coil.util.DebugLogger
-import com.facebook.FacebookSdk
 import com.freshchat.consumer.sdk.Freshchat
 import com.freshchat.consumer.sdk.FreshchatConfig
 import com.orion.templete.util.TrackEvents
