@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 interface ArtworkRepository {
     suspend fun getArtwork(): ArtworkDTO
     suspend fun paginationArtwork(userId: String , offset : Int, pageSize:Int): List<ArtworkDTO>
+    suspend fun viewArtwork(artworkId: String, userId: String)
     suspend fun likeArtwork(artworkId: String, userId: String): Boolean
     suspend fun disLikeArtwork(artworkId: String, userId: String): Boolean
     suspend fun getArtworkById(userId: String , artworkId: String): Flow<ResponseStates<ArtworkDTO>>

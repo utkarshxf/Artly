@@ -76,6 +76,7 @@ class ReelsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val userId = secureStorage.getUserId() ?: "guest"
+    private val isGuest = secureStorage.getToken().isNullOrBlank()
     private val tts = StoryTtsManager(context)
 
     var state by mutableStateOf(ReelsUiState())
@@ -167,6 +168,12 @@ class ReelsViewModel @Inject constructor(
     fun onPageSettled(index: Int) {
         if (index >= state.items.size - 3 && !state.endReached && !state.isLoading) {
             loadNextItems()
+        }
+        // Mark the settled artwork as seen so the feed stops repeating it (view API is authed)
+        if (!isGuest) {
+            state.items.getOrNull(index)?.id?.let { viewedId ->
+                viewModelScope.launch { repository.viewArtwork(viewedId, userId) }
+            }
         }
         userPausedCurrent = false
         // Stop the previous artwork's audio the moment the page settles, before any fetching.

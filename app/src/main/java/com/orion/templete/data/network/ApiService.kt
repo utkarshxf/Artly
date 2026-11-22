@@ -121,6 +121,10 @@ interface ApiService {
     @GET("artwork/recommend")
     suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int):retrofit2.Response<List<ArtworkDTO>>
 
+    // Marks an artwork as seen so the recommendation feed stops repeating it
+    @POST("artwork/{artworkId}/view/{userId}")
+    suspend fun viewArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): retrofit2.Response<Unit>
+
     @PUT("artwork/user/like/{artworkId}/{userId}")
     suspend fun likeArtwork(@Path("artworkId") artworkId: String, @Path("userId") userId: String): Response<Unit>
 

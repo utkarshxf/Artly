@@ -26,6 +26,14 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
         return response
     }
 
+    override suspend fun viewArtwork(artworkId: String, userId: String) {
+        // Seen-tracking is best effort: a missed view only means the artwork can reappear
+        try {
+            apiService.viewArtwork(artworkId, userId)
+        } catch (_: Exception) {
+        }
+    }
+
     override suspend fun likeArtwork(artworkId: String, userId: String): Boolean {
         val response = apiService.likeArtwork(artworkId, userId)
         if (response.isSuccessful) secureStorage.incrementLikeCount()

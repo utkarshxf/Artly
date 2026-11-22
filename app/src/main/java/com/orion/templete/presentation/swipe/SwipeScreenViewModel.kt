@@ -44,6 +44,7 @@ class SwipeScreenViewModel @Inject constructor(
     private val chatSession: ChatSession
 ) : ViewModel() {
     val userId = secureStorage.getUserId() ?: "guest"
+    private val isGuest = secureStorage.getToken().isNullOrBlank()
 
     // Instagram-style red badge on the message icon: number of conversations with unread messages.
     // Only listens while chat is signed in; any chat failure just hides the badge (and retries with backoff),
@@ -173,6 +174,10 @@ class SwipeScreenViewModel @Inject constructor(
     // Additional tracking methods for specific user interactions
     fun trackArtworkView(artworkId: String) {
         trackEvents.trackArtworkViewed(artworkId)
+        // Same seen API the reels feed uses, so swiped-open artworks stop repeating
+        if (!isGuest) {
+            viewModelScope.launch { repository.viewArtwork(artworkId, userId) }
+        }
     }
 
     fun trackRecommendedArtworkView(artworkId: String) {
