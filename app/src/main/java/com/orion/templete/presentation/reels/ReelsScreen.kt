@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
+import com.orion.templete.presentation.artwork_detail.SaveSection
+import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.util.GuestGate
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
@@ -114,6 +116,8 @@ private fun ReelsPager(
     onOpenArtwork: (ArtworkDTO) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { state.items.size })
+    // Save opens the same collections bottom sheet as the artwork screen
+    var saveSheetArtworkId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
@@ -137,7 +141,9 @@ private fun ReelsPager(
             onLanguageSelected = viewModel::onLanguageSelected,
             onVoiceSelected = viewModel::onVoiceSelected,
             onToggleLike = { if (!GuestGate.check(context)) artwork.id?.let(viewModel::toggleLike) },
-            onSave = { artwork.id?.let(viewModel::saveArtwork) },
+            onSave = {
+                if (!GuestGate.check(context)) saveSheetArtworkId = artwork.id
+            },
             onOpenArtwork = { onOpenArtwork(artwork) }
         )
     }
@@ -150,6 +156,15 @@ private fun ReelsPager(
                     .size(28.dp),
                 color = Color.White,
                 strokeWidth = 2.dp
+            )
+        }
+    }
+
+    saveSheetArtworkId?.let { targetId ->
+        BottomSheet(onDismiss = { saveSheetArtworkId = null }) {
+            SaveSection(
+                dismiss = { saveSheetArtworkId = null },
+                artworkId = targetId
             )
         }
     }

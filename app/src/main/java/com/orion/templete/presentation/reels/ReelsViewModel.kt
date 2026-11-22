@@ -56,13 +56,12 @@ enum class ReelsLanguage(val label: String, val locale: Locale, val apiCode: Str
     GREEK("Ελληνικά", Locale("el", "GR"), "el", true);
 
     companion object {
-        // Default story language: the device language when we support it, otherwise Hindi -
-        // India is the largest named country in the audience data. English stays first in
-        // the list and is always selectable.
+        // Default story language: the device language when we support it, otherwise English.
+        // (The audience country data is name-inferred and unverified, so it cannot set a default.)
         fun forDevice(): ReelsLanguage {
             val deviceLanguage = Locale.getDefault().language
             return entries.firstOrNull { it.apiCode == deviceLanguage || it.locale.language == deviceLanguage }
-                ?: HINDI
+                ?: ENGLISH_IN
         }
     }
 }
@@ -90,6 +89,11 @@ class ReelsViewModel @Inject constructor(
 
     private var userPausedCurrent = false
     private var mediaPlayer: MediaPlayer? = null
+
+    // Players prepared ahead of the swipe, Instagram-style: while reel N plays, N+1/N+2 are
+    // decoded and ready, so landing on them is just start() - milliseconds, no prepare wait.
+    private val preparedPlayers = java.util.concurrent.ConcurrentHashMap<String, MediaPlayer>()
+    private val preparingPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     // Incremented on every stop/settle; an in-flight fetch from an older page checks it before
     // touching state or starting audio, so a previous artwork's narration can never overlap.
@@ -177,8 +181,8 @@ class ReelsViewModel @Inject constructor(
         }
         userPausedCurrent = false
         // Stop the previous artwork's audio the moment the page settles, before any fetching.
+        // speakArtworkAt stops everything except this page's prepared player.
         playbackSession++
-        stopAllAudio()
         state = state.copy(audioPaused = false, lastSettledIndex = index, speakingArtworkId = null)
         speakArtworkAt(index)
         // Generate + download the next stories now, so their audio starts instantly on landing.
@@ -304,23 +308,71 @@ class ReelsViewModel @Inject constructor(
         val artworkId = artwork.id ?: return
         val lang = state.language
         val session = ++playbackSession
-        viewModelScope.launch {
-            // 1. Story text: backend translation (per artwork + language, cached), else the app's own text.
-            val text = storyPrefetcher.storyText(artworkId, lang.apiCode, deviceRegion)
-                ?: artwork.description?.takeIf { it.isNotBlank() } ?: return@launch
+        val key = "$artworkId|${lang.apiCode}"
 
-            // The user swiped away, paused or left while the text was loading.
+        stopAllAudio(keepPreparedKey = key)
+        state = state.copy(speakingArtworkId = artworkId)
+
+        // Instant path: this reel's player was prepared while the previous one played.
+        preparedPlayers.remove(key)?.let { prepared ->
+            preparingPlayers.remove(key)
+            prepared.setOnCompletionListener {
+                if (state.speakingArtworkId == artworkId) {
+                    state = state.copy(speakingArtworkId = null)
+                }
+            }
+            prepared.setOnErrorListener { _, _, _ ->
+                if (state.speakingArtworkId == artworkId) {
+                    state = state.copy(speakingArtworkId = null)
+                }
+                true
+            }
+            mediaPlayer = prepared
+            prepared.start()
+            return
+        }
+
+        viewModelScope.launch {
+            // Cold path: audio download first (it does not need the text); the story text is
+            // only fetched for the device-TTS fallback, so the common path saves a round trip.
+            if (playBackendAudio(artworkId, lang.apiCode, session)) return@launch
             if (session != playbackSession || userPausedCurrent || state.lastSettledIndex != index) return@launch
 
-            stopAllAudio()
-            state = state.copy(speakingArtworkId = artworkId)
+            val text = storyPrefetcher.storyText(artworkId, lang.apiCode, deviceRegion)
+                ?: artwork.description?.takeIf { it.isNotBlank() } ?: return@launch
+            if (session != playbackSession || state.speakingArtworkId != artworkId) return@launch
+            val voice = state.availableVoices.firstOrNull { it.name == state.selectedVoiceName }
+            tts.speak(artworkId, text, lang.locale, voice)
+        }
+    }
 
-            // 2. Narration: backend audio first, device TTS when that fails (503 quota or offline).
-            if (!playBackendAudio(artworkId, lang.apiCode, session) &&
-                session == playbackSession && state.speakingArtworkId == artworkId
-            ) {
-                val voice = state.availableVoices.firstOrNull { it.name == state.selectedVoiceName }
-                tts.speak(artworkId, text, lang.locale, voice)
+    /** Creates prepared players for the reels at/just after [index] whose audio is already cached. */
+    private fun preparePlayersAhead(index: Int) {
+        val lang = state.language.apiCode
+        for (i in index..(index + 2)) {
+            val id = state.items.getOrNull(i)?.id ?: continue
+            val key = "$id|$lang"
+            if (preparedPlayers.containsKey(key) || !preparingPlayers.add(key)) continue
+            val file = storyPrefetcher.audioFile(id, lang)
+            if (!file.exists() || file.length() == 0L) {
+                preparingPlayers.remove(key)
+                continue
+            }
+            try {
+                val player = MediaPlayer()
+                player.setDataSource(file.absolutePath)
+                player.setOnPreparedListener { ready ->
+                    preparedPlayers[key] = ready
+                    preparingPlayers.remove(key)
+                }
+                player.setOnErrorListener { _, _, _ ->
+                    preparedPlayers.remove(key)
+                    preparingPlayers.remove(key)
+                    true
+                }
+                player.prepareAsync()
+            } catch (e: Exception) {
+                preparingPlayers.remove(key)
             }
         }
     }
@@ -368,11 +420,14 @@ class ReelsViewModel @Inject constructor(
             val id = state.items.getOrNull(i)?.id ?: continue
             viewModelScope.launch {
                 storyPrefetcher.warmupStory(id, lang, deviceRegion)
+                // The file may have just landed: get its player ready for the swipe onto it
+                preparePlayersAhead(state.lastSettledIndex)
             }
         }
+        preparePlayersAhead(index)
     }
 
-    private fun stopAllAudio() {
+    private fun stopAllAudio(keepPreparedKey: String? = null) {
         tts.stop()
         mediaPlayer?.let {
             try {
@@ -382,6 +437,17 @@ class ReelsViewModel @Inject constructor(
             it.release()
         }
         mediaPlayer = null
+        val it = preparedPlayers.entries.iterator()
+        while (it.hasNext()) {
+            val entry = it.next()
+            if (entry.key != keepPreparedKey) {
+                try {
+                    entry.value.release()
+                } catch (_: Exception) {
+                }
+                it.remove()
+            }
+        }
     }
 
     private fun refreshVoices() {
