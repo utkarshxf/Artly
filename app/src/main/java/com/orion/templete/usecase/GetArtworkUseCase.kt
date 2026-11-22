@@ -20,6 +20,8 @@ class GetArtworkUseCase @Inject constructor(
             } else {
                 emit(ResponseStates.Error("Failed to like artwork"))
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message.toString()))
         }
@@ -33,6 +35,8 @@ class GetArtworkUseCase @Inject constructor(
             } else {
                 emit(ResponseStates.Error("Failed to disLike artwork"))
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message.toString()))
         }

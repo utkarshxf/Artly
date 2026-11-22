@@ -21,6 +21,8 @@ class RegisterUseCase @Inject constructor(
         emit(ResponseStates.Loading)
         try {
             emit(ResponseStates.Success(loginRepository.loginUserDetail(user)))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "An unknown error occurred"))
         }
@@ -33,6 +35,8 @@ class RegisterUseCase @Inject constructor(
             emit(ResponseStates.Error("Network error: ${e.message}"))
         } catch (e: HttpException) {
             emit(ResponseStates.Error("Server error: ${e.message}"))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error("${e.message}"))
         }
@@ -43,6 +47,8 @@ class RegisterUseCase @Inject constructor(
         try {
             val response = loginRepository.verifyUser(TokenRequest(token))
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "An unknown error occurred"))
         }

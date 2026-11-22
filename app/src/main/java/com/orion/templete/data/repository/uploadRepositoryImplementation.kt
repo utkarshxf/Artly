@@ -52,6 +52,8 @@ class uploadRepositoryImplementation @Inject constructor(
 
             Log.d("UploadRepository", "Image uploaded successfully: $downloadUrl")
             emit(ResponseStates.Success(downloadUrl))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("UploadRepository", "Error uploading image", e)
             emit(ResponseStates.Error("Failed to upload image: ${e.message}"))
@@ -70,6 +72,8 @@ class uploadRepositoryImplementation @Inject constructor(
                 Log.e("UploadRepository", "Error searching genres: ${response.message()}")
                 emit(ResponseStates.Error("Failed to search genres: ${response.message()}"))
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("UploadRepository", "Error searching genres", e)
             emit(ResponseStates.Error("Failed to search genres: ${e.message}"))
@@ -101,6 +105,8 @@ class uploadRepositoryImplementation @Inject constructor(
                 Log.e("UploadRepository", "Error creating genre: ${response.message()}")
                 emit(ResponseStates.Error("Failed to create genre: ${response.message()}"))
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("UploadRepository", "Error creating genre", e)
             emit(ResponseStates.Error("Failed to create genre: ${e.message}"))
@@ -124,6 +130,8 @@ class uploadRepositoryImplementation @Inject constructor(
                 Log.e("UploadRepository", "Error uploading artwork: ${response.message()}")
                 emit(ResponseStates.Error("Failed to upload artwork: ${response.message()}"))
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("UploadRepository", "Error uploading artwork", e)
             emit(ResponseStates.Error("Failed to upload artwork: ${e.message}"))

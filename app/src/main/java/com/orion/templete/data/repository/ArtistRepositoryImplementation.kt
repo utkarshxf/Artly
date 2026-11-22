@@ -76,6 +76,8 @@ class ArtistRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.getTopArtists(page = 0, size = 10) }
             emit(ResponseStates.Success(response.artists ?: emptyList()))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception", e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))

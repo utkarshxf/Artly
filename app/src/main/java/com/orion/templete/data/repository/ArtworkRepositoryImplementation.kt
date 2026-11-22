@@ -49,6 +49,8 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
             try {
                 val response = safeApiRequest { apiService.getArtworkById(userId = userId, artworkId = artworkId) }
                 emit(ResponseStates.Success(response))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
             }
@@ -63,6 +65,8 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
         try {
             val response = safeApiRequest { apiService.moreFromArtist(userId = currentArtworkId, currentArtworkId = currentArtworkId, artistId = artistId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -76,6 +80,8 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
         try {
             val response = safeApiRequest { apiService.similarGenreArtworks(userId = currentUserId, artworkId = artworkId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -86,6 +92,8 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
         try {
             val response = safeApiRequest { apiService.getArtworkByFavoriteId(favoriteId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -101,6 +109,8 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
             Log.d("Exception" , artworkId)
             val response = safeApiRequest { apiService.saveOnFavorites(favoritesId , artworkId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -111,6 +121,8 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
         try {
             val response = safeApiRequest { apiService.getFavoritesByUserId(userId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -123,6 +135,8 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
         try {
             val response = safeApiRequest { apiService.createNewFavorites(userId , favorites) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -133,6 +147,8 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
         try {
             val response = safeApiRequest { apiService.getArtworkStats(artworkId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }

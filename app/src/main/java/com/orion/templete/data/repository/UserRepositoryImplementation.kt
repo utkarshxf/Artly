@@ -52,6 +52,8 @@ class UserRepositoryImplementation @Inject constructor(
                 } else if (!isNetworkAvailable(context) && userDao.getUserById(userId) == null) {
                     emit(ResponseStates.Error("No internet connection and no cached data available"))
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.d("Exception" , "Exception")
                 emit(ResponseStates.Error(e.message ?: "Unknown Error Occurred"))
@@ -82,6 +84,8 @@ class UserRepositoryImplementation @Inject constructor(
                 } else if (!isNetworkAvailable(context) && userDao.getUserById(artistId) == null) {
                     emit(ResponseStates.Error("No internet connection and no cached data available"))
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.d("Exception" , "Exception")
                 emit(ResponseStates.Error(e.message ?: "Unknown Error Occurred"))
@@ -105,6 +109,8 @@ class UserRepositoryImplementation @Inject constructor(
                 } else if (!isNetworkAvailable(context)) {
                     emit(ResponseStates.Error("No internet connection and no cached data available"))
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 emit(ResponseStates.Error(e.message ?: "Unknown Error Occurred"))
             }
@@ -124,6 +130,8 @@ class UserRepositoryImplementation @Inject constructor(
             }finally {
                 emit(ResponseStates.Success(response))
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -136,6 +144,8 @@ class UserRepositoryImplementation @Inject constructor(
             Log.d("Exception" , userDetails.toString())
             val response = safeApiRequest { apiService.updateUser(userId = userDetails.id , userDetails) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -150,6 +160,8 @@ class UserRepositoryImplementation @Inject constructor(
             val response = safeApiRequest { apiService.followUser(userId ,artistId ) }
             secureStorage.setFollowedOnce()
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -163,6 +175,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.unfollowArtist(userId , artistId)}
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -177,6 +191,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.likeArtwork(artworkId , userId)}
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -190,6 +206,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.unLikeArtwork(artworkId , userId)}
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
         }
@@ -204,6 +222,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.commentOnArtwork(userId , artworkId , comment ) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -217,6 +237,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.getCommentOnArtwork( artworkId ) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -231,6 +253,8 @@ class UserRepositoryImplementation @Inject constructor(
             val response = safeApiRequest { apiService.getArtistArtworks(userId , artistId) }
             // older backends return one empty row for an artist without artworks; never show it as "Untitled"
             emit(ResponseStates.Success(response.filter { !it.id.isNullOrBlank() }))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception" , e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -242,6 +266,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.registerAsArtist(currentUserId = artistData.id , artistData) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception", e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -253,6 +279,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.updateArtist(artistId, artistData) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception", e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -264,6 +292,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.getArtistDetails(artistId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception", e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -275,6 +305,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.getArtistStats(artistId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception", e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -286,6 +318,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.isUserArtist(userId) }
             emit(ResponseStates.Success(response))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception", e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -298,6 +332,8 @@ class UserRepositoryImplementation @Inject constructor(
             val response = safeApiRequest { apiService.getTopViewers(page = 0, size = 10) }
             Log.d("TopViewersResponse", response.toString())
             emit(ResponseStates.Success(response.users ?: emptyList()))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception", e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
@@ -320,6 +356,8 @@ class UserRepositoryImplementation @Inject constructor(
         try {
             val response = safeApiRequest { apiService.getTopCreators(page = 0, size = 10) }
             emit(ResponseStates.Success(response.creators ?: emptyList()))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.d("Exception", e.message.toString())
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))
