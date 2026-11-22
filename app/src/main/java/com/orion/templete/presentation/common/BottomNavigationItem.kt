@@ -21,6 +21,10 @@ data class BottomNavigationItem(
                 route = Screens.UploadImageScreen.route
             ),
             BottomNavigationItem(
+                icon = R.drawable.ic_reels,
+                route = Screens.Reels.route
+            ),
+            BottomNavigationItem(
                 icon = R.drawable.ic_profile,
                 route = Screens.Profile.route
             ),
