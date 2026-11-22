@@ -2,6 +2,7 @@ package com.orion.templete.presentation.reels
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -203,6 +205,7 @@ private fun ReelPage(
             Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
+                .clickable { onOpenArtwork() }
                 .background(
                     Brush.verticalGradient(
                         listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
@@ -226,14 +229,6 @@ private fun ReelPage(
                             .padding(end = 8.dp),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
-                    )
-                }
-                IconButton(onClick = { ShareUtils.shareArtwork(context, artwork) }) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_share),
-                        contentDescription = "Share",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
@@ -381,9 +376,28 @@ private fun VoiceSelector(
     onSelected: (String?) -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
-    // Engine voice ids end in "-local"/"-network", which made every label the same.
-    // Number them instead: "Voice 1", "Voice 2", ...
-    val labels = state.availableVoices.mapIndexed { index, voice -> voice.name to "Voice ${index + 1}" }
+    // Engine voice ids are cryptic ("en-in-x-end-local"); give each one a stable human
+    // name, matched to its gender where the engine reports it.
+    val femaleNames = listOf("Asha", "Meera", "Kavya", "Anaya", "Priya", "Sara", "Nisha", "Riya", "Ira", "Tara",
+        "Anika", "Diya", "Myra", "Kiara", "Naina", "Sanya", "Vani", "Zoya", "Aarti", "Pooja")
+    val maleNames = listOf("Arjun", "Rohan", "Vikram", "Aditya", "Karan", "Dev", "Nikhil", "Rahul", "Aman", "Varun",
+        "Ishaan", "Kabir", "Yash", "Om", "Rey", "Samar", "Tejas", "Vivaan", "Zaid", "Mohan")
+    var femaleCount = 0
+    var maleCount = 0
+    val labels = state.availableVoices.map { voice ->
+        val gender = voice.features?.firstOrNull {
+            it.equals("female", ignoreCase = true) || it.equals("male", ignoreCase = true)
+        }?.lowercase()
+            // Google voices carry the gender in the id ("...#female_2-local"), not in features
+            ?: Regex("female|male").find(voice.name.lowercase())?.value
+        val label = when (gender) {
+            "male" -> maleNames.getOrElse(maleCount++) { "Voice ${maleCount}" }
+            "female" -> femaleNames.getOrElse(femaleCount++) { "Voice ${femaleCount}" }
+            else -> if ((femaleCount + maleCount) % 2 == 0) femaleNames.getOrElse(femaleCount++) { "Voice ${femaleCount}" }
+                    else maleNames.getOrElse(maleCount++) { "Voice ${maleCount}" }
+        }
+        voice.name to label
+    }
     val currentLabel = labels.firstOrNull { it.first == state.selectedVoiceName }?.second
         ?: "Default voice"
     Box {
@@ -396,7 +410,11 @@ private fun VoiceSelector(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.heightIn(max = 360.dp)
+        ) {
             DropdownMenuItem(
                 text = { Text("Default voice") },
                 onClick = {
