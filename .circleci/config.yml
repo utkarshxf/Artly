@@ -1,0 +1,20 @@
+version: 2.1
+jobs:
+  build-debug:
+    docker:
+      - image: cimg/android:2026.11.4
+    resource_class: large
+    steps:
+      - checkout
+      - run:
+          name: Build debug APK
+          command: |
+            chmod +x gradlew
+            ./gradlew :app:assembleDebug --no-daemon --console=plain
+      - store_artifacts:
+          path: app/build/outputs/apk/debug
+          destination: apk
+workflows:
+  build-debug-apk:
+    jobs:
+      - build-debug
