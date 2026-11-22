@@ -7,20 +7,48 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+// Release signing: keystore path, alias and passwords live in Artly/keystore.properties (not in git)
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+def hasReleaseSigning = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].every {
+    keystoreProperties.getProperty(it)?.trim()
+}
+
 android {
     namespace 'com.orion.templete'
-    compileSdk 34
+    compileSdk 36
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(keystoreProperties.getProperty('storeFile'))
+                storePassword keystoreProperties.getProperty('storePassword')
+                keyAlias keystoreProperties.getProperty('keyAlias')
+                keyPassword keystoreProperties.getProperty('keyPassword')
+            }
+        }
+    }
 
     defaultConfig {
         applicationId "com.orion.templete"
         minSdk 24
-        targetSdk 35
-        versionCode 9
-        versionName "1.9"
+        targetSdk 36
+        versionCode 26
+        versionName "2.6.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
+        }
+        // Calls (Agora) ship big native libraries per ABI. Every phone the Play Store serves is ARM; x86 would
+        // only add ~100 MB to the bundle for emulators (which run the ARM build through translation).
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a"
+            // Local emulator builds only (x86_64 images): gradlew assembleDebug -PemulatorAbi
+            if (project.hasProperty('emulatorAbi')) abiFilters "x86_64"
         }
     }
 
@@ -28,6 +56,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {
@@ -41,11 +72,16 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.5.1'
+        // Match current Kotlin (1.9.0) → Compose Compiler 1.5.0 per compatibility table
+        kotlinCompilerExtensionVersion '1.5.0'
     }
     packagingOptions {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+        jniLibs {
+            // Stored uncompressed and page-aligned (16 KB page-size devices)
+            useLegacyPackaging false
         }
     }
 
@@ -63,7 +99,29 @@ dependencies {
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3-android:1.2.1'
     implementation 'com.google.firebase:firebase-auth-ktx:23.1.0'
+    // Google sign-in through Credential Manager
+    implementation 'androidx.credentials:credentials:1.3.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.3.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
     implementation 'com.google.firebase:firebase-storage:21.0.1'
+    implementation 'com.google.firebase:firebase-firestore-ktx:25.1.1'
+    // Chat v2: push notifications (FCM data messages), process lifecycle for presence, EXIF for photo uploads,
+    // extended Material icons for the chat screens (version from the Compose BOM)
+    implementation 'com.google.firebase:firebase-messaging:24.1.0'
+    implementation 'androidx.lifecycle:lifecycle-process:2.6.1'
+    implementation 'androidx.exifinterface:exifinterface:1.3.7'
+    implementation 'androidx.compose.material:material-icons-extended'
+    // Audio / video calls in chat (tokens are minted by the backend; the app never holds the certificate).
+    // Only the modules 1:1 calls use. Screen sharing in particular must stay out: it adds a media-projection
+    // foreground service and permission to the manifest, which Google Play asks to be justified. The other
+    // extensions (voice / video effects, AV1, spatial audio, ...) are never loaded and only add size.
+    implementation('io.agora.rtc:full-sdk:4.6.0') {
+        ['full-screen-sharing', 'screen-capture', 'audio-beauty', 'clear-vision', 'full-content-inspect',
+         'full-face-capture', 'full-face-detect', 'full-video-av1-codec-dec', 'full-video-av1-codec-enc',
+         'full-virtual-background', 'full-voice-drive', 'full-vqa', 'spatial-audio'].each { unused ->
+            exclude group: 'io.agora.rtc', module: unused
+        }
+    }
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
@@ -139,4 +197,9 @@ dependencies {
     /**Ucrop**/
     implementation ("com.github.yalantis:ucrop:2.2.6")
     implementation("io.coil-kt:coil-compose:2.4.0")
+
+    implementation("com.mixpanel.android:mixpanel-android:7.+")
+
+    // Facebook SDK
+    implementation 'com.facebook.android:facebook-android-sdk:latest.release'
 }

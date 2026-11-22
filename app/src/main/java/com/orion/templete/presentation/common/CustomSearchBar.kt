@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.common
 
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ColumnScope
@@ -32,6 +33,7 @@ fun CustomSearchBar(
     placeholder: String,
     content: @Composable () -> Unit
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
     val colors1 = SearchBarDefaults.colors(
         containerColor = MaterialTheme.colorScheme.surface,
         dividerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
@@ -41,10 +43,8 @@ fun CustomSearchBar(
             SearchBarDefaults.InputField(
                 query = query,
                 onQueryChange = onQueryChange,
-                onSearch = {
-                    onActiveChange(false)
-                    onQueryChange("")
-                },
+                // results update while typing; the keyboard's search key only closes the keyboard
+                onSearch = { keyboardController?.hide() },
                 expanded = active,
                 onExpandedChange = onActiveChange,
                 placeholder = { Text(text = placeholder , style = MaterialTheme.typography.titleSmall , color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))},

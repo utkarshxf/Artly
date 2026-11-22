@@ -7,8 +7,8 @@
     <string name="fullname_hint">full name</string>
     <string name="no_dis">No description available</string>
     <string name="no_name">No Name</string>
-    <string name="name_hint">enter your name</string>
-    <string name="dob_hint">enter your birthday</string>
+    <string name="name_hint">Name</string>
+    <string name="dob_hint">Birth Date</string>
     <string name="gender_hint">gender</string>
     <string name="language_hint">your language</string>
     <string name="country_hint">enter your country</string>
@@ -18,8 +18,20 @@
     <string name="otpSendSuccessfully">Otp Send Successfully</string>
     <string name="otpVerified">Otp Verified</string>
     <string name="otp_hint">Enter Otp</string>
-    <string name="mobile_hint">Enter Mobile Number</string>
-    <string name="username_hint">Enter User Name</string>
+    <string name="mobile_hint">Phone no.</string>
+    <string name="username_hint">Username</string>
     <string name="no_info">unknown</string>
     <string name="update">update</string>
+    <string name="phone_number_hint">Enter Phone Number</string>
+    <string name="new_password_hint">Enter New Password</string>
+    <string name="confirm_password_hint">Confirm Password</string>
+    <string name="MIXPANEL_TOKEN">a7178ade19a58e42d1f0939288df5765</string>
+    <string name="facebook_app_id">1437586197550730</string>
+    <string name="facebook_client_token">56789abcdef0123456789abcdef01234</string>
+    <string name="artist_question">Would you like to register as an artist?</string>
+    <string name="wikipedia_url_hint">Your website or portfolio link</string>
+    <string name="description_hint">Bio</string>
+    <string name="nationality_hint">Country</string>
+    <string name="awards_hint">Exhibitions, features or anything you’re proud of</string>
+    <string name="education_hint">Profession</string>
 </resources>

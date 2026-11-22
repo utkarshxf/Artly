@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artist_model.ArtistDTO
+import com.orion.templete.data.model.artist_model.ArtistStatsResponse
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.comments.CommentRequest
 import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
@@ -15,17 +16,21 @@ import com.orion.templete.data.model.user_model.UserDTO
 import com.orion.templete.domain.repository.UserRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
+import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ArtistProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
+    private val trackEvents: TrackEvents // Add TrackEvents dependency
 ) : ViewModel() {
 
-    // Initialize with Loading state instead of null
+    // State variables remain the same
     var artistProfileScreenUiState by mutableStateOf<ArtistProfileScreenUiState>(
         ArtistProfileScreenUiState.Loading
     )
@@ -51,23 +56,93 @@ class ArtistProfileViewModel @Inject constructor(
     )
         private set
 
-
     var artWorksUiState by mutableStateOf<ArtWorksUiState>(ArtWorksUiState.Loading)
+        private set
+
+    // MVVM: Artist stats state
+    var artistStatsUiState by mutableStateOf<ArtistStatsUiState>(ArtistStatsUiState.Loading)
         private set
 
     val currentUserId = secureStorage.getUserId()?:""
 
+    // Chat ("Message" button): the username behind the profile on screen when it is another Artistry account.
+    // Registered artists use their username as artist id; historical artists have no account and get no button.
+    var messageUsername by mutableStateOf<String?>(null)
+        private set
+
+    private var profileJob: Job? = null
+    private var messageLookupJob: Job? = null
+    private var loadedProfileId: String? = null
 
     fun getUserProfile(userId: String) {
-        viewModelScope.launch {
+        profileJob?.cancel()
+        // Coming back to a profile that is already on screen (e.g. from a chat) refreshes it quietly: no spinner,
+        // and what is shown stays if the refresh fails
+        val shown = artistProfileScreenUiState
+        val refreshing = loadedProfileId == userId &&
+            (shown is ArtistProfileScreenUiState.Success || shown is ArtistProfileScreenUiState.Account)
+        profileJob = viewModelScope.launch {
             userRepository.getArtistByArtistId(userId, currentUserId).collect { response ->
-                artistProfileScreenUiState = when (response) {
-                    is ResponseStates.Loading -> ArtistProfileScreenUiState.Loading
-                    is ResponseStates.Success -> ArtistProfileScreenUiState.Success(response.data)
-                    is ResponseStates.Error -> ArtistProfileScreenUiState.Error(response.error)
+                when (response) {
+                    is ResponseStates.Loading -> {
+                        if (!refreshing) artistProfileScreenUiState = ArtistProfileScreenUiState.Loading
+                    }
+                    is ResponseStates.Success -> {
+                        // Track when artist profile is viewed successfully
+                        trackEvents.trackArtistProfileViewed(userId)
+                        artistProfileScreenUiState = ArtistProfileScreenUiState.Success(response.data)
+                        loadedProfileId = userId
+                        resolveMessageTarget(userId)
+                    }
+                    is ResponseStates.Error -> showAccountOrError(userId, response.error, keepShown = refreshing)
                 }
             }
         }
+    }
+
+    // Not an artist: a plain Artistry account (e.g. someone you chat with) still gets a basic profile
+    private suspend fun showAccountOrError(userId: String, artistError: String, keepShown: Boolean) {
+        val username = userId.trim()
+        val account = if (username.isEmpty()) null else findAccount(username)
+        if (account == null) {
+            if (!keepShown) artistProfileScreenUiState = ArtistProfileScreenUiState.Error(artistError)
+            return
+        }
+        messageLookupJob?.cancel()
+        messageUsername = username.takeUnless { isMe(it) }
+        artistProfileScreenUiState = ArtistProfileScreenUiState.Account(username, account)
+        loadedProfileId = userId
+    }
+
+    private fun resolveMessageTarget(userId: String) {
+        val username = userId.trim()
+        if (username.isEmpty() || isMe(username)) {
+            messageLookupJob?.cancel()
+            messageUsername = null
+            return
+        }
+        if (messageUsername == username || messageLookupJob?.isActive == true) return
+        messageLookupJob = viewModelScope.launch {
+            if (findAccount(username) != null) messageUsername = username
+        }
+    }
+
+    private fun isMe(username: String): Boolean =
+        currentUserId.isNotBlank() && username.equals(currentUserId.trim(), ignoreCase = true)
+
+    // The Artistry account with this username, or null (no such account, offline, backend error)
+    private suspend fun findAccount(username: String): UserDTO? {
+        var found: UserDTO? = null
+        try {
+            userRepository.getUserByUserId(username).collect { response ->
+                if (response is ResponseStates.Success) found = response.data
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w("ArtistProfileViewModel", "Account lookup failed for $username", e)
+        }
+        return found
     }
 
     fun getArtistByArtworkId(artworkId: String) {
@@ -75,7 +150,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.getArtistByArtworkId(artworkId, currentUserId).collect { response ->
                 artistProfileScreenUiState = when (response) {
                     is ResponseStates.Loading -> ArtistProfileScreenUiState.Loading
-                    is ResponseStates.Success -> ArtistProfileScreenUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when viewing artist profile through artwork
+                        trackEvents.trackArtistProfileViewed(response.data.id)
+                        ArtistProfileScreenUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> ArtistProfileScreenUiState.Error(response.error)
                 }
             }
@@ -88,7 +167,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.followUser(currentUserId, artistId).collect { response ->
                 followArtistUiState = when (response) {
                     is ResponseStates.Loading -> FollowArtistUiState.Loading
-                    is ResponseStates.Success -> FollowArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artist is followed successfully
+                        trackEvents.trackArtistFollowed(artistId)
+                        FollowArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> FollowArtistUiState.Error(response.error)
                 }
             }
@@ -96,12 +179,16 @@ class ArtistProfileViewModel @Inject constructor(
     }
 
     // unfollow
-    fun unfollowArtist( artistId: String) {
+    fun unfollowArtist(artistId: String) {
         viewModelScope.launch {
             userRepository.unfollowArtist(currentUserId, artistId).collect { response ->
                 unFollowArtistUiState = when (response) {
                     is ResponseStates.Loading -> UnFollowArtistUiState.Loading
-                    is ResponseStates.Success -> UnFollowArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artist is unfollowed
+                        trackEvents.trackArtistUnfollowed(artistId)
+                        UnFollowArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> UnFollowArtistUiState.Error(response.error)
                 }
             }
@@ -114,7 +201,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.likeArtwork(currentUserId, artworkId).collect { response ->
                 userLikeArtworkUiState = when (response) {
                     is ResponseStates.Loading -> UserLikeArtistUiState.Loading
-                    is ResponseStates.Success -> UserLikeArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artwork is liked
+                        trackEvents.trackArtworkLiked(artworkId)
+                        UserLikeArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> UserLikeArtistUiState.Error(response.error)
                 }
             }
@@ -127,7 +218,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.unLikeArtwork(currentUserId, artworkId).collect { response ->
                 userUnLikeArtworkUiState = when (response) {
                     is ResponseStates.Loading -> UserUnLikeArtistUiState.Loading
-                    is ResponseStates.Success -> UserUnLikeArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when artwork is unliked
+                        trackEvents.trackArtworkUnliked(artworkId)
+                        UserUnLikeArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> UserUnLikeArtistUiState.Error(response.error)
                 }
             }
@@ -140,7 +235,11 @@ class ArtistProfileViewModel @Inject constructor(
             userRepository.commentOnArtwork(currentUserId, artworkId, comment).collect { response ->
                 commentByArtistUiState = when (response) {
                     is ResponseStates.Loading -> CommentByArtistUiState.Loading
-                    is ResponseStates.Success -> CommentByArtistUiState.Success(response.data)
+                    is ResponseStates.Success -> {
+                        // Track when comment is posted
+                        trackEvents.trackArtworkCommented(artworkId)
+                        CommentByArtistUiState.Success(response.data)
+                    }
                     is ResponseStates.Error -> CommentByArtistUiState.Error(response.error)
                 }
             }
@@ -160,7 +259,6 @@ class ArtistProfileViewModel @Inject constructor(
         }
     }
 
-
     //get list of artwork
     fun getArtistArtworks(artistId: String) {
         viewModelScope.launch {
@@ -174,6 +272,11 @@ class ArtistProfileViewModel @Inject constructor(
         }
     }
 
+    // Track when specific artwork is viewed
+    fun viewArtwork(artworkId: String) {
+        trackEvents.trackArtworkViewed(artworkId)
+    }
+
     fun refreshProfile(userId: String) {
         getUserProfile(userId)
     }
@@ -181,10 +284,25 @@ class ArtistProfileViewModel @Inject constructor(
     fun refreshComments(artworkId: String) {
         getAllComments(artworkId)
     }
+
+    // MVVM: Get artist statistics (followers, likes, total artworks)
+    fun getArtistStats(artistId: String) {
+        viewModelScope.launch {
+            userRepository.getArtistStats(artistId).collect { response ->
+                artistStatsUiState = when (response) {
+                    is ResponseStates.Loading -> ArtistStatsUiState.Loading
+                    is ResponseStates.Success -> ArtistStatsUiState.Success(response.data)
+                    is ResponseStates.Error -> ArtistStatsUiState.Error(response.error)
+                }
+            }
+        }
+    }
 }
 sealed interface ArtistProfileScreenUiState {
     object Loading : ArtistProfileScreenUiState
     data class Success(val artist: ArtistDTO) : ArtistProfileScreenUiState
+    // Someone who is not an artist (no artist profile, no artworks): basic account profile
+    data class Account(val username: String, val user: UserDTO) : ArtistProfileScreenUiState
     data class Error(val message: String) : ArtistProfileScreenUiState
 }
 
@@ -231,3 +349,11 @@ sealed interface ArtWorksUiState {
     data class Success(val artworks: List<ArtworkDTO>) : ArtWorksUiState
     data class Error(val message: String) : ArtWorksUiState
 }
+
+// MVVM: Artist statistics UI state
+sealed interface ArtistStatsUiState {
+    object Loading : ArtistStatsUiState
+    data class Success(val stats: ArtistStatsResponse) : ArtistStatsUiState
+    data class Error(val message: String) : ArtistStatsUiState
+}
+

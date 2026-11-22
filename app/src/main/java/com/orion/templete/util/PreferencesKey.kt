@@ -8,5 +8,9 @@ sealed class PreferencesKey(val key: String) {
     data object UserLanguage : PreferencesKey("user_language")
     data object UserCountryIso2 : PreferencesKey("user_country_iso2")
     data object UserIsArtist : PreferencesKey("user_is_artist")
-    data object UserProfilePicture : PreferencesKey("user_profile_picture")
+        data object UserProfilePicture : PreferencesKey("user_profile_picture")
+    data object UserFirstTimeLogin : PreferencesKey("user_first_time_login")
+    data object HasShownBecomeArtist : PreferencesKey("has_shown_become_artist")
+    data object SwipeCount : PreferencesKey("swipe_count")
+
 }

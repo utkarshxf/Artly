@@ -19,3 +19,8 @@ data class UserCheckStateHolder(
     val error: String? = null
 )
 
+data class ForgetPasswordUiState(
+    val isLoading: Boolean = false,
+    val data: LoginResponseDTO? = null,
+    val error: String? = null
+)

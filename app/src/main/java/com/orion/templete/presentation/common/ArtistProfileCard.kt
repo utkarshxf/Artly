@@ -1,6 +1,13 @@
 package com.orion.templete.presentation.common
 
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,6 +29,11 @@ fun ArtistProfileCard(
     username: String,
     userId: String,
     profilePictureUrl: String,
+    verified: Boolean = false,
+    // null = no Follow button (e.g. your own profile)
+    following: Boolean? = null,
+    followBusy: Boolean = false,
+    onFollowClick: () -> Unit = {},
     onClick: () -> Unit = {}
 ) {
     Card(
@@ -55,11 +67,13 @@ fun ArtistProfileCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             // User Info
-            Column {
-                Text(
-                    text = username,
+            Column(modifier = Modifier.weight(1f)) {
+                NameWithBadge(
+                    name = username,
+                    verified = verified,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    badgeSize = 14.dp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -68,6 +82,40 @@ fun ArtistProfileCard(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
+            if (following != null) {
+                Spacer(modifier = Modifier.width(12.dp))
+                FollowPill(following = following, busy = followBusy, onClick = onFollowClick)
+            }
+        }
+    }
+}
+
+// Instagram-style compact Follow / Following button
+@Composable
+private fun FollowPill(following: Boolean, busy: Boolean, onClick: () -> Unit) {
+    val container = if (following) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary
+    val content = if (following) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary
+    Button(
+        onClick = onClick,
+        enabled = !busy,
+        shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = container,
+            contentColor = content,
+            disabledContainerColor = container,
+            disabledContentColor = content
+        ),
+        modifier = Modifier.height(34.dp)
+    ) {
+        if (busy) {
+            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = content)
+        } else {
+            Text(
+                text = if (following) "Following" else "Follow",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

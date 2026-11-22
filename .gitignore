@@ -13,3 +13,17 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase CLI / emulator logs (firebase emulators:exec, firebase-tests/)
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+storage-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+/.firebase/
+
+# release signing secrets
+keystore.properties
+*.jks

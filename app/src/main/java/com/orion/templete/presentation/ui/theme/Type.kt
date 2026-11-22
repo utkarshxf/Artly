@@ -60,13 +60,13 @@ val Typography = Typography(
         fontSize = 28.sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = didot,
+        fontFamily = Lexend,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp
     ),
     titleLarge = TextStyle(
         fontFamily = Lexend,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Normal,
         fontSize = 22.sp
     ),
     titleMedium = TextStyle(
@@ -86,7 +86,7 @@ val Typography = Typography(
     ),
     bodyMedium = TextStyle(
         fontFamily = Lexend,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Light,
         fontSize = 14.sp
     ),
     bodySmall = TextStyle(

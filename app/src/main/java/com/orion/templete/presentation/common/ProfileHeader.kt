@@ -30,16 +30,19 @@ fun ProfileHeader(user: ArtistDTO , onClick: () -> Unit) {
             model = user.image_url,
             contentDescription = "Profile picture",
             modifier = Modifier
-                .size(80.dp)
+                .size(70.dp)
                 .clip(CircleShape).clickable { onClick() },
             contentScale = ContentScale.Crop
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(
-                text = user.name,
+            NameWithBadge(
+                name = user.name,
+                verified = user.verified == true,
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                badgeSize = 20.dp
             )
             Text(
                 text = "@${user.id}",

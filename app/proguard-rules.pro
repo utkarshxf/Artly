@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Agora RTC (audio / video calls): its native code calls back into these classes by name
+-keep class io.agora.** { *; }
+-keep interface io.agora.** { *; }
+-dontwarn io.agora.**
+
+# Call endpoints: Gson fills these models by reflection, so their field names are the JSON keys
+-keep class com.orion.templete.data.model.call.** { *; }

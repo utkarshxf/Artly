@@ -1,10 +1,8 @@
-package com.nearbuck.android.admin.presentation.add_screen.components
+package com.orion.templete.util
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
