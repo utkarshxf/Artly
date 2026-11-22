@@ -32,7 +32,7 @@ data class ReelsUiState(
     val page: Int = 0,
     val speakingArtworkId: String? = null,
     val audioPaused: Boolean = false,
-    val language: ReelsLanguage = ReelsLanguage.ENGLISH_IN,
+    val language: ReelsLanguage = ReelsLanguage.forDevice(),
     val selectedVoiceName: String? = null,
     val availableVoices: List<Voice> = emptyList(),
     val lastSettledIndex: Int = 0,
@@ -46,7 +46,25 @@ data class ReelsUiState(
  */
 enum class ReelsLanguage(val label: String, val locale: Locale, val apiCode: String, val enabled: Boolean) {
     ENGLISH_IN("English (India)", Locale("en", "IN"), "en", true),
-    HINDI("हिन्दी", Locale("hi", "IN"), "hi", true)
+    HINDI("हिन्दी", Locale("hi", "IN"), "hi", true),
+    TURKISH("Türkçe", Locale("tr", "TR"), "tr", true),
+    PERSIAN("فارسی", Locale("fa", "IR"), "fa", true),
+    ARABIC("العربية", Locale("ar", "EG"), "ar", true),
+    INDONESIAN("Bahasa Indonesia", Locale("in", "ID"), "id", true),
+    POLISH("Polski", Locale("pl", "PL"), "pl", true),
+    HUNGARIAN("Magyar", Locale("hu", "HU"), "hu", true),
+    GREEK("Ελληνικά", Locale("el", "GR"), "el", true);
+
+    companion object {
+        // Default story language: the device language when we support it, otherwise Hindi -
+        // India is the largest named country in the audience data. English stays first in
+        // the list and is always selectable.
+        fun forDevice(): ReelsLanguage {
+            val deviceLanguage = Locale.getDefault().language
+            return entries.firstOrNull { it.apiCode == deviceLanguage || it.locale.language == deviceLanguage }
+                ?: HINDI
+        }
+    }
 }
 
 @HiltViewModel
