@@ -188,6 +188,7 @@ fun ScrollCard(
     navigateToDetailScreen: (artwork: ArtworkDTO) -> Unit,
     swipeScreenViewModel: SwipeScreenViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val stateOfCards = swipeScreenViewModel.state
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()

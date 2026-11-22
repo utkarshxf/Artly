@@ -104,8 +104,8 @@ object  AppModule {
             .build()
     }
     @Provides
-    fun provideArtWorkRepository(apiService: ApiService): ArtworkRepository {
-        return ArtworkRepositoryImplementation(apiService = apiService)
+    fun provideArtWorkRepository(apiService: ApiService, secureStorage: SecureStorage): ArtworkRepository {
+        return ArtworkRepositoryImplementation(apiService = apiService, secureStorage = secureStorage)
     }
     @Provides
     fun provideAIRepository(
@@ -143,9 +143,10 @@ object  AppModule {
     fun userRepository(
         apiService: ApiService,
         userDao: UserDao,
-        context: Context
+        context: Context,
+        secureStorage: SecureStorage
     ): UserRepository {
-        return UserRepositoryImplementation(apiService ,userDao ,context)
+        return UserRepositoryImplementation(apiService ,userDao ,context, secureStorage)
     }
 
     // ---- Chat (Instagram-style DMs): Firestore + Storage + FCM, session with a backend-minted custom token

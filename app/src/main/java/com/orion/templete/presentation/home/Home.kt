@@ -138,7 +138,6 @@ fun Home(
             navigateToLoginScreen()
         }
     }
-    val context = LocalContext.current
     NavHost (
         navController = navController,
         startDestination = Screens.Swipe.route,
