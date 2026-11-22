@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.orion.templete.util.GuestGate
 import com.orion.templete.presentation.chat.share.PaperPlaneIcon
 import com.orion.templete.presentation.chat.share.ShareToChatSheet
 import com.orion.templete.presentation.chat.share.toArtworkRef
@@ -229,7 +230,9 @@ fun ScrollCard(
                     ScrollCardItem(
                         artwork = artwork,
                         onLike = {
-                            swipeScreenViewModel.likeArtwork(artwork.id.toString())
+                            if (!GuestGate.check(context)) {
+                                swipeScreenViewModel.likeArtwork(artwork.id.toString())
+                            }
                         },
                         onDislike = {
                             swipeScreenViewModel.disLikeArtwork(artwork.id.toString())
@@ -534,9 +537,11 @@ fun SwipeCard(
                                                 }
                                                 when (state.swipedDirection) {
                                                     Direction.Right -> {
-                                                        swipeScreenViewModel.likeArtwork(
-                                                            artwork.id.toString()
-                                                        )
+                                                        if (!GuestGate.check(context)) {
+                                                            swipeScreenViewModel.likeArtwork(
+                                                                artwork.id.toString()
+                                                            )
+                                                        }
                                                     }
                                                     Direction.Left -> {
                                                         swipeScreenViewModel.disLikeArtwork(

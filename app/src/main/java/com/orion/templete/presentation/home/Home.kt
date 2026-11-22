@@ -50,6 +50,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.orion.templete.util.GuestGate
 import com.orion.templete.data.model.chat.ChatDeepLink
 import com.orion.templete.presentation.address.Address
 import com.orion.templete.presentation.address.InAppShippingAddressScreen
@@ -137,6 +138,7 @@ fun Home(
             navigateToLoginScreen()
         }
     }
+    val context = LocalContext.current
     NavHost (
         navController = navController,
         startDestination = Screens.Swipe.route,
@@ -147,6 +149,7 @@ fun Home(
                 navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
                 navController.navigate(Screens.ArtworkDetail.route)
             }, onChatClick = {
+                if (GuestGate.check(context)) return@SwipeScreen
                 if (entry.isTopOf(navController)) navController.navigate(Screens.RecentChats.route)
             })
         }

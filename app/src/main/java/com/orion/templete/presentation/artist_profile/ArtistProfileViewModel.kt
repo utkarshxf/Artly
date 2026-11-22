@@ -63,7 +63,7 @@ class ArtistProfileViewModel @Inject constructor(
     var artistStatsUiState by mutableStateOf<ArtistStatsUiState>(ArtistStatsUiState.Loading)
         private set
 
-    val currentUserId = secureStorage.getUserId()?:""
+    val currentUserId = secureStorage.getUserId() ?: "guest"
 
     // Chat ("Message" button): the username behind the profile on screen when it is another Artistry account.
     // Registered artists use their username as artist id; historical artists have no account and get no button.

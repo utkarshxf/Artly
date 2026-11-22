@@ -3,6 +3,7 @@ package com.orion.templete.presentation.artist_profile
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Icon
+import com.orion.templete.util.GuestGate
 import com.orion.templete.data.model.chat.ProfileRef
 import com.orion.templete.presentation.chat.share.PaperPlaneIcon
 import com.orion.templete.presentation.chat.share.SharePayload
@@ -554,8 +555,10 @@ private fun ButtonSection(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        val context = LocalContext.current
         Button(
             onClick = {
+                if (GuestGate.check(context)) return@Button
                 if (!isFollowing) {
                     viewModel.followUser(artistId)
                 } else {

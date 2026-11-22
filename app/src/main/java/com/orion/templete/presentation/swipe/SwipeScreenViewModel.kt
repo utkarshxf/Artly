@@ -43,7 +43,7 @@ class SwipeScreenViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val chatSession: ChatSession
 ) : ViewModel() {
-    val userId = secureStorage.getUserId()?:""
+    val userId = secureStorage.getUserId() ?: "guest"
 
     // Instagram-style red badge on the message icon: number of conversations with unread messages.
     // Only listens while chat is signed in; any chat failure just hides the badge (and retries with backoff),

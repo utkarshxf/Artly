@@ -57,7 +57,7 @@ class ReelsViewModel @Inject constructor(
     secureStorage: SecureStorage
 ) : ViewModel() {
 
-    private val userId = secureStorage.getUserId() ?: ""
+    private val userId = secureStorage.getUserId() ?: "guest"
     private val tts = StoryTtsManager(context)
 
     var state by mutableStateOf(ReelsUiState())

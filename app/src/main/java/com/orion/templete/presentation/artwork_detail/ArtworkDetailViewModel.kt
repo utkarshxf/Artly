@@ -37,7 +37,7 @@ class ArtworkDetailViewModel @Inject constructor(
     private val _artworkStatsUiState = MutableStateFlow<ArtworkStatsUiState>(ArtworkStatsUiState.Loading)
     val artworkStatsUiState: StateFlow<ArtworkStatsUiState> = _artworkStatsUiState
 
-    private val currentUserId = secureStorage.getUserId()
+    private val currentUserId = secureStorage.getUserId() ?: "guest"
 
     fun getArtworkById(artworkId: String) {
         viewModelScope.launch {

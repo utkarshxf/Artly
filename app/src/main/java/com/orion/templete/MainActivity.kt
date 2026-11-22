@@ -44,12 +44,18 @@ class MainActivity : ComponentActivity() {
     // Latest shared-artwork link (artistry://artwork/<id>); Navigation opens its detail page
     private val deepLinkArtwork = androidx.compose.runtime.mutableStateOf<String?>(null)
 
+    // GuestGate sends guests here when they tap like/comment/follow/chat
+    private val forceSignup = androidx.compose.runtime.mutableStateOf(false)
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         intent.data
             ?.takeIf { it.scheme == "artistry" && it.host == "artwork" }
             ?.lastPathSegment
             ?.let { deepLinkArtwork.value = it }
+        if (intent.getBooleanExtra("force_signup", false)) {
+            forceSignup.value = true
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +76,7 @@ class MainActivity : ComponentActivity() {
         deepLinkArtwork.value = intent?.data
             ?.takeIf { it.scheme == "artistry" && it.host == "artwork" }
             ?.lastPathSegment
+        forceSignup.value = intent?.getBooleanExtra("force_signup", false) == true
         ReviewPrompt.maybeRequestReview(this, storage)
 
         // A chat notification opens the conversation. Only a fresh launch reads it: after a rotation or process
@@ -84,11 +91,15 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val startDestination = if (loggedIn) {
-                Screens.Home.route
-            } else {
-                storage.clearSharedPref()
-                Screens.Signup.route
+            // Guests browse art without an account; sign-up only appears when they
+            // try to like, comment, follow or chat (GuestGate sets force_signup)
+            val startDestination = when {
+                loggedIn -> Screens.Home.route
+                forceSignup.value -> Screens.Signup.route
+                else -> {
+                    storage.clearSharedPref()
+                    Screens.Home.route
+                }
             }
             Log.d("TAG", "onCreate: $userId $cachedDetailsId $startDestination")
             TempleteTheme {

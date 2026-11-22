@@ -1,5 +1,6 @@
 package com.orion.templete.presentation.artwork_detail
 
+import com.orion.templete.util.GuestGate
 import com.orion.templete.presentation.artist_profile.FollowArtistUiState
 import com.orion.templete.presentation.artist_profile.UnFollowArtistUiState
 import android.annotation.SuppressLint
@@ -372,6 +373,7 @@ fun BasicInfo(
                 var update = remember { mutableStateOf(0) }
                 val stats = (artworkStatsState as ArtworkStatsUiState.Success).stats
                 ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = viewModel?.showLikes(stats.likes , update)?:stats.likes){
+                    if (GuestGate.check(context)) return@ClickableIcon
                     if(isLiked.value == true){
                         artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
                         update.value --;
@@ -387,6 +389,7 @@ fun BasicInfo(
             }
             else -> {
                 ClickableIcon(if (isLiked.value == true) R.drawable.ic_favorite_filled else R.drawable.ic_favorite, tint = if (isLiked.value == true) MaterialTheme.colorScheme.error else  LocalContentColor.current, text = "" ){
+                    if (GuestGate.check(context)) return@ClickableIcon
                     if(isLiked.value == true){
                         artworkDetailsDTO.id?.let { vm.unLikeArtwork(it) }
                     }else{
@@ -400,7 +403,7 @@ fun BasicInfo(
             }
         }
         if (onShareToChat != null) {
-            ShareToChatAction(onClick = onShareToChat)
+            ShareToChatAction(onClick = { if (!GuestGate.check(context)) onShareToChat() })
         }
         InfoColumn(R.drawable.ic_save, "Save"){
             showSavedFolders = true
@@ -521,8 +524,10 @@ fun CommentSection(
                 maxLines = 5
             )
 
+            val context = LocalContext.current
             IconButton(
                 onClick = {
+                    if (GuestGate.check(context)) return@IconButton
                     if (commentText.isNotBlank()) {
                         onSendComment(commentText)
                         commentText = ""

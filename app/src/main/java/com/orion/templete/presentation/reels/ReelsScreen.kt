@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
+import com.orion.templete.util.GuestGate
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.presentation.common.ErrorScreen
@@ -127,6 +128,7 @@ private fun ReelsPager(
             .background(Color.Black)
     ) { page ->
         val artwork = state.items[page]
+        val context = LocalContext.current
         ReelPage(
             artwork = artwork,
             state = state,
@@ -134,7 +136,7 @@ private fun ReelsPager(
             onToggleAudio = viewModel::toggleAudio,
             onLanguageSelected = viewModel::onLanguageSelected,
             onVoiceSelected = viewModel::onVoiceSelected,
-            onToggleLike = { artwork.id?.let(viewModel::toggleLike) },
+            onToggleLike = { if (!GuestGate.check(context)) artwork.id?.let(viewModel::toggleLike) },
             onSave = { artwork.id?.let(viewModel::saveArtwork) },
             onOpenArtwork = { onOpenArtwork(artwork) }
         )
