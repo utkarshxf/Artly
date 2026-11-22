@@ -64,6 +64,7 @@ import com.orion.templete.presentation.chat.inbox.InboxScreen
 import com.orion.templete.presentation.chat.inbox.NewMessageScreen
 import com.orion.templete.presentation.chat.thread.ChatThreadScreen
 import com.orion.templete.presentation.profile.common.signOutOfChat
+import com.orion.templete.presentation.reels.ReelsComingSoonScreen
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
 import com.orion.templete.presentation.artwork_detail.ArtworkDetailScreen
@@ -112,7 +113,8 @@ fun Home(
     val screens = listOf(
         Screens.Profile,
         Screens.UploadImageScreen,
-        Screens.FavoritesScreen,
+        Screens.Reels,
+        Screens.Search,
         Screens.Swipe,
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -164,6 +166,9 @@ fun Home(
             if (artworkId != null) {
                 ArtworkDetailScreen(artworkId , navController)
             }
+        }
+        composable(Screens.Reels.route) {
+            ReelsComingSoonScreen()
         }
         composable(Screens.Search.route) {
             SearchScreen(navController , searchScreenViewModel)

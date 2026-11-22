@@ -11,6 +11,7 @@ sealed class Screens(val route: String){
 
     object ArtView: Screens("art_view")
     object Swipe : Screens("swipe_route")
+    object Reels : Screens("reels_route")
     object Profile : Screens("profile_route")
     object Search : Screens("search_route")
     object ArtworkDetail : Screens("details_route")
