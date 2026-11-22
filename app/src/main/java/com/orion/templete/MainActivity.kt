@@ -47,16 +47,6 @@ class MainActivity : ComponentActivity() {
     // GuestGate sends guests here when they tap like/comment/follow/chat
     private val forceSignup = androidx.compose.runtime.mutableStateOf(false)
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        intent.data
-            ?.takeIf { it.scheme == "artistry" && it.host == "artwork" }
-            ?.lastPathSegment
-            ?.let { deepLinkArtwork.value = it }
-        if (intent.getBooleanExtra("force_signup", false)) {
-            forceSignup.value = true
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -123,6 +113,15 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleChatIntent(intent)
+        // Shared-artwork link tapped while the app was already open
+        intent.data
+            ?.takeIf { it.scheme == "artistry" && it.host == "artwork" }
+            ?.lastPathSegment
+            ?.let { deepLinkArtwork.value = it }
+        // GuestGate sends guests here when they tap like/comment/follow/chat
+        if (intent.getBooleanExtra("force_signup", false)) {
+            forceSignup.value = true
+        }
     }
 
     // Publishes the peer of a tapped chat notification; Home opens the thread and clears it. Returns true if the
