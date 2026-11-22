@@ -47,6 +47,27 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
+    /**
+     * Story text for one artwork in one language (backend translates on demand, cached server-side).
+     * 503 = story service quota used up -> fall back to on-device TTS.
+     */
+    @GET("story/{artworkId}")
+    suspend fun getStoryText(
+        @Path("artworkId") artworkId: String,
+        @Query("lang") lang: String
+    ): Response<com.orion.templete.data.model.story_model.StoryTextResponse>
+
+    /**
+     * Narrated audio (WAV) for one artwork's story. voice omitted = backend default.
+     * 503 = quota used up -> fall back to on-device TTS.
+     */
+    @GET("story/{artworkId}/audio")
+    suspend fun getStoryAudio(
+        @Path("artworkId") artworkId: String,
+        @Query("lang") lang: String,
+        @Query("voice") voice: String? = null
+    ): Response<ResponseBody>
+
     @GET("artwork")
     suspend fun getAllArtworks(): retrofit2.Response<ArtworkDTO>
 

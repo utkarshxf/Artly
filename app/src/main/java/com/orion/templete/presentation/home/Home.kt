@@ -64,7 +64,7 @@ import com.orion.templete.presentation.chat.inbox.InboxScreen
 import com.orion.templete.presentation.chat.inbox.NewMessageScreen
 import com.orion.templete.presentation.chat.thread.ChatThreadScreen
 import com.orion.templete.presentation.profile.common.signOutOfChat
-import com.orion.templete.presentation.reels.ReelsComingSoonScreen
+import com.orion.templete.presentation.reels.ReelsScreen
 import com.orion.templete.presentation.search.SearchScreen
 import com.orion.templete.presentation.swipe.SwipeScreen
 import com.orion.templete.presentation.artwork_detail.ArtworkDetailScreen
@@ -168,7 +168,7 @@ fun Home(
             }
         }
         composable(Screens.Reels.route) {
-            ReelsComingSoonScreen()
+            ReelsScreen(hiltViewModel())
         }
         composable(Screens.Search.route) {
             SearchScreen(navController , searchScreenViewModel)
