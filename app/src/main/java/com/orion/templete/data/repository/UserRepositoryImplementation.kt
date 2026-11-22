@@ -1,5 +1,6 @@
 package com.orion.templete.data.repository
 
+import com.orion.templete.util.SecureStorage
 import android.content.Context
 import android.util.Log
 import androidx.paging.Pager
@@ -31,7 +32,8 @@ import javax.inject.Inject
 class UserRepositoryImplementation @Inject constructor(
     private val apiService: ApiService,
     private val userDao: UserDao,
-    private val context: Context
+    private val context: Context,
+    private val secureStorage: SecureStorage
 ) : UserRepository, SafeApiRequest() {
     override suspend fun getUserByUserId(userId: String): Flow<ResponseStates<UserDTO>> {
         return flow {
@@ -146,6 +148,7 @@ class UserRepositoryImplementation @Inject constructor(
         emit(ResponseStates.Loading)
         try {
             val response = safeApiRequest { apiService.followUser(userId ,artistId ) }
+            secureStorage.setFollowedOnce()
             emit(ResponseStates.Success(response))
         } catch (e: Exception) {
             emit(ResponseStates.Error(e.message ?: "Unknown error occurred"))

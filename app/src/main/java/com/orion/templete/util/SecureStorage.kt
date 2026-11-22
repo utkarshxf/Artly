@@ -46,6 +46,31 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
         }
     }
 
+    // In-app review triggers: 5th like or first follow (shown once ever)
+    fun getLikeCount(): Int = sharedPreferences.getInt("likeCount", 0)
+    fun incrementLikeCount() {
+        with(sharedPreferences.edit()) {
+            putInt("likeCount", getLikeCount() + 1)
+            apply()
+        }
+    }
+
+    fun hasFollowedOnce(): Boolean = sharedPreferences.getBoolean("followedOnce", false)
+    fun setFollowedOnce() {
+        with(sharedPreferences.edit()) {
+            putBoolean("followedOnce", true)
+            apply()
+        }
+    }
+
+    fun wasReviewPromptShown(): Boolean = sharedPreferences.getBoolean("reviewPromptShown", false)
+    fun setReviewPromptShown() {
+        with(sharedPreferences.edit()) {
+            putBoolean("reviewPromptShown", true)
+            apply()
+        }
+    }
+
     fun getToken(): String? {
         return sharedPreferences.getString("token", null)
     }

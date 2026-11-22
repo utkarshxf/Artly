@@ -22,6 +22,7 @@ import com.orion.templete.util.GalleryLauncher
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.ImageCropper
+import com.orion.templete.util.ReviewPrompt
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.AndroidEntryPoint
@@ -53,6 +54,7 @@ class MainActivity : ComponentActivity() {
             storage.clearUserDetails()
         }
         installSplashScreen()
+        ReviewPrompt.maybeRequestReview(this, storage)
 
         // A chat notification opens the conversation. Only a fresh launch reads it: after a rotation or process
         // death the back stack (possibly already on that chat) is restored instead.

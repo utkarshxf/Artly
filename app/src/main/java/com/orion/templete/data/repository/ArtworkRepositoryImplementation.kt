@@ -8,11 +8,12 @@ import com.orion.templete.data.network.ApiService
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SafeApiRequest
+import com.orion.templete.util.SecureStorage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
-class ArtworkRepositoryImplementation @Inject constructor(private val apiService: ApiService) :
+class ArtworkRepositoryImplementation @Inject constructor(private val apiService: ApiService, private val secureStorage: SecureStorage) :
     ArtworkRepository, SafeApiRequest() {
     override suspend fun getArtwork(): ArtworkDTO {
         val response = safeApiRequest { apiService.getAllArtworks() }
@@ -27,6 +28,7 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
 
     override suspend fun likeArtwork(artworkId: String, userId: String): Boolean {
         val response = apiService.likeArtwork(artworkId, userId)
+        if (response.isSuccessful) secureStorage.incrementLikeCount()
         return response.isSuccessful
     }
     override suspend fun disLikeArtwork(artworkId: String, userId: String): Boolean {
