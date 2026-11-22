@@ -168,7 +168,10 @@ fun Home(
             }
         }
         composable(Screens.Reels.route) {
-            ReelsScreen(hiltViewModel())
+            ReelsScreen(hiltViewModel(), onOpenArtwork = { data->
+                navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
+                navController.navigate(Screens.ArtworkDetail.route)
+            })
         }
         composable(Screens.Search.route) {
             SearchScreen(navController , searchScreenViewModel)

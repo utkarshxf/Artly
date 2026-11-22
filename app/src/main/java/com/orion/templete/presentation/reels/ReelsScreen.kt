@@ -1,12 +1,15 @@
 package com.orion.templete.presentation.reels
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -34,43 +37,52 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.orion.templete.R
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.LoadingScreen
-
-/** Placeholder shown from the bottom nav until the reels feed ships. */
-@Composable
-fun ReelsComingSoonScreen() {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "Reels coming soon",
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White
-        )
-    }
-}
+import com.orion.templete.util.ShareUtils
+import com.orion.templete.util.extractYear
 
 /**
- * Full-screen vertical artwork feed with automatic story narration.
- * Swipe up/down to move between artworks; the story of the artwork on screen
- * is read aloud with the device's text-to-speech voice.
+ * Full-screen vertical artwork feed with automatic story narration, styled like
+ * the Home feed card: the whole artwork fitted on black, the serif title block
+ * with artist / museum / medium / year at the bottom, and a right-side action
+ * rail (like, comment, share, save, narration play-pause).
  */
 @Composable
-fun ReelsScreen(viewModel: ReelsViewModel) {
+fun ReelsScreen(viewModel: ReelsViewModel, onOpenArtwork: (ArtworkDTO) -> Unit) {
     val state = viewModel.state
 
+    // Audio stops the moment the feed leaves the screen: tab change/back (dispose)
+    // or the app going to the background (ON_STOP).
     DisposableEffect(Unit) {
         onDispose { viewModel.stopAudio() }
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) viewModel.stopAudio()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    state.toastMessage?.let { message ->
+        val context = LocalContext.current
+        LaunchedEffect(message) {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            viewModel.clearToast()
+        }
     }
 
     when {
@@ -82,12 +94,16 @@ fun ReelsScreen(viewModel: ReelsViewModel) {
         state.items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No artworks yet", color = Color.White)
         }
-        else -> ReelsPager(state, viewModel)
+        else -> ReelsPager(state, viewModel, onOpenArtwork)
     }
 }
 
 @Composable
-private fun ReelsPager(state: ReelsUiState, viewModel: ReelsViewModel) {
+private fun ReelsPager(
+    state: ReelsUiState,
+    viewModel: ReelsViewModel,
+    onOpenArtwork: (ArtworkDTO) -> Unit
+) {
     val pagerState = rememberPagerState(pageCount = { state.items.size })
 
     LaunchedEffect(pagerState) {
@@ -109,7 +125,10 @@ private fun ReelsPager(state: ReelsUiState, viewModel: ReelsViewModel) {
             isActivePage = page == pagerState.settledPage,
             onToggleAudio = viewModel::toggleAudio,
             onLanguageSelected = viewModel::onLanguageSelected,
-            onVoiceSelected = viewModel::onVoiceSelected
+            onVoiceSelected = viewModel::onVoiceSelected,
+            onToggleLike = { artwork.id?.let(viewModel::toggleLike) },
+            onSave = { artwork.id?.let(viewModel::saveArtwork) },
+            onOpenArtwork = { onOpenArtwork(artwork) }
         )
     }
 
@@ -133,102 +152,191 @@ private fun ReelPage(
     isActivePage: Boolean,
     onToggleAudio: () -> Unit,
     onLanguageSelected: (ReelsLanguage) -> Unit,
-    onVoiceSelected: (String?) -> Unit
+    onVoiceSelected: (String?) -> Unit,
+    onToggleLike: () -> Unit,
+    onSave: () -> Unit,
+    onOpenArtwork: () -> Unit
 ) {
+    val context = LocalContext.current
     Box(Modifier.fillMaxSize()) {
+        // Whole artwork visible, never cropped; letterboxed on black.
         AsyncImage(
             model = artwork.imageUrl ?: artwork.image_url_compressed,
             contentDescription = artwork.title,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Fit
         )
 
-        // Readability scrims.
-        Box(
+        // Compact top bar: language and voice pickers, small and out of the way.
+        Row(
             Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)
+                        listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)
                     )
                 )
-                .padding(bottom = 32.dp)
+                .statusBarsPadding()
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    LanguageSelector(
-                        selected = state.language,
-                        onSelected = onLanguageSelected
-                    )
-                    VoiceSelector(
-                        state = state,
-                        onSelected = onVoiceSelected
-                    )
-                }
-                if (!artwork.title.isNullOrBlank()) {
-                    Text(
-                        text = artwork.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
+            LanguageSelector(
+                selected = state.language,
+                onSelected = onLanguageSelected
+            )
+            VoiceSelector(
+                state = state,
+                onSelected = onVoiceSelected
+            )
         }
 
-        Box(
+        // Bottom info block, styled like the Home feed card.
+        Column(
             Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
                     )
                 )
-                .padding(24.dp)
+                .padding(start = 16.dp, end = 76.dp, top = 48.dp, bottom = 20.dp)
         ) {
-            Text(
-                text = artwork.artist ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.85f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.align(Alignment.BottomStart)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                artwork.title?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(onClick = { ShareUtils.shareArtwork(context, artwork) }) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_share),
+                        contentDescription = "Share",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            artwork.artist?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
+            }
+
+            artwork.currentLocation?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Light,
+                    color = Color.White.copy(alpha = 0.85f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                artwork.medium?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+                extractYear(artwork.releasedDate)?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
         }
 
-        // Play / pause for the story narration.
-        if (isActivePage && !artwork.description.isNullOrBlank()) {
-            val speaking = state.speakingArtworkId == artwork.id
-            IconButton(
-                onClick = onToggleAudio,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(20.dp)
-                    .size(52.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-            ) {
-                Icon(
-                    painter = painterResource(
-                        if (speaking) R.drawable.ic_pause else R.drawable.ic_play
-                    ),
+        // Right-side action rail, Instagram-reels style.
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 10.dp, bottom = 24.dp)
+        ) {
+            val liked = artwork.liked == true
+            RailButton(
+                iconRes = if (liked) R.drawable.ic_favorite_filled else R.drawable.ic_favorite,
+                contentDescription = if (liked) "Unlike" else "Like",
+                tint = if (liked) Color(0xFFE0245E) else Color.White,
+                onClick = onToggleLike
+            )
+            RailButton(
+                iconRes = R.drawable.ic_comment,
+                contentDescription = "Comments",
+                onClick = onOpenArtwork
+            )
+            RailButton(
+                iconRes = R.drawable.ic_share,
+                contentDescription = "Share",
+                onClick = { ShareUtils.shareArtwork(context, artwork) }
+            )
+            RailButton(
+                iconRes = R.drawable.ic_save,
+                contentDescription = "Save to Favorites",
+                onClick = onSave
+            )
+            // Play / pause for the story narration.
+            if (isActivePage && !artwork.description.isNullOrBlank()) {
+                val speaking = state.speakingArtworkId == artwork.id
+                RailButton(
+                    iconRes = if (speaking) R.drawable.ic_pause else R.drawable.ic_play,
                     contentDescription = if (speaking) "Pause story" else "Play story",
-                    tint = Color.White
+                    onClick = onToggleAudio
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun RailButton(
+    iconRes: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+    tint: Color = Color.White
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(48.dp)
+            .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }
 
@@ -240,7 +348,11 @@ private fun LanguageSelector(
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }) {
-            Text(selected.label, color = Color.White)
+            Text(
+                selected.label,
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             ReelsLanguage.entries.forEach { language ->
@@ -263,13 +375,20 @@ private fun VoiceSelector(
     onSelected: (String?) -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
-    val currentLabel = state.availableVoices
-        .firstOrNull { it.name == state.selectedVoiceName }
-        ?.let { voiceLabel(it.name) }
+    // Engine voice ids end in "-local"/"-network", which made every label the same.
+    // Number them instead: "Voice 1", "Voice 2", ...
+    val labels = state.availableVoices.mapIndexed { index, voice -> voice.name to "Voice ${index + 1}" }
+    val currentLabel = labels.firstOrNull { it.first == state.selectedVoiceName }?.second
         ?: "Default voice"
     Box {
         TextButton(onClick = { open = true }) {
-            Text(currentLabel, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                currentLabel,
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
@@ -279,11 +398,11 @@ private fun VoiceSelector(
                     open = false
                 }
             )
-            state.availableVoices.forEach { voice ->
+            labels.forEach { (name, label) ->
                 DropdownMenuItem(
-                    text = { Text(voiceLabel(voice.name)) },
+                    text = { Text(label) },
                     onClick = {
-                        onSelected(voice.name)
+                        onSelected(name)
                         open = false
                     }
                 )
@@ -291,7 +410,3 @@ private fun VoiceSelector(
         }
     }
 }
-
-/** Turns an engine voice id like "en-in-x-end-network" into a short label. */
-private fun voiceLabel(name: String): String =
-    name.substringAfterLast('-').replaceFirstChar { it.uppercase() }

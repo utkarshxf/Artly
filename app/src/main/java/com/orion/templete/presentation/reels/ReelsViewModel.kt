@@ -10,15 +10,16 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
-import com.orion.templete.data.network.ApiService
+import com.orion.templete.data.model.favorits.favoritesDTO
 import com.orion.templete.domain.paginator.DefaultPaginator
 import com.orion.templete.domain.repository.ArtworkRepository
+import com.orion.templete.domain.tts.StoryPrefetcher
 import com.orion.templete.domain.tts.StoryTtsManager
+import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
-import java.io.File
 import java.util.Locale
 import javax.inject.Inject
 
@@ -33,7 +34,8 @@ data class ReelsUiState(
     val language: ReelsLanguage = ReelsLanguage.ENGLISH_IN,
     val selectedVoiceName: String? = null,
     val availableVoices: List<Voice> = emptyList(),
-    val lastSettledIndex: Int = 0
+    val lastSettledIndex: Int = 0,
+    val toastMessage: String? = null
 )
 
 /**
@@ -50,11 +52,10 @@ enum class ReelsLanguage(val label: String, val locale: Locale, val apiCode: Str
 class ReelsViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val repository: ArtworkRepository,
-    private val apiService: ApiService,
+    private val storyPrefetcher: StoryPrefetcher,
     secureStorage: SecureStorage
 ) : ViewModel() {
 
-    private val appContext = context.applicationContext
     private val userId = secureStorage.getUserId() ?: ""
     private val tts = StoryTtsManager(context)
 
@@ -63,7 +64,14 @@ class ReelsViewModel @Inject constructor(
 
     private var userPausedCurrent = false
     private var mediaPlayer: MediaPlayer? = null
-    private val storyTextCache = mutableMapOf<String, String>()
+
+    // Incremented on every stop/settle; an in-flight fetch from an older page checks it before
+    // touching state or starting audio, so a previous artwork's narration can never overlap.
+    private var playbackSession = 0
+
+    // Device country, sent with story requests: the backend serves Gemini narration only to
+    // regions the free-tier terms allow; everywhere else falls back to on-device TTS.
+    private val deviceRegion: String = Locale.getDefault().country ?: ""
 
     private val pagination = DefaultPaginator<Int, ArtworkDTO>(
         initialKey = 0,
@@ -108,12 +116,18 @@ class ReelsViewModel @Inject constructor(
             loadNextItems()
         }
         userPausedCurrent = false
-        state = state.copy(audioPaused = false, lastSettledIndex = index)
+        // Stop the previous artwork's audio the moment the page settles, before any fetching.
+        playbackSession++
+        stopAllAudio()
+        state = state.copy(audioPaused = false, lastSettledIndex = index, speakingArtworkId = null)
         speakArtworkAt(index)
+        // Generate + download the next stories now, so their audio starts instantly on landing.
+        prefetchAround(index)
     }
 
     fun toggleAudio() {
         if (state.speakingArtworkId != null) {
+            playbackSession++
             stopAllAudio()
             userPausedCurrent = true
             state = state.copy(speakingArtworkId = null, audioPaused = true)
@@ -128,19 +142,100 @@ class ReelsViewModel @Inject constructor(
     fun onLanguageSelected(language: ReelsLanguage) {
         if (!language.enabled) return
         state = state.copy(language = language, selectedVoiceName = null)
+        playbackSession++
+        stopAllAudio()
         refreshVoices()
+        prefetchAround(state.lastSettledIndex)
         // Re-read the current story in the new language/voice if audio was on.
         if (state.speakingArtworkId != null) speakArtworkAt(state.lastSettledIndex)
     }
 
     fun onVoiceSelected(voiceName: String?) {
         state = state.copy(selectedVoiceName = voiceName)
-        if (state.speakingArtworkId != null) speakArtworkAt(state.lastSettledIndex)
+        if (state.speakingArtworkId != null) {
+            playbackSession++
+            stopAllAudio()
+            speakArtworkAt(state.lastSettledIndex)
+        }
     }
 
     fun stopAudio() {
+        playbackSession++
         stopAllAudio()
         state = state.copy(speakingArtworkId = null)
+    }
+
+    fun toggleLike(artworkId: String) {
+        val index = state.items.indexOfFirst { it.id == artworkId }
+        if (index < 0) return
+        val artwork = state.items[index]
+        val nowLiked = artwork.liked != true
+        // Apply locally right away; roll back if the call fails.
+        state = state.copy(items = state.items.toMutableList().also {
+            it[index] = artwork.copy(liked = nowLiked)
+        })
+        viewModelScope.launch {
+            val ok = try {
+                if (nowLiked) repository.likeArtwork(artworkId, userId)
+                else repository.disLikeArtwork(artworkId, userId)
+            } catch (e: Exception) {
+                false
+            }
+            if (!ok) {
+                state = state.copy(items = state.items.toMutableList().also {
+                    it[index] = artwork
+                }, toastMessage = "Couldn't update like")
+            }
+        }
+    }
+
+    fun saveArtwork(artworkId: String) {
+        viewModelScope.launch {
+            try {
+                repository.getAllFavorites(userId).collect { favoritesState ->
+                    if (favoritesState is ResponseStates.Success) {
+                        val collections = favoritesState.data
+                        if (collections.isEmpty()) {
+                            createCollectionAndSave(artworkId)
+                        } else {
+                            val id = collections.first().id
+                            if (id != null) saveToCollection(id, artworkId)
+                        }
+                        return@collect
+                    }
+                }
+            } catch (e: Exception) {
+                state = state.copy(toastMessage = "Couldn't save")
+            }
+        }
+    }
+
+    private suspend fun createCollectionAndSave(artworkId: String) {
+        repository.createNewFavorites(
+            userId,
+            favoritesDTO(description = "", title = "Favorites")
+        ).collect { created ->
+            if (created is ResponseStates.Success) {
+                val id = created.data.id
+                if (id != null) saveToCollection(id, artworkId)
+            }
+        }
+    }
+
+    private suspend fun saveToCollection(favoritesId: String, artworkId: String) {
+        repository.saveOnFavorites(favoritesId, artworkId).collect { result ->
+            when (result) {
+                is ResponseStates.Success ->
+                    state = state.copy(toastMessage = "Saved to Favorites")
+                is ResponseStates.Error ->
+                    state = state.copy(toastMessage = "Couldn't save")
+                else -> {}
+            }
+        }
+    }
+
+    fun clearToast() {
+        if (state.toastMessage != null) state = state.copy(toastMessage = null)
     }
 
     private fun speakArtworkAt(index: Int) {
@@ -148,44 +243,34 @@ class ReelsViewModel @Inject constructor(
         val artwork = state.items.getOrNull(index) ?: return
         val artworkId = artwork.id ?: return
         val lang = state.language
+        val session = ++playbackSession
         viewModelScope.launch {
             // 1. Story text: backend translation (per artwork + language, cached), else the app's own text.
-            val cacheKey = "$artworkId:${lang.apiCode}"
-            val text = storyTextCache[cacheKey] ?: run {
-                val fetched = try {
-                    val response = apiService.getStoryText(artworkId, lang.apiCode)
-                    if (response.isSuccessful) response.body()?.text else null
-                } catch (e: Exception) {
-                    Log.w(TAG, "story text fetch failed, using local description", e)
-                    null
-                }
-                fetched?.takeIf { it.isNotBlank() }?.also { storyTextCache[cacheKey] = it }
-            } ?: artwork.description?.takeIf { it.isNotBlank() } ?: return@launch
+            val text = storyPrefetcher.storyText(artworkId, lang.apiCode, deviceRegion)
+                ?: artwork.description?.takeIf { it.isNotBlank() } ?: return@launch
 
-            // The user swiped away or paused while the text was loading.
-            if (userPausedCurrent || state.lastSettledIndex != index) return@launch
+            // The user swiped away, paused or left while the text was loading.
+            if (session != playbackSession || userPausedCurrent || state.lastSettledIndex != index) return@launch
 
             stopAllAudio()
             state = state.copy(speakingArtworkId = artworkId)
 
             // 2. Narration: backend audio first, device TTS when that fails (503 quota or offline).
-            if (!playBackendAudio(artworkId, lang.apiCode) && state.speakingArtworkId == artworkId) {
+            if (!playBackendAudio(artworkId, lang.apiCode, session) &&
+                session == playbackSession && state.speakingArtworkId == artworkId
+            ) {
                 val voice = state.availableVoices.firstOrNull { it.name == state.selectedVoiceName }
                 tts.speak(artworkId, text, lang.locale, voice)
             }
         }
     }
 
-    /** Downloads the narrated WAV to the cache and plays it. False = caller should use device TTS. */
-    private suspend fun playBackendAudio(artworkId: String, lang: String): Boolean {
+    /** Plays the narrated WAV, using the prefetched cache when present. False = caller should use device TTS. */
+    private suspend fun playBackendAudio(artworkId: String, lang: String, session: Int): Boolean {
         return try {
-            val response = apiService.getStoryAudio(artworkId, lang)
-            if (!response.isSuccessful) return false
-            val bytes = response.body()?.bytes() ?: return false
-            if (bytes.isEmpty()) return false
-            val file = File(appContext.cacheDir, "story_${artworkId}_$lang.wav")
-            file.writeBytes(bytes)
-            if (state.speakingArtworkId != artworkId) return true // paused or swiped away mid-download
+            if (!storyPrefetcher.downloadAudio(artworkId, lang, deviceRegion)) return false
+            val file = storyPrefetcher.audioFile(artworkId, lang)
+            if (session != playbackSession || state.speakingArtworkId != artworkId) return true // moved on mid-download
             val player = MediaPlayer()
             player.setDataSource(file.absolutePath)
             player.setOnCompletionListener {
@@ -200,7 +285,7 @@ class ReelsViewModel @Inject constructor(
                 true
             }
             player.prepare()
-            if (state.speakingArtworkId != artworkId) {
+            if (session != playbackSession || state.speakingArtworkId != artworkId) {
                 player.release()
                 return true
             }
@@ -210,6 +295,20 @@ class ReelsViewModel @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "backend story audio failed, falling back to device TTS", e)
             false
+        }
+    }
+
+    /**
+     * Generates and downloads story text + audio for the artworks just ahead, so narration
+     * starts the moment the user lands on them.
+     */
+    private fun prefetchAround(index: Int) {
+        val lang = state.language.apiCode
+        for (i in (index + 1)..(index + 3)) {
+            val id = state.items.getOrNull(i)?.id ?: continue
+            viewModelScope.launch {
+                storyPrefetcher.warmupStory(id, lang, deviceRegion)
+            }
         }
     }
 

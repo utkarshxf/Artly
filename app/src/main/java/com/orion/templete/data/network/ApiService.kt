@@ -54,7 +54,8 @@ interface ApiService {
     @GET("story/{artworkId}")
     suspend fun getStoryText(
         @Path("artworkId") artworkId: String,
-        @Query("lang") lang: String
+        @Query("lang") lang: String,
+        @Query("region") region: String
     ): Response<com.orion.templete.data.model.story_model.StoryTextResponse>
 
     /**
@@ -65,6 +66,7 @@ interface ApiService {
     suspend fun getStoryAudio(
         @Path("artworkId") artworkId: String,
         @Query("lang") lang: String,
+        @Query("region") region: String,
         @Query("voice") voice: String? = null
     ): Response<ResponseBody>
 
