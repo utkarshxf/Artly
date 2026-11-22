@@ -232,6 +232,7 @@ fun AboutTheArtist(navController: NavController , id: String? , vm: ArtistProfil
         val it  = artistProfileUiState.artist
         // Follow right from the artwork (not on your own artist profile)
         val isMe = it.id.equals(vm.currentUserId, ignoreCase = true)
+        val context = LocalContext.current
         var following by remember(it.id) { mutableStateOf(it.follow) }
         var followBusy by remember { mutableStateOf(false) }
         LaunchedEffect(vm.followArtistUiState) {
