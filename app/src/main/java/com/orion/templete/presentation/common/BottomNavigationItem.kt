@@ -13,8 +13,8 @@ data class BottomNavigationItem(
                 route = Screens.Swipe.route
             ),
             BottomNavigationItem(
-                icon = R.drawable.ic_save,
-                route = Screens.FavoritesScreen.route
+                icon = R.drawable.search_24px,
+                route = Screens.Search.route
             ),
             BottomNavigationItem(
                 icon = R.drawable.ic_add,

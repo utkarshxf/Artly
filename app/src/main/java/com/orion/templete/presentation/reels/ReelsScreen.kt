@@ -43,6 +43,23 @@ import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.LoadingScreen
 
+/** Placeholder shown from the bottom nav until the reels feed ships. */
+@Composable
+fun ReelsComingSoonScreen() {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Reels coming soon",
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
+        )
+    }
+}
+
 /**
  * Full-screen vertical artwork feed with automatic story narration.
  * Swipe up/down to move between artworks; the story of the artwork on screen
