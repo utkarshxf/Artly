@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -52,8 +53,12 @@ import com.orion.templete.presentation.artist_profile.ArtistStatsSection
 import com.orion.templete.presentation.common.ArtworkItem
 import com.orion.templete.presentation.common.ErrorScreen
 import com.orion.templete.presentation.common.Screens
+import com.orion.templete.data.model.favorits.favoritesDTO
+import com.orion.templete.presentation.favorites.AddCollectionDialog
+import com.orion.templete.presentation.favorites.CollectionCard
 import com.orion.templete.presentation.favorites.CollectionViewModel
-import com.orion.templete.presentation.favorites.SavedArtworksUiState
+import com.orion.templete.presentation.favorites.CreateFavoritesUiState
+import com.orion.templete.presentation.favorites.FavoritesUiState
 import com.orion.templete.presentation.components.AnimatedPreloader
 import com.orion.templete.presentation.components.AppIcon
 import com.orion.templete.presentation.profile.common.DrawerContent
@@ -174,6 +179,7 @@ private fun ArtistProfileContent(
 ) {
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     var showImagePopup by remember { mutableStateOf(false) }
+    var showAddCollectionDialog by remember { mutableStateOf(false) }
     val artWorksUiState = viewModel.artWorksUiState
 
     val artistDetails by viewModel.artistDetails.collectAsState()
@@ -194,9 +200,19 @@ private fun ArtistProfileContent(
         }
     }
 
-    // Fetch the flat saved-artworks list when the Favorites tab is opened
+    // Fetch the collection folders when the Favorites tab is opened
     LaunchedEffect(selectedTabIndex) {
-        if (selectedTabIndex == 2) collectionViewModel.getAllSavedArtworks()
+        if (selectedTabIndex == 2) collectionViewModel.getFavoritesByUserId()
+    }
+
+    // Refresh the folder list after a new collection is created
+    LaunchedEffect(collectionViewModel.createFavoritesUiState) {
+        if (collectionViewModel.createFavoritesUiState is CreateFavoritesUiState.Success ||
+            collectionViewModel.createFavoritesUiState is CreateFavoritesUiState.Error
+        ) {
+            collectionViewModel.getFavoritesByUserId()
+            collectionViewModel.resetState()
+        }
     }
 
     if (showImagePopup) {
@@ -253,9 +269,9 @@ private fun ArtistProfileContent(
 
         // Content Section
         if (selectedTabIndex == 2) {
-            when (val savedState = collectionViewModel.savedArtworksUiState) {
-                is SavedArtworksUiState.Loading -> {
-                    item(key = "saved_loading") {
+            when (val favoritesState = collectionViewModel.favoritesUiState) {
+                is FavoritesUiState.Loading -> {
+                    item(key = "collections_loading") {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -266,25 +282,23 @@ private fun ArtistProfileContent(
                         }
                     }
                 }
-                is SavedArtworksUiState.Success -> {
-                    if (savedState.artworks.isEmpty()) {
-                        item(key = "saved_empty") {
-                            EmptyFavoritesState(onDiscoverClick = {
-                                navController.navigate(Screens.Swipe.route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    restoreState = true
-                                }
-                            })
+                is FavoritesUiState.Success -> {
+                    item(key = "collections_header") {
+                        CollectionsTabHeader(onAddClick = { showAddCollectionDialog = true })
+                    }
+                    if (favoritesState.favorites.isEmpty()) {
+                        item(key = "collections_empty") {
+                            EmptyCollectionsTab(onCreateClick = { showAddCollectionDialog = true })
                         }
                     } else {
-                        savedArtworkGridItems(savedState.artworks, navController)
+                        collectionGridItems(favoritesState.favorites, navController)
                     }
                 }
-                is SavedArtworksUiState.Error -> {
-                    item(key = "saved_error") {
+                is FavoritesUiState.Error -> {
+                    item(key = "collections_error") {
                         ErrorScreen(
-                            message = savedState.message,
-                            onRetry = { collectionViewModel.getAllSavedArtworks() }
+                            message = favoritesState.message,
+                            onRetry = { collectionViewModel.getFavoritesByUserId() }
                         )
                     }
                 }
@@ -324,6 +338,14 @@ private fun ArtistProfileContent(
                 }
             }
         }
+    }
+
+    if (showAddCollectionDialog) {
+        AddCollectionDialog(
+            onDismiss = { showAddCollectionDialog = false },
+            onCreateCollection = { collectionViewModel.createNewFavorites(it) },
+            isCreating = collectionViewModel.createFavoritesUiState is CreateFavoritesUiState.Loading
+        )
     }
 }
 
@@ -396,42 +418,39 @@ private fun LazyListScope.artworkListItems(
     }
 }
 
-// Extension function for the Favorites tab: flat saved artworks in 3-column rows
-private fun LazyListScope.savedArtworkGridItems(
-    artworks: List<ArtworkDTO>,
+// Extension function for the Favorites tab: collection folders in 2-column rows
+private fun LazyListScope.collectionGridItems(
+    collections: List<favoritesDTO>,
     navController: NavController
 ) {
-    val rows = artworks.chunked(3)
+    val rows = collections.chunked(2)
 
     items(
         count = rows.size,
-        key = { index -> rows[index].firstOrNull()?.id ?: "saved_grid_row_$index" }
+        key = { index -> rows[index].firstOrNull()?.id ?: "collection_row_$index" }
     ) { index ->
         val row = rows[index]
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            row.forEach { artwork ->
+            row.forEach { collection ->
                 Box(modifier = Modifier.weight(1f)) {
-                    ArtworkItem(
-                        artwork = artwork,
-                        showArtistName = false,
-                        onArtworkClick = {
-                            artwork.id?.let { id ->
-                                navController.currentBackStackEntry?.savedStateHandle?.set(
-                                    key = "artworkId",
-                                    value = id
-                                )
-                                navController.navigate(Screens.ArtworkDetail.route)
-                            }
+                    CollectionCard(
+                        collection = collection,
+                        onClick = {
+                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                key = "collectionId",
+                                value = collection.id
+                            )
+                            navController.navigate(Screens.CollectionArtworksScreen.route)
                         }
                     )
                 }
             }
-            repeat(3 - row.size) {
+            if (row.size == 1) {
                 Spacer(modifier = Modifier.weight(1f))
             }
         }
@@ -439,22 +458,36 @@ private fun LazyListScope.savedArtworkGridItems(
 }
 
 @Composable
-private fun EmptyFavoritesState(onDiscoverClick: () -> Unit) {
+private fun CollectionsTabHeader(onAddClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Collections",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        IconButton(onClick = onAddClick) {
+            Icon(Icons.Default.Add, contentDescription = "Add collection")
+        }
+    }
+}
+
+@Composable
+private fun EmptyCollectionsTab(onCreateClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 32.dp, vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_save),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(48.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Save artworks you love",
+            text = "No collections yet",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -462,14 +495,20 @@ private fun EmptyFavoritesState(onDiscoverClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Tap the bookmark on any artwork to keep it here.",
+            text = "Create your first collection to save artwork",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
-        TextButton(onClick = onDiscoverClick) {
-            Text("Discover artworks")
+        Button(onClick = onCreateClick) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Create Collection")
         }
     }
 }
