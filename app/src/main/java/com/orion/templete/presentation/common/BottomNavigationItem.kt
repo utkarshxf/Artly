@@ -13,16 +13,16 @@ data class BottomNavigationItem(
                 route = Screens.Swipe.route
             ),
             BottomNavigationItem(
-                icon = R.drawable.search_24px,
-                route = Screens.Search.route
+                icon = R.drawable.ic_reels,
+                route = Screens.Reels.route
             ),
             BottomNavigationItem(
                 icon = R.drawable.ic_add,
                 route = Screens.UploadImageScreen.route
             ),
             BottomNavigationItem(
-                icon = R.drawable.ic_reels,
-                route = Screens.Reels.route
+                icon = R.drawable.search_24px,
+                route = Screens.Search.route
             ),
             BottomNavigationItem(
                 icon = R.drawable.ic_profile,
