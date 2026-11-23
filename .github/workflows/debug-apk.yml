@@ -1,0 +1,47 @@
+name: debug-apk
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create (e.g. v2.8.0)'
+        required: true
+      title:
+        description: 'Release title'
+        required: false
+        default: 'debug build'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature_user
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --console=plain
+
+      - name: Create GitHub release with APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.tag }}"
+          APK="artistry-${TAG}-debug.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$APK"
+          gh release create "$TAG" "$APK" \
+            --title "${{ inputs.title }}" \
+            --target feature_user \
+            --notes "Debug build - not for production."
