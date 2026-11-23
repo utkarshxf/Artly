@@ -61,6 +61,9 @@ enum class ReelsLanguage(val label: String, val locale: Locale, val apiCode: Str
         // 2026-11-23): the country's language when narration exists in it (India -> Hindi),
         // otherwise English. Until detection completes, the device language is the interim.
         fun default(): ReelsLanguage {
+            com.orion.templete.util.GeoCountry.savedLanguage()?.let { saved ->
+                entries.firstOrNull { it.name == saved }?.let { return it }
+            }
             val country = com.orion.templete.util.GeoCountry.cached()
             if (country != null) {
                 val apiCode = com.orion.templete.util.GeoCountry.audioLanguageFor(country)
@@ -101,7 +104,7 @@ class ReelsViewModel @Inject constructor(
     private var sourceMode: String = "feed"
     private var sourceRefId: String? = null
     private var sourceSet = false
-    private var languageManuallySelected = false
+    private var languageManuallySelected = com.orion.templete.util.GeoCountry.savedLanguage() != null
 
     private var userPausedCurrent = false
     private var mediaPlayer: MediaPlayer? = null
@@ -243,6 +246,7 @@ class ReelsViewModel @Inject constructor(
     fun onLanguageSelected(language: ReelsLanguage) {
         if (!language.enabled) return
         languageManuallySelected = true
+        com.orion.templete.util.GeoCountry.saveManualLanguage(language.name)
         state = state.copy(language = language, selectedVoiceName = null)
         playbackSession++
         stopAllAudio()
@@ -253,6 +257,7 @@ class ReelsViewModel @Inject constructor(
     }
 
     fun onVoiceSelected(voiceName: String?) {
+        com.orion.templete.util.GeoCountry.saveManualVoice(voiceName)
         state = state.copy(selectedVoiceName = voiceName)
         if (state.speakingArtworkId != null) {
             playbackSession++
@@ -502,7 +507,13 @@ class ReelsViewModel @Inject constructor(
             repeat(10) { attempt ->
                 val voices = tts.deviceVoicesFor(state.language.locale)
                 if (voices.isNotEmpty() || attempt == 9) {
-                    state = state.copy(availableVoices = voices)
+                    val saved = com.orion.templete.util.GeoCountry.savedVoice()
+                    val restore = saved.takeIf {
+                        state.selectedVoiceName == null && languageManuallySelected &&
+                            com.orion.templete.util.GeoCountry.savedLanguage() == state.language.name &&
+                            voices.any { v -> v.name == it }
+                    }
+                    state = state.copy(availableVoices = voices, selectedVoiceName = restore ?: state.selectedVoiceName)
                     return@launch
                 }
                 kotlinx.coroutines.delay(500)

@@ -45,6 +45,12 @@ object GeoCountry {
         }
     }
 
+    /** Manual narration choice, kept across launches. Wins over the country default. */
+    fun savedLanguage(): String? = prefs?.getString("manual_language", null)
+    fun savedVoice(): String? = prefs?.getString("manual_voice", null)
+    fun saveManualLanguage(name: String) { prefs?.edit()?.putString("manual_language", name)?.remove("manual_voice")?.apply() }
+    fun saveManualVoice(name: String?) { prefs?.edit()?.apply { if (name == null) remove("manual_voice") else putString("manual_voice", name) }?.apply() }
+
     /** Cached ISO2 country from the last successful detection, null until then. */
     fun cached(): String? = prefs?.getString(KEY_COUNTRY, null)
         ?: Locale.getDefault().country.takeIf { it.matches(Regex("[A-Z]{2}")) }
