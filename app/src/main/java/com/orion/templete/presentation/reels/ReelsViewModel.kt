@@ -342,14 +342,13 @@ class ReelsViewModel @Inject constructor(
             if (playBackendAudio(artworkId, lang.apiCode, session)) return@launch
             if (session != playbackSession || userPausedCurrent || state.lastSettledIndex != index) return@launch
 
-            val story = storyPrefetcher.storyText(artworkId, lang.apiCode, deviceRegion)
+            var story = storyPrefetcher.storyText(artworkId, lang.apiCode, deviceRegion)
             if (story == null && lang.apiCode != "en") {
-                // No translated story for this artwork yet: say so instead of reading the
-                // English description under the selected language.
-                state = state.copy(
-                    speakingArtworkId = null,
-                    toastMessage = "${lang.label} narration is not available for this artwork yet"
-                )
+                // No narration in the selected language for this artwork: switch straight to the
+                // default language and play that (the selector follows state.language).
+                state = state.copy(language = ReelsLanguage.ENGLISH, selectedVoiceName = null)
+                refreshVoices()
+                speakArtworkAt(index)
                 return@launch
             }
             val text = story ?: artwork.description?.takeIf { it.isNotBlank() } ?: return@launch
