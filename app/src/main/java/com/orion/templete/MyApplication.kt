@@ -26,6 +26,11 @@ class MyApplication: Application() {
         super.onCreate()
         registerActivityLifecycleCallbacks(com.orion.templete.util.CropScreenInsets)
 
+        // Country detection for the geo-ranked feed + default narration language (v2.8.4):
+        // cached instantly, refreshed from the backend on every launch.
+        com.orion.templete.util.GeoCountry.init(this)
+        com.orion.templete.util.GeoCountry.refresh(com.orion.templete.data.network.ApiService.baseurl)
+
         // Initialize FreshChat
         val freshchatConfig = FreshchatConfig(
             "90f57c79-7961-43bb-9684-a2877adaa8d8",

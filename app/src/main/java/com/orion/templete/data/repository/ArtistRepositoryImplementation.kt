@@ -37,7 +37,7 @@ class ArtistRepositoryImplementation @Inject constructor(
 
     override suspend fun getPopularArtworks(userId :String): Flow<List<ArtworkDTO>>  = flow {
         try {
-            val response = safeApiRequest { apiService.getPopularArtworks(userId) }
+            val response = safeApiRequest { apiService.getPopularArtworks(userId, country = com.orion.templete.util.GeoCountry.cached()) }
             emit(response)
         } catch (e: Exception) {
             Log.e("ArtistRepository", "Error fetching popular artworks: ${e.message}")

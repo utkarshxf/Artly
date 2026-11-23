@@ -41,6 +41,7 @@ import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -119,7 +120,10 @@ interface ApiService {
     suspend fun forgetPassword(@Body request: ForgetPasswordRequest): retrofit2.Response<LoginResponseDTO>
 
     @GET("artwork/recommend")
-    suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int):retrofit2.Response<List<ArtworkDTO>>
+    suspend fun paginationArtwork(@Query("userId") userId: String ,@Query("skip") skip: Int , @Query("limit") limit:Int, @Query("country") country: String?):retrofit2.Response<List<ArtworkDTO>>
+
+    @GET("geo/country")
+    suspend fun geoCountry(@Header("X-Device-Country") deviceCountry: String): retrofit2.Response<GeoCountryResponse>
 
     // Marks an artwork as seen so the recommendation feed stops repeating it
     @POST("artwork/{artworkId}/view/{userId}")
@@ -295,7 +299,8 @@ interface ApiService {
     suspend fun getPopularArtworks(
         @Query("userId") userId: String,
         @Query("skip") skip: Int = 0,
-        @Query("limit") limit: Int = 4
+        @Query("limit") limit: Int = 4,
+        @Query("country") country: String? = null
     ): Response<List<ArtworkDTO>>
 
     @GET("artwork/new-arrivals")

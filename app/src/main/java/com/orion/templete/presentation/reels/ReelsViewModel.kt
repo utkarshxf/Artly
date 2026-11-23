@@ -32,7 +32,7 @@ data class ReelsUiState(
     val page: Int = 0,
     val speakingArtworkId: String? = null,
     val audioPaused: Boolean = false,
-    val language: ReelsLanguage = ReelsLanguage.forDevice(),
+    val language: ReelsLanguage = ReelsLanguage.default(),
     val selectedVoiceName: String? = null,
     val availableVoices: List<Voice> = emptyList(),
     val lastSettledIndex: Int = 0,
@@ -57,8 +57,19 @@ enum class ReelsLanguage(val label: String, val locale: Locale, val apiCode: Str
     GREEK("Ελληνικά", Locale("el", "GR"), "el", true);
 
     companion object {
+        // Default story language follows the detected launch country (product decision
+        // 2026-11-23): the country's language when narration exists in it (India -> Hindi),
+        // otherwise English. Until detection completes, the device language is the interim.
+        fun default(): ReelsLanguage {
+            val country = com.orion.templete.util.GeoCountry.cached()
+            if (country != null) {
+                val apiCode = com.orion.templete.util.GeoCountry.audioLanguageFor(country)
+                return entries.firstOrNull { it.apiCode == apiCode && it != ENGLISH_IN } ?: ENGLISH
+            }
+            return forDevice()
+        }
+
         // Default story language: the device language when we support it, otherwise English.
-        // (The audience country data is name-inferred and unverified, so it cannot set a default.)
         fun forDevice(): ReelsLanguage {
             val deviceLanguage = Locale.getDefault().language
             // Any English device locale (en-US, en-IN, ...) defaults to plain English;
