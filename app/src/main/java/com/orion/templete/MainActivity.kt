@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -22,6 +23,7 @@ import com.orion.templete.util.GalleryLauncher
 import com.orion.templete.presentation.common.Screens
 import com.orion.templete.presentation.ui.theme.TempleteTheme
 import com.orion.templete.util.ImageCropper
+import com.orion.templete.util.DebugCrashCapture
 import com.orion.templete.util.ReviewPrompt
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
@@ -50,6 +52,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Debug builds only: save the real stack trace when the app dies so we can see it next launch
+        DebugCrashCapture.install(this)
         val storage = SecureStorage(this)
         val token = storage.getToken()
         val userId = storage.getUserId()
@@ -93,6 +97,35 @@ class MainActivity : ComponentActivity() {
             }
             Log.d("TAG", "onCreate: $userId $cachedDetailsId $startDestination")
             TempleteTheme {
+                // Debug builds only: after a crash, show the saved stack trace once so it can be shared back
+                val pendingCrash = androidx.compose.runtime.remember {
+                    androidx.compose.runtime.mutableStateOf(DebugCrashCapture.pending(this@MainActivity))
+                }
+                pendingCrash.value?.let { report ->
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = {
+                            DebugCrashCapture.clear(this@MainActivity)
+                            pendingCrash.value = null
+                        },
+                        title = { androidx.compose.material3.Text("Debug: last crash") },
+                        text = {
+                            Column(modifier = Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                                androidx.compose.material3.Text(report.take(4000))
+                            }
+                        },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                DebugCrashCapture.share(this@MainActivity, report)
+                            }) { androidx.compose.material3.Text("Share") }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                DebugCrashCapture.clear(this@MainActivity)
+                                pendingCrash.value = null
+                            }) { androidx.compose.material3.Text("Dismiss") }
+                        }
+                    )
+                }
 //                WindowCompat.setDecorFitsSystemWindows(window, false)
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Android 15+ draws apps edge-to-edge; keep every screen clear of the status and navigation bars
