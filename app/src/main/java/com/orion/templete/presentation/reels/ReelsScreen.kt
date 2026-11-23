@@ -47,8 +47,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.orion.templete.data.model.artwork_model.comments.CommentRequest
+import com.orion.templete.data.model.artwork_model.comments.GetCommentsDTO
+import com.orion.templete.presentation.artist_profile.ArtistProfileViewModel
+import com.orion.templete.presentation.artist_profile.GetCommentsOnArtworkUiState
+import com.orion.templete.presentation.artwork_detail.CommentSection
 import com.orion.templete.presentation.artwork_detail.SaveSection
+import com.orion.templete.util.SecureStorage
 import com.orion.templete.presentation.swipe.components.BottomSheet
 import com.orion.templete.util.GuestGate
 import com.orion.templete.R
@@ -69,8 +76,7 @@ fun ReelsScreen(
     viewModel: ReelsViewModel,
     onOpenArtwork: (ArtworkDTO) -> Unit,
     reelsMode: String? = null,
-    reelsRefId: String? = null,
-    onOpenComments: ((ArtworkDTO) -> Unit)? = null
+    reelsRefId: String? = null
 ) {
     LaunchedEffect(Unit) { viewModel.setSource(reelsMode, reelsRefId) }
     val state = viewModel.state
@@ -106,7 +112,7 @@ fun ReelsScreen(
         state.items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No artworks yet", color = Color.White)
         }
-        else -> ReelsPager(state, viewModel, onOpenArtwork, onOpenComments)
+        else -> ReelsPager(state, viewModel, onOpenArtwork)
     }
 }
 
@@ -114,12 +120,14 @@ fun ReelsScreen(
 private fun ReelsPager(
     state: ReelsUiState,
     viewModel: ReelsViewModel,
-    onOpenArtwork: (ArtworkDTO) -> Unit,
-    onOpenComments: ((ArtworkDTO) -> Unit)? = null
+    onOpenArtwork: (ArtworkDTO) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { state.items.size })
     // Save opens the same collections bottom sheet as the artwork screen
     var saveSheetArtworkId by remember { mutableStateOf<String?>(null) }
+    // Comments open the same bottom sheet as the artwork screen, in place on the player
+    var commentsArtworkId by remember { mutableStateOf<String?>(null) }
+    val commentsVm: ArtistProfileViewModel = hiltViewModel()
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
@@ -147,7 +155,7 @@ private fun ReelsPager(
                 if (!GuestGate.check(context)) saveSheetArtworkId = artwork.id
             },
             onOpenArtwork = { onOpenArtwork(artwork) },
-            onOpenComments = onOpenComments?.let { open -> { open(artwork) } }
+            onOpenComments = { commentsArtworkId = artwork.id }
         )
     }
 
@@ -171,6 +179,48 @@ private fun ReelsPager(
             )
         }
     }
+
+    commentsArtworkId?.let { targetId ->
+        LaunchedEffect(targetId) { commentsVm.getAllComments(targetId) }
+        BottomSheet(onDismiss = { commentsArtworkId = null }) {
+            when (val uiState = commentsVm.getCommentsOnArtworkUiState) {
+                is GetCommentsOnArtworkUiState.Loading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+
+                is GetCommentsOnArtworkUiState.Success -> {
+                    var comments by remember { mutableStateOf(uiState.data) }
+                    val context = LocalContext.current
+                    val currentUser = SecureStorage(context).getUserDetails()
+                    CommentSection(
+                        comments = comments,
+                        onSendComment = { newComment ->
+                            comments = listOf(
+                                GetCommentsDTO(
+                                    userId = currentUser?.id,
+                                    userName = currentUser?.name,
+                                    userProfilePicture = currentUser?.profilePicture,
+                                    text = newComment
+                                )
+                            ) + comments
+                            commentsVm.commentOnArtwork(targetId, CommentRequest(text = newComment))
+                        }
+                    )
+                }
+
+                is GetCommentsOnArtworkUiState.Error -> {
+                    ErrorScreen(
+                        message = uiState.message,
+                        onRetry = { commentsVm.refreshComments(artworkId = targetId) }
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -184,7 +234,7 @@ private fun ReelPage(
     onToggleLike: () -> Unit,
     onSave: () -> Unit,
     onOpenArtwork: () -> Unit,
-    onOpenComments: (() -> Unit)? = null
+    onOpenComments: () -> Unit
 ) {
     val context = LocalContext.current
     Box(Modifier.fillMaxSize()) {
@@ -315,7 +365,7 @@ private fun ReelPage(
             RailButton(
                 iconRes = R.drawable.ic_comment,
                 contentDescription = "Comments",
-                onClick = onOpenComments ?: onOpenArtwork
+                onClick = onOpenComments
             )
             RailButton(
                 iconRes = R.drawable.ic_share,

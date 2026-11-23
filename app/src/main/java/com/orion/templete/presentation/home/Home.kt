@@ -165,18 +165,13 @@ fun Home(
         }
         composable(Screens.ArtworkDetail.route) {
             val artworkId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("artworkId")
-            val openComments = navController.previousBackStackEntry?.savedStateHandle?.remove<Boolean>("openComments") == true
             if (artworkId != null) {
-                ArtworkDetailScreen(artworkId , navController, openComments = openComments)
+                ArtworkDetailScreen(artworkId , navController)
             }
         }
         composable(Screens.Reels.route) {
             ReelsScreen(hiltViewModel(), onOpenArtwork = { data->
                 navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
-                navController.navigate(Screens.ArtworkDetail.route)
-            }, onOpenComments = { data->
-                navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
-                navController.currentBackStackEntry?.savedStateHandle?.set(key = "openComments", value = true)
                 navController.navigate(Screens.ArtworkDetail.route)
             })
         }
@@ -185,10 +180,6 @@ fun Home(
             val reelsRefId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("reelsRefId")
             ReelsScreen(hiltViewModel(), reelsMode = reelsMode, reelsRefId = reelsRefId, onOpenArtwork = { data->
                 navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
-                navController.navigate(Screens.ArtworkDetail.route)
-            }, onOpenComments = { data->
-                navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
-                navController.currentBackStackEntry?.savedStateHandle?.set(key = "openComments", value = true)
                 navController.navigate(Screens.ArtworkDetail.route)
             })
         }

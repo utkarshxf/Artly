@@ -45,8 +45,9 @@ data class ReelsUiState(
  * fallback when the story service has no quota left (503).
  */
 enum class ReelsLanguage(val label: String, val locale: Locale, val apiCode: String, val enabled: Boolean) {
-    ENGLISH_IN("English (India)", Locale("en", "IN"), "en", true),
+    ENGLISH("English", Locale.US, "en", true),
     HINDI("हिन्दी", Locale("hi", "IN"), "hi", true),
+    ENGLISH_IN("English (India)", Locale("en", "IN"), "en", true),
     TURKISH("Türkçe", Locale("tr", "TR"), "tr", true),
     PERSIAN("فارسی", Locale("fa", "IR"), "fa", true),
     ARABIC("العربية", Locale("ar", "EG"), "ar", true),
@@ -60,8 +61,11 @@ enum class ReelsLanguage(val label: String, val locale: Locale, val apiCode: Str
         // (The audience country data is name-inferred and unverified, so it cannot set a default.)
         fun forDevice(): ReelsLanguage {
             val deviceLanguage = Locale.getDefault().language
+            // Any English device locale (en-US, en-IN, ...) defaults to plain English;
+            // English (India) stays available as its own device-TTS voice in the list.
+            if (deviceLanguage == "en") return ENGLISH
             return entries.firstOrNull { it.apiCode == deviceLanguage || it.locale.language == deviceLanguage }
-                ?: ENGLISH_IN
+                ?: ENGLISH
         }
     }
 }
@@ -338,8 +342,17 @@ class ReelsViewModel @Inject constructor(
             if (playBackendAudio(artworkId, lang.apiCode, session)) return@launch
             if (session != playbackSession || userPausedCurrent || state.lastSettledIndex != index) return@launch
 
-            val text = storyPrefetcher.storyText(artworkId, lang.apiCode, deviceRegion)
-                ?: artwork.description?.takeIf { it.isNotBlank() } ?: return@launch
+            val story = storyPrefetcher.storyText(artworkId, lang.apiCode, deviceRegion)
+            if (story == null && lang.apiCode != "en") {
+                // No translated story for this artwork yet: say so instead of reading the
+                // English description under the selected language.
+                state = state.copy(
+                    speakingArtworkId = null,
+                    toastMessage = "${lang.label} narration is not available for this artwork yet"
+                )
+                return@launch
+            }
+            val text = story ?: artwork.description?.takeIf { it.isNotBlank() } ?: return@launch
             if (session != playbackSession || state.speakingArtworkId != artworkId) return@launch
             val voice = state.availableVoices.firstOrNull { it.name == state.selectedVoiceName }
             tts.speak(artworkId, text, lang.locale, voice)
