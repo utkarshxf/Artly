@@ -69,7 +69,8 @@ fun ReelsScreen(
     viewModel: ReelsViewModel,
     onOpenArtwork: (ArtworkDTO) -> Unit,
     reelsMode: String? = null,
-    reelsRefId: String? = null
+    reelsRefId: String? = null,
+    onOpenComments: ((ArtworkDTO) -> Unit)? = null
 ) {
     LaunchedEffect(Unit) { viewModel.setSource(reelsMode, reelsRefId) }
     val state = viewModel.state
@@ -105,7 +106,7 @@ fun ReelsScreen(
         state.items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No artworks yet", color = Color.White)
         }
-        else -> ReelsPager(state, viewModel, onOpenArtwork)
+        else -> ReelsPager(state, viewModel, onOpenArtwork, onOpenComments)
     }
 }
 
@@ -113,7 +114,8 @@ fun ReelsScreen(
 private fun ReelsPager(
     state: ReelsUiState,
     viewModel: ReelsViewModel,
-    onOpenArtwork: (ArtworkDTO) -> Unit
+    onOpenArtwork: (ArtworkDTO) -> Unit,
+    onOpenComments: ((ArtworkDTO) -> Unit)? = null
 ) {
     val pagerState = rememberPagerState(pageCount = { state.items.size })
     // Save opens the same collections bottom sheet as the artwork screen
@@ -144,7 +146,8 @@ private fun ReelsPager(
             onSave = {
                 if (!GuestGate.check(context)) saveSheetArtworkId = artwork.id
             },
-            onOpenArtwork = { onOpenArtwork(artwork) }
+            onOpenArtwork = { onOpenArtwork(artwork) },
+            onOpenComments = onOpenComments?.let { open -> { open(artwork) } }
         )
     }
 
@@ -180,7 +183,8 @@ private fun ReelPage(
     onVoiceSelected: (String?) -> Unit,
     onToggleLike: () -> Unit,
     onSave: () -> Unit,
-    onOpenArtwork: () -> Unit
+    onOpenArtwork: () -> Unit,
+    onOpenComments: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     Box(Modifier.fillMaxSize()) {
@@ -311,7 +315,7 @@ private fun ReelPage(
             RailButton(
                 iconRes = R.drawable.ic_comment,
                 contentDescription = "Comments",
-                onClick = onOpenArtwork
+                onClick = onOpenComments ?: onOpenArtwork
             )
             RailButton(
                 iconRes = R.drawable.ic_share,

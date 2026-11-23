@@ -173,6 +173,11 @@ private fun ProfileContent(
                     onOpenArtwork = { data ->
                         navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
                         navController.navigate(Screens.ArtworkDetail.route)
+                    },
+                    onOpenComments = { data ->
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "artworkId", value = data.id)
+                        navController.currentBackStackEntry?.savedStateHandle?.set(key = "openComments", value = true)
+                        navController.navigate(Screens.ArtworkDetail.route)
                     }
                 )
             }

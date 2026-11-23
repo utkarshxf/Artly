@@ -132,7 +132,7 @@ import kotlin.math.min
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewModel: ArtworkDetailViewModel = hiltViewModel()) {
+fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewModel: ArtworkDetailViewModel = hiltViewModel(), openComments: Boolean = false) {
     LaunchedEffect(Unit) {
         viewModel.getArtworkById(artworkId)
         // MVVM: Fetch artwork statistics
@@ -148,7 +148,7 @@ fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewMo
         }
 
         is ArtworkDetailScreenUiState.Success -> {
-            ArtworkDetailContent(uiState.artwork , navController, viewModel)
+            ArtworkDetailContent(uiState.artwork , navController, viewModel, initialShowComments = openComments)
             Log.d("qwerty" , uiState.artwork.toString())
         }
 
@@ -164,7 +164,7 @@ fun ArtworkDetailScreen(artworkId:String ,navController: NavController ,  viewMo
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavController, viewModel: ArtworkDetailViewModel? = null) {
+fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavController, viewModel: ArtworkDetailViewModel? = null, initialShowComments: Boolean = false) {
     val scrollState = rememberLazyListState()
     var isLiked = remember { mutableStateOf(artworkDetailsDTO.liked) }
     // Instagram-style "send to a chat" (paper plane). Kept open across rotation and process death.
@@ -174,7 +174,7 @@ fun ArtworkDetailContent(artworkDetailsDTO: ArtworkDTO, navController: NavContro
     val openShare: (() -> Unit)? = if (shareRef != null) ({ showShareToChat = true }) else null
     Box {
         Details(
-            artworkDetailsDTO, scrollState, isLiked, navController, viewModel,
+            artworkDetailsDTO, scrollState, isLiked, navController, viewModel, initialShowComments = initialShowComments,
             onShareToChat = openShare
         )
         ParallaxToolbar(artworkDetailsDTO, scrollState , isLiked ,navController, onShare = openShare)
@@ -197,7 +197,8 @@ private fun Details(
     isLiked: MutableState<Boolean?>,
     navController: NavController,
     viewModel: ArtworkDetailViewModel? = null,
-    onShareToChat: (() -> Unit)? = null
+    onShareToChat: (() -> Unit)? = null,
+    initialShowComments: Boolean = false
 ) {
     LazyColumn(
         contentPadding = PaddingValues(top = AppBarExpendedHeight),
@@ -205,7 +206,7 @@ private fun Details(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            BasicInfo(artworkDetailsDTO, isLiked, viewModel, onShareToChat, onWatchReel = {
+            BasicInfo(artworkDetailsDTO, isLiked, viewModel, onShareToChat, initialShowComments = initialShowComments, onWatchReel = {
                 artworkDetailsDTO.id?.let { reelId ->
                     navController.currentBackStackEntry?.savedStateHandle?.set(key = "reelsMode", value = "similar")
                     navController.currentBackStackEntry?.savedStateHandle?.set(key = "reelsRefId", value = reelId)
@@ -351,10 +352,11 @@ fun BasicInfo(
     isLiked: MutableState<Boolean?>,
     viewModel: ArtworkDetailViewModel? = null,
     onShareToChat: (() -> Unit)? = null,
+    initialShowComments: Boolean = false,
     onWatchReel: (() -> Unit)? = null
 ) {
     val vm: ArtistProfileViewModel = hiltViewModel()
-    var showComments by remember { mutableStateOf(false) }
+    var showComments by remember { mutableStateOf(initialShowComments) }
     var showSavedFolders by remember { mutableStateOf(false) }
     val collectionVm : CollectionViewModel = hiltViewModel()
     val context = LocalContext.current
