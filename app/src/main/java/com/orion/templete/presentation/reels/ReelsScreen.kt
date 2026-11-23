@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -152,9 +153,14 @@ private fun ReelsPager(
     ) { page ->
         val artwork = state.items[page]
         val context = LocalContext.current
+        val voiceMenu = remember(state.availableVoices, state.selectedVoiceName) {
+            buildVoiceMenu(state.availableVoices, state.selectedVoiceName)
+        }
         ReelPage(
             artwork = artwork,
-            state = state,
+            language = state.language,
+            isSpeaking = state.speakingArtworkId == artwork.id,
+            voiceMenu = voiceMenu,
             isActivePage = page == pagerState.settledPage,
             onToggleAudio = viewModel::toggleAudio,
             onLanguageSelected = viewModel::onLanguageSelected,
@@ -232,10 +238,46 @@ private fun ReelsPager(
     }
 }
 
+/** Friendly-name voice menu, precomputed once so pages stay skippable. */
+@Immutable
+private data class VoiceMenu(
+    val labels: List<Pair<String, String>>,
+    val currentLabel: String
+)
+
+private fun buildVoiceMenu(voices: List<android.speech.tts.Voice>, selectedVoiceName: String?): VoiceMenu {
+    // Engine voice ids are cryptic ("en-in-x-end-local"); give each one a stable human
+    // name, matched to its gender where the engine reports it.
+    val femaleNames = listOf("Asha", "Meera", "Kavya", "Anaya", "Priya", "Sara", "Nisha", "Riya", "Ira", "Tara",
+        "Anika", "Diya", "Myra", "Kiara", "Naina", "Sanya", "Vani", "Zoya", "Aarti", "Pooja")
+    val maleNames = listOf("Arjun", "Rohan", "Vikram", "Aditya", "Karan", "Dev", "Nikhil", "Rahul", "Aman", "Varun",
+        "Ishaan", "Kabir", "Yash", "Om", "Rey", "Samar", "Tejas", "Vivaan", "Zaid", "Mohan")
+    var femaleCount = 0
+    var maleCount = 0
+    val labels = voices.map { voice ->
+        val gender = voice.features?.firstOrNull {
+            it.equals("female", ignoreCase = true) || it.equals("male", ignoreCase = true)
+        }?.lowercase()
+            // Google voices carry the gender in the id ("...#female_2-local"), not in features
+            ?: Regex("female|male").find(voice.name.lowercase())?.value
+        val label = when (gender) {
+            "male" -> maleNames.getOrElse(maleCount++) { "Voice ${maleCount}" }
+            "female" -> femaleNames.getOrElse(femaleCount++) { "Voice ${femaleCount}" }
+            else -> if ((femaleCount + maleCount) % 2 == 0) femaleNames.getOrElse(femaleCount++) { "Voice ${femaleCount}" }
+                    else maleNames.getOrElse(maleCount++) { "Voice ${maleCount}" }
+        }
+        voice.name to label
+    }
+    val currentLabel = labels.firstOrNull { it.first == selectedVoiceName }?.second ?: "Default voice"
+    return VoiceMenu(labels, currentLabel)
+}
+
 @Composable
 private fun ReelPage(
     artwork: ArtworkDTO,
-    state: ReelsUiState,
+    language: ReelsLanguage,
+    isSpeaking: Boolean,
+    voiceMenu: VoiceMenu,
     isActivePage: Boolean,
     onToggleAudio: () -> Unit,
     onLanguageSelected: (ReelsLanguage) -> Unit,
@@ -271,11 +313,11 @@ private fun ReelPage(
             verticalAlignment = Alignment.CenterVertically
         ) {
             LanguageSelector(
-                selected = state.language,
+                selected = language,
                 onSelected = onLanguageSelected
             )
             VoiceSelector(
-                state = state,
+                menu = voiceMenu,
                 onSelected = onVoiceSelected
             )
         }
@@ -388,10 +430,9 @@ private fun ReelPage(
             )
             // Play / pause for the story narration.
             if (isActivePage && !artwork.description.isNullOrBlank()) {
-                val speaking = state.speakingArtworkId == artwork.id
                 RailButton(
-                    iconRes = if (speaking) R.drawable.ic_pause else R.drawable.ic_play,
-                    contentDescription = if (speaking) "Pause story" else "Play story",
+                    iconRes = if (isSpeaking) R.drawable.ic_pause else R.drawable.ic_play,
+                    contentDescription = if (isSpeaking) "Pause story" else "Play story",
                     onClick = onToggleAudio
                 )
             }
@@ -452,34 +493,12 @@ private fun LanguageSelector(
 
 @Composable
 private fun VoiceSelector(
-    state: ReelsUiState,
+    menu: VoiceMenu,
     onSelected: (String?) -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
-    // Engine voice ids are cryptic ("en-in-x-end-local"); give each one a stable human
-    // name, matched to its gender where the engine reports it.
-    val femaleNames = listOf("Asha", "Meera", "Kavya", "Anaya", "Priya", "Sara", "Nisha", "Riya", "Ira", "Tara",
-        "Anika", "Diya", "Myra", "Kiara", "Naina", "Sanya", "Vani", "Zoya", "Aarti", "Pooja")
-    val maleNames = listOf("Arjun", "Rohan", "Vikram", "Aditya", "Karan", "Dev", "Nikhil", "Rahul", "Aman", "Varun",
-        "Ishaan", "Kabir", "Yash", "Om", "Rey", "Samar", "Tejas", "Vivaan", "Zaid", "Mohan")
-    var femaleCount = 0
-    var maleCount = 0
-    val labels = state.availableVoices.map { voice ->
-        val gender = voice.features?.firstOrNull {
-            it.equals("female", ignoreCase = true) || it.equals("male", ignoreCase = true)
-        }?.lowercase()
-            // Google voices carry the gender in the id ("...#female_2-local"), not in features
-            ?: Regex("female|male").find(voice.name.lowercase())?.value
-        val label = when (gender) {
-            "male" -> maleNames.getOrElse(maleCount++) { "Voice ${maleCount}" }
-            "female" -> femaleNames.getOrElse(femaleCount++) { "Voice ${femaleCount}" }
-            else -> if ((femaleCount + maleCount) % 2 == 0) femaleNames.getOrElse(femaleCount++) { "Voice ${femaleCount}" }
-                    else maleNames.getOrElse(maleCount++) { "Voice ${maleCount}" }
-        }
-        voice.name to label
-    }
-    val currentLabel = labels.firstOrNull { it.first == state.selectedVoiceName }?.second
-        ?: "Default voice"
+    val labels = menu.labels
+    val currentLabel = menu.currentLabel
     Box {
         TextButton(onClick = { open = true }) {
             Text(
