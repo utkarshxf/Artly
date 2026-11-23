@@ -220,16 +220,8 @@ fun DrawerContent(navController: NavController ,logOut:()->Unit ,  onClose: () -
         // Add logout at bottom
         Spacer(modifier = Modifier.weight(1f))
 
-        // Guests have no account to delete or log out of: offer sign-in instead
-        if (isGuest) {
-            NavigationDrawerItem(colors = drawerItemColor,
-                icon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                label = { Text("Sign in / Create account", color = MaterialTheme.colorScheme.primary) },
-                selected = false,
-                onClick = { GuestGate.check(context) })
-            return@Column
-        }
-
+        // Keep remember/state calls unconditional: an early return ahead of them leaves the
+        // composer group stack unbalanced on the guest path (crashes Profile for logged-out users)
         val logoutScope = rememberCoroutineScope()
         var loggingOut by remember { mutableStateOf(false) }
 
@@ -237,6 +229,15 @@ fun DrawerContent(navController: NavController ,logOut:()->Unit ,  onClose: () -
         // profile), delete on the server, then log out exactly like Logout does
         var confirmDelete by remember { mutableStateOf(false) }
         var deleting by remember { mutableStateOf(false) }
+
+        // Guests have no account to delete or log out of: offer sign-in instead
+        if (isGuest) {
+            NavigationDrawerItem(colors = drawerItemColor,
+                icon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                label = { Text("Sign in / Create account", color = MaterialTheme.colorScheme.primary) },
+                selected = false,
+                onClick = { GuestGate.check(context) })
+        } else {
         NavigationDrawerItem(colors = drawerItemColor,
             icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
             label = { Text("Delete account", color = MaterialTheme.colorScheme.error) },
@@ -317,5 +318,6 @@ fun DrawerContent(navController: NavController ,logOut:()->Unit ,  onClose: () -
                     }
                 }
             })
+        }
     }
 }

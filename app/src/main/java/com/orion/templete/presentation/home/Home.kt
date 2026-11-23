@@ -394,11 +394,12 @@ fun Home(
             ) {
                 val navigationItems = BottomNavigationItem().bottomNavigationItems()
                 navigationItems.forEachIndexed { index, navigationItem ->
-                    if (index != navigationItems.size / 2 || !isArtist) {
-                        if(index == 2 && !isArtist){
-                            // Skip the middle item if not an artist
-                            return@forEachIndexed
-                        }
+                    // No early returns in this loop: returning mid-composition leaves the composer
+                    // group stack unbalanced; emit a zero-size placeholder for the skipped slot
+                    if (index == 2 && !isArtist) {
+                        // Skip the middle item if not an artist
+                        Spacer(modifier = Modifier)
+                    } else if (index != navigationItems.size / 2 || !isArtist) {
 
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
