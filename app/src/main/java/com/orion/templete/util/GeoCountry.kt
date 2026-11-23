@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -24,6 +26,12 @@ object GeoCountry {
     private const val PREFS = "geo_country_prefs"
     private const val KEY_COUNTRY = "country_iso2"
 
+    private var launchLookup: Job? = null
+
+    suspend fun awaitLaunch() {
+        withTimeoutOrNull(5500) { launchLookup?.join() }
+    }
+
     private var prefs: android.content.SharedPreferences? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val client = OkHttpClient.Builder()
@@ -39,11 +47,12 @@ object GeoCountry {
 
     /** Cached ISO2 country from the last successful detection, null until then. */
     fun cached(): String? = prefs?.getString(KEY_COUNTRY, null)
+        ?: Locale.getDefault().country.takeIf { it.matches(Regex("[A-Z]{2}")) }
 
     /** Refresh the cached country from the backend; safe to call on every launch. */
     fun refresh(baseUrl: String) {
         val p = prefs ?: return
-        scope.launch {
+        launchLookup = scope.launch {
             try {
                 val deviceCountry = Locale.getDefault().country ?: ""
                 val request = Request.Builder()

@@ -22,6 +22,7 @@ class ArtworkRepositoryImplementation @Inject constructor(private val apiService
 
     override suspend fun paginationArtwork(userId: String , offset: Int, pageSize: Int): List<ArtworkDTO> {
         Log.d("Exception" , userId + offset + pageSize)
+        com.orion.templete.util.GeoCountry.awaitLaunch()
         val response = safeApiRequest { apiService.paginationArtwork(userId, offset, pageSize, com.orion.templete.util.GeoCountry.cached()) }
         return response
     }

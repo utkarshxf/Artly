@@ -101,6 +101,7 @@ class ReelsViewModel @Inject constructor(
     private var sourceMode: String = "feed"
     private var sourceRefId: String? = null
     private var sourceSet = false
+    private var languageManuallySelected = false
 
     private var userPausedCurrent = false
     private var mediaPlayer: MediaPlayer? = null
@@ -159,7 +160,14 @@ class ReelsViewModel @Inject constructor(
         sourceSet = true
         sourceMode = mode ?: "feed"
         sourceRefId = refId
-        loadNextItems()
+        viewModelScope.launch {
+            com.orion.templete.util.GeoCountry.awaitLaunch()
+            if (!languageManuallySelected) {
+                state = state.copy(language = ReelsLanguage.default())
+                refreshVoices()
+            }
+            loadNextItems()
+        }
     }
 
     private suspend fun similarFirstPage(artworkId: String): List<ArtworkDTO> {
@@ -234,6 +242,7 @@ class ReelsViewModel @Inject constructor(
 
     fun onLanguageSelected(language: ReelsLanguage) {
         if (!language.enabled) return
+        languageManuallySelected = true
         state = state.copy(language = language, selectedVoiceName = null)
         playbackSession++
         stopAllAudio()
