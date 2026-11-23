@@ -193,6 +193,20 @@ class ReelsViewModel @Inject constructor(
         prefetchAround(index)
     }
 
+    /**
+     * The user is flinging toward [index]: warm its image and story/audio so the landing is instant.
+     * Playback itself still starts only when the page settles (onPageSettled).
+     */
+    fun onPageTargeted(index: Int) {
+        if (index == state.lastSettledIndex) return
+        val window = state.items.subList(index, minOf(index + 3, state.items.size))
+        if (window.isNotEmpty()) storyPrefetcher.enqueueImages(window, window.size)
+        val lang = state.language.apiCode
+        state.items.getOrNull(index)?.id?.let { id ->
+            viewModelScope.launch { storyPrefetcher.warmupStory(id, lang, deviceRegion) }
+        }
+    }
+
     fun toggleAudio() {
         if (state.speakingArtworkId != null) {
             playbackSession++

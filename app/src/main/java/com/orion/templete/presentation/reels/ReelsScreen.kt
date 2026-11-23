@@ -136,8 +136,16 @@ private fun ReelsPager(
         }
     }
 
+    // Warm images + story/audio for the page the fling is heading to, before it lands
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.targetPage }.collect { page ->
+            viewModel.onPageTargeted(page)
+        }
+    }
+
     VerticalPager(
         state = pagerState,
+        beyondViewportPageCount = 1,
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
@@ -241,7 +249,7 @@ private fun ReelPage(
     Box(Modifier.fillMaxSize()) {
         // Whole artwork visible, never cropped; letterboxed on black.
         AsyncImage(
-            model = artwork.imageUrl ?: artwork.image_url_compressed,
+            model = artwork.image_url_compressed ?: artwork.imageUrl,
             contentDescription = artwork.title,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit

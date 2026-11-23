@@ -71,7 +71,7 @@ class StoryPrefetcher @Inject constructor(
     fun enqueueImages(artworks: List<ArtworkDTO>, count: Int = 5) {
         val loader = appContext.imageLoader
         artworks.take(count).forEach { artwork ->
-            val url = artwork.imageUrl ?: artwork.image_url_compressed ?: return@forEach
+            val url = artwork.image_url_compressed ?: artwork.imageUrl ?: return@forEach
             loader.enqueue(ImageRequest.Builder(appContext).data(url).build())
         }
     }
