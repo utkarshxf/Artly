@@ -140,7 +140,7 @@ fun Home(
     }
     NavHost (
         navController = navController,
-        startDestination = Screens.Swipe.route,
+        startDestination = Screens.Reels.route,
         modifier = Modifier.padding(bottom = bottomPadding)
     ){
         composable(Screens.Swipe.route) { entry ->
