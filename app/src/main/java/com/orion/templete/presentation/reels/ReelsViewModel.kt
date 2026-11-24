@@ -385,7 +385,12 @@ class ReelsViewModel @Inject constructor(
             if (story == null && lang.apiCode != "en") {
                 // No narration in the selected language for this artwork: switch straight to the
                 // default language and play that (the selector follows state.language).
-                state = state.copy(language = ReelsLanguage.ENGLISH, selectedVoiceName = null)
+                val fromName = Locale(lang.apiCode).getDisplayLanguage(Locale.ENGLISH).ifBlank { lang.label }
+                state = state.copy(
+                    language = ReelsLanguage.ENGLISH,
+                    selectedVoiceName = null,
+                    toastMessage = "$fromName audio isn't available for this artwork, playing in English"
+                )
                 refreshVoices()
                 speakArtworkAt(index)
                 return@launch
