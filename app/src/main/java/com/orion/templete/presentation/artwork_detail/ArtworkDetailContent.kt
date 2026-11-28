@@ -3,8 +3,12 @@ package com.orion.templete.presentation.artwork_detail
 import com.orion.templete.util.GuestGate
 import com.orion.templete.presentation.artist_profile.FollowArtistUiState
 import com.orion.templete.presentation.artist_profile.UnFollowArtistUiState
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
@@ -46,7 +50,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Share
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
@@ -61,6 +68,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.core.content.ContextCompat
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -414,6 +422,10 @@ fun BasicInfo(
                 onWatchReel()
             }
         }
+        // High-res download to the gallery, public-domain works only (server-gated)
+        if (artworkDetailsDTO.canSave == true) {
+            DownloadToGalleryAction(artworkDetailsDTO, viewModel)
+        }
     }
     if (showSavedFolders){
         BottomSheet(onDismiss = { showSavedFolders = false }) {
@@ -710,6 +722,73 @@ private fun ShareToChatAction(onClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = "Share", fontWeight = Bold)
+    }
+}
+
+@Composable
+fun DownloadToGalleryAction(artwork: ArtworkDTO, viewModel: ArtworkDetailViewModel?) {
+    val context = LocalContext.current
+    var showMeteredDialog by remember { mutableStateOf(false) }
+    val saveState = viewModel?.saveImageUiState
+
+    fun startDownload() {
+        val url = artwork.imageUrl ?: return
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return // permission launcher below handles this path
+        }
+        viewModel?.saveImageToGallery(url, artwork.title)
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) startDownload()
+        else Toast.makeText(context, "Storage permission is needed to save the image", Toast.LENGTH_SHORT).show()
+    }
+
+    val onDownloadClick = {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            if (cm?.isActiveNetworkMetered == true) showMeteredDialog = true else startDownload()
+        }
+    }
+
+    if (saveState is SaveImageUiState.Saving) {
+        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+    } else {
+        InfoColumn(R.drawable.ic_download, "Download") { onDownloadClick() }
+    }
+
+    LaunchedEffect(saveState) {
+        when (saveState) {
+            is SaveImageUiState.Saved -> {
+                Toast.makeText(context, "Saved to gallery", Toast.LENGTH_SHORT).show()
+                viewModel?.resetSaveImageState()
+            }
+            is SaveImageUiState.Error -> {
+                Toast.makeText(context, saveState.message, Toast.LENGTH_LONG).show()
+                viewModel?.resetSaveImageState()
+            }
+            else -> {}
+        }
+    }
+
+    if (showMeteredDialog) {
+        AlertDialog(
+            onDismissRequest = { showMeteredDialog = false },
+            title = { Text("Download on mobile data?") },
+            text = { Text("This is a high-resolution image and may use 20-50 MB of data.") },
+            confirmButton = {
+                TextButton(onClick = { showMeteredDialog = false; startDownload() }) { Text("Download") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMeteredDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 

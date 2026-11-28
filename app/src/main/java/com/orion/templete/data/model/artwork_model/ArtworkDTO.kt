@@ -29,6 +29,14 @@ data class ArtworkDTO(
     val licenseInfo: String? = null,
     @SerializedName("source_url")
     val sourceUrl: String? = null,
+    // Server-decided licence capabilities (backend RightsPolicy). Fail closed:
+    // a null or missing flag means the work is not saveable in this client.
+    @SerializedName("rights_status")
+    val rightsStatus: String? = null,
+    @SerializedName("can_save")
+    val canSave: Boolean? = null,
+    @SerializedName("can_set_wallpaper")
+    val canSetWallpaper: Boolean? = null,
     val liked: Boolean? = null,
     val id: String? = null,
     val genreId: String? = null,
