@@ -4,18 +4,24 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.flashcall.me.data.local.dao.UserDao
+import com.orion.templete.data.local.dao.FavouriteDao
+import com.orion.templete.data.local.entity.FavouriteEntity
+import com.orion.templete.data.local.entity.FavouriteOutboxEntity
 import com.orion.templete.data.local.entity.UserEntity
 import com.orion.templete.util.ListTypeConverter
 
 @Database(
     entities = [
-        UserEntity::class
+        UserEntity::class,
+        FavouriteEntity::class,
+        FavouriteOutboxEntity::class
         ],
-    version = 2
+    version = 3
 )
 @TypeConverters(ListTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
+    abstract fun favouriteDao(): FavouriteDao
     companion object {
         const val DATABASE_NAME = "flashcall_database"
     }

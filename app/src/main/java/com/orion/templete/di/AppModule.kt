@@ -104,6 +104,9 @@ object  AppModule {
             .build()
     }
     @Provides
+    @Singleton
+    fun provideFavouriteDao(database: AppDatabase) = database.favouriteDao()
+    @Provides
     fun provideArtWorkRepository(apiService: ApiService, secureStorage: SecureStorage): ArtworkRepository {
         return ArtworkRepositoryImplementation(apiService = apiService, secureStorage = secureStorage)
     }
