@@ -426,6 +426,10 @@ fun BasicInfo(
         if (artworkDetailsDTO.canSave == true) {
             DownloadToGalleryAction(artworkDetailsDTO, viewModel)
         }
+        // Set as device wallpaper, public-domain works only (server-gated)
+        if (artworkDetailsDTO.canSetWallpaper == true) {
+            SetWallpaperAction(artworkDetailsDTO, viewModel)
+        }
     }
     if (showSavedFolders){
         BottomSheet(onDismiss = { showSavedFolders = false }) {
@@ -784,6 +788,57 @@ fun DownloadToGalleryAction(artwork: ArtworkDTO, viewModel: ArtworkDetailViewMod
             text = { Text("This is a high-resolution image and may use 20-50 MB of data.") },
             confirmButton = {
                 TextButton(onClick = { showMeteredDialog = false; startDownload() }) { Text("Download") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMeteredDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+@Composable
+fun SetWallpaperAction(artwork: ArtworkDTO, viewModel: ArtworkDetailViewModel?) {
+    val context = LocalContext.current
+    var showMeteredDialog by remember { mutableStateOf(false) }
+    val wallpaperState = viewModel?.wallpaperUiState
+
+    fun startSetWallpaper() {
+        val url = artwork.imageUrl ?: return
+        viewModel?.setArtworkAsWallpaper(url)
+    }
+
+    val onWallpaperClick = {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        if (cm?.isActiveNetworkMetered == true) showMeteredDialog = true else startSetWallpaper()
+    }
+
+    if (wallpaperState is WallpaperUiState.Setting) {
+        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+    } else {
+        InfoColumn(R.drawable.ic_wallpaper, "Wallpaper") { onWallpaperClick() }
+    }
+
+    LaunchedEffect(wallpaperState) {
+        when (wallpaperState) {
+            is WallpaperUiState.Set -> {
+                Toast.makeText(context, "Wallpaper set (may not apply on some devices)", Toast.LENGTH_SHORT).show()
+                viewModel?.resetWallpaperState()
+            }
+            is WallpaperUiState.Error -> {
+                Toast.makeText(context, wallpaperState.message, Toast.LENGTH_LONG).show()
+                viewModel?.resetWallpaperState()
+            }
+            else -> {}
+        }
+    }
+
+    if (showMeteredDialog) {
+        AlertDialog(
+            onDismissRequest = { showMeteredDialog = false },
+            title = { Text("Download on mobile data?") },
+            text = { Text("Setting the wallpaper downloads a high-resolution image and may use 20-50 MB of data.") },
+            confirmButton = {
+                TextButton(onClick = { showMeteredDialog = false; startSetWallpaper() }) { Text("Continue") }
             },
             dismissButton = {
                 TextButton(onClick = { showMeteredDialog = false }) { Text("Cancel") }

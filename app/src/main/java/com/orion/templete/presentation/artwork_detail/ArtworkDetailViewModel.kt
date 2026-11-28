@@ -14,6 +14,7 @@ import com.orion.templete.util.ArtworkSaver
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
+import com.orion.templete.util.WallpaperSetter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +54,32 @@ class ArtworkDetailViewModel @Inject constructor(
 
     fun resetSaveImageState() {
         saveImageUiState = SaveImageUiState.Idle
+    }
+
+    // Set artwork as the device wallpaper (public-domain works only, gated by the server)
+    var wallpaperUiState by mutableStateOf<WallpaperUiState>(WallpaperUiState.Idle)
+        private set
+
+    fun setArtworkAsWallpaper(imageUrl: String) {
+        if (wallpaperUiState is WallpaperUiState.Setting) return
+        viewModelScope.launch {
+            wallpaperUiState = WallpaperUiState.Setting
+            wallpaperUiState = try {
+                val cached = ArtworkSaver.downloadToCache(appContext, imageUrl)
+                try {
+                    WallpaperSetter.setFromFile(appContext, cached)
+                } finally {
+                    cached.delete()
+                }
+                WallpaperUiState.Set
+            } catch (t: Throwable) {
+                WallpaperUiState.Error(t.message ?: "Could not set wallpaper")
+            }
+        }
+    }
+
+    fun resetWallpaperState() {
+        wallpaperUiState = WallpaperUiState.Idle
     }
     var artworkDetailScreenUiState by mutableStateOf<ArtworkDetailScreenUiState>(ArtworkDetailScreenUiState.Loading)
         private set
@@ -211,5 +238,13 @@ sealed interface SaveImageUiState {
     object Saving : SaveImageUiState
     object Saved : SaveImageUiState
     data class Error(val message: String) : SaveImageUiState
+}
+
+// Set-as-wallpaper UI state (public-domain works only)
+sealed interface WallpaperUiState {
+    object Idle : WallpaperUiState
+    object Setting : WallpaperUiState
+    object Set : WallpaperUiState
+    data class Error(val message: String) : WallpaperUiState
 }
 

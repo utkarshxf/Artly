@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Saving public-domain artwork to the gallery on Android 9 and older (asked at runtime) -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- Setting public-domain artwork as the device wallpaper (normal permission) -->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
     <!-- Audio / video calls in chat (Agora). Microphone and camera are asked at runtime before the first call;
          Bluetooth (headsets) is asked with them on Android 12+ and never blocks a call. -->
