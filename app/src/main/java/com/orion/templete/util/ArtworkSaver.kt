@@ -34,7 +34,8 @@ object ArtworkSaver {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Download failed (HTTP ${response.code})")
             val out = File(ctx.cacheDir, "artwork_${System.currentTimeMillis()}.img")
-            response.body.byteStream().use { input ->
+            val body = response.body ?: error("Empty response body")
+            body.byteStream().use { input ->
                 out.outputStream().use { input.copyTo(it) }
             }
             out

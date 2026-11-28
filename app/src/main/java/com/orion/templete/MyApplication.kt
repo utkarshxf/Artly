@@ -16,6 +16,10 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 
@@ -54,7 +58,7 @@ class MyApplication: Application() {
         // Daily artwork notification: channel + periodic worker (fires offline from bundled fallbacks)
         com.orion.templete.work.DailyArtworkNotificationWorker.createChannel(this)
         com.orion.templete.work.DailyArtworkNotificationWorker.schedule(this)
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val deps = dagger.hilt.android.EntryPointAccessors.fromApplication(
                     applicationContext,

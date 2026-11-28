@@ -96,7 +96,7 @@ class DailyArtworkNotificationWorker(
             val request = Request.Builder().url(url).build()
             OkHttpClient().newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
-                val bytes = response.body.bytes()
+                val bytes = response.body?.bytes() ?: return null
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                 var sample = 1

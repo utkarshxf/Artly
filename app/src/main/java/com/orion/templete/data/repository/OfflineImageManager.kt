@@ -43,7 +43,8 @@ class OfflineImageManager @Inject constructor(
             val request = Request.Builder().url(imageUrl).build()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) error("Download failed (HTTP ${response.code})")
-                response.body.byteStream().use { input ->
+                val body = response.body ?: error("Empty response body")
+                body.byteStream().use { input ->
                     tmp.outputStream().use { input.copyTo(it) }
                 }
             }
