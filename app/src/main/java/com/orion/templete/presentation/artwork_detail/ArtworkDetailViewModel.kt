@@ -4,15 +4,18 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.artwork_model.ArtworkStatsResponse
 import com.orion.templete.domain.repository.ArtworkRepository
+import com.orion.templete.util.ArtworkSaver
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -22,8 +25,35 @@ import javax.inject.Inject
 class ArtworkDetailViewModel @Inject constructor(
     private val artworkRepository: ArtworkRepository,
     private val secureStorage: SecureStorage,
-    private val trackEvents: TrackEvents // Add TrackEvents dependency
+    private val trackEvents: TrackEvents, // Add TrackEvents dependency
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
+
+    // Save high-res artwork to the gallery (public-domain works only, gated by the server)
+    var saveImageUiState by mutableStateOf<SaveImageUiState>(SaveImageUiState.Idle)
+        private set
+
+    fun saveImageToGallery(imageUrl: String, title: String?) {
+        if (saveImageUiState is SaveImageUiState.Saving) return
+        viewModelScope.launch {
+            saveImageUiState = SaveImageUiState.Saving
+            saveImageUiState = try {
+                val cached = ArtworkSaver.downloadToCache(appContext, imageUrl)
+                try {
+                    ArtworkSaver.saveToGallery(appContext, cached, ArtworkSaver.fileNameFor(title, imageUrl))
+                } finally {
+                    cached.delete()
+                }
+                SaveImageUiState.Saved
+            } catch (t: Throwable) {
+                SaveImageUiState.Error(t.message ?: "Download failed")
+            }
+        }
+    }
+
+    fun resetSaveImageState() {
+        saveImageUiState = SaveImageUiState.Idle
+    }
     var artworkDetailScreenUiState by mutableStateOf<ArtworkDetailScreenUiState>(ArtworkDetailScreenUiState.Loading)
         private set
 
@@ -173,5 +203,13 @@ sealed interface ArtworkStatsUiState {
     object Loading : ArtworkStatsUiState
     data class Success(val stats: ArtworkStatsResponse) : ArtworkStatsUiState
     data class Error(val message: String) : ArtworkStatsUiState
+}
+
+// Save-to-gallery UI state (public-domain works only)
+sealed interface SaveImageUiState {
+    object Idle : SaveImageUiState
+    object Saving : SaveImageUiState
+    object Saved : SaveImageUiState
+    data class Error(val message: String) : SaveImageUiState
 }
 
