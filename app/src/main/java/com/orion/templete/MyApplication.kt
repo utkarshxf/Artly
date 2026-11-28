@@ -47,6 +47,19 @@ class MyApplication: Application() {
 
         TrackEvents(this).trackAppOpened()
 
+        // Offline favourites: drop orphaned files and stale READY rows from the store
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                val deps = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                    applicationContext,
+                    com.orion.templete.work.FavouriteArtworkDownloadWorker.Deps::class.java
+                )
+                deps.offlineImageManager().reconcile()
+            } catch (t: Throwable) {
+                Log.w("OfflineFavourites", "reconcile failed", t)
+            }
+        }
+
         // Create custom OkHttpClient that handles both Firebase and Wikimedia
         val okHttpClient = OkHttpClient.Builder()
             .followRedirects(true)

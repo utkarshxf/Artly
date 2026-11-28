@@ -193,6 +193,9 @@ dependencies {
     implementation "androidx.room:room-ktx:$room_version"
     kapt "androidx.room:room-compiler:$room_version"
 
+    // Offline favourites: background downloads with network/storage constraints
+    implementation "androidx.work:work-runtime-ktx:2.9.1"
+
     implementation 'com.github.freshworks:freshchat-android:6.3.8'
 
     /**Ucrop**/

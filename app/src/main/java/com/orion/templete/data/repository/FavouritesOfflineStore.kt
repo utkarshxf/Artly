@@ -84,6 +84,10 @@ class FavouritesOfflineStore @Inject constructor(
         return evicted
     }
 
+    /** Launch cleanup: the file for a READY row went missing; drop the stale reference. */
+    suspend fun recordMissingCopy(artworkId: String) =
+        dao.updateOfflineCopy(artworkId, FavouriteEntity.OFFLINE_NONE, null, 0)
+
     suspend fun touch(artworkId: String) = dao.touch(artworkId, System.currentTimeMillis())
 
     suspend fun readyCopies(): List<FavouriteEntity> = dao.readyCopies()
