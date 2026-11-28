@@ -50,6 +50,10 @@ class MyApplication: Application() {
         // Offline favourites: drop orphaned files and stale READY rows from the store,
         // and keep the periodic outbox sync scheduled
         com.orion.templete.work.FavouritesSyncWorker.schedule(this)
+
+        // Daily artwork notification: channel + periodic worker (fires offline from bundled fallbacks)
+        com.orion.templete.work.DailyArtworkNotificationWorker.createChannel(this)
+        com.orion.templete.work.DailyArtworkNotificationWorker.schedule(this)
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
             try {
                 val deps = dagger.hilt.android.EntryPointAccessors.fromApplication(

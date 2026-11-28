@@ -1,0 +1,212 @@
+[
+ {
+  "id": "44b78a67-7c82-4840-9e11-e3b7321473bb",
+  "title": "Guernica (Picasso)",
+  "artist": "Pablo Picasso",
+  "story": "A horse screams at the center, head thrown back, while a bull stands over a mother holding her dead child.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/44b78a67-7c82-4840-9e11-e3b7321473bb_l.jpg"
+ },
+ {
+  "id": "e36c869e-86ae-47c2-9dfc-17d708f5909b",
+  "title": "Portrait of a Musician",
+  "artist": "Leonardo da Vinci",
+  "story": "The sheet music is the only clue.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/e36c869e-86ae-47c2-9dfc-17d708f5909b_l.jpg"
+ },
+ {
+  "id": "85412bf2-ebbe-449d-94b7-c55c3a99f770",
+  "title": "Las Meninas",
+  "artist": "Diego Velázquez",
+  "story": "At the centre of the big dim room stands a little girl in white, and nearly everyone around her is looking at us.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/85412bf2-ebbe-449d-94b7-c55c3a99f770_l.jpg"
+ },
+ {
+  "id": "d2f58a28-c32f-4561-8303-ae48ba1c5ba7",
+  "title": "Portrait of Isabella d'Este",
+  "artist": "Leonardo da Vinci",
+  "story": "Isabella d'Este turns her head into profile while her shoulders remain angled toward us.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/d2f58a28-c32f-4561-8303-ae48ba1c5ba7_l.jpg"
+ },
+ {
+  "id": "25cf08ee-4385-4e89-b5d5-8d0ca7220890",
+  "title": "The Night Watch",
+  "artist": "Rembrandt van Rijn",
+  "story": "A small girl in gold walks through the armed company, a dead chicken hanging from her belt, while the captain in black strides forward, hand out.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/25cf08ee-4385-4e89-b5d5-8d0ca7220890_l.jpg"
+ },
+ {
+  "id": "035aeff7-51ec-40c7-9fbc-ef60e5c27ab3",
+  "title": "The Starry Night",
+  "artist": "Vincent van Gogh",
+  "story": "Look at the village first.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/035aeff7-51ec-40c7-9fbc-ef60e5c27ab3_l.jpg"
+ },
+ {
+  "id": "d7b00041-05e0-4eeb-989b-b08c7aa27f9c",
+  "title": "The Last Supper",
+  "artist": "Leonardo da Vinci",
+  "story": "Every hand in the room is moving.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/d7b00041-05e0-4eeb-989b-b08c7aa27f9c_l.jpg"
+ },
+ {
+  "id": "e56a5475-5cff-4fe2-b7f0-7a5bbfbce72e",
+  "title": "Water Lilies (Monet series)",
+  "artist": "",
+  "story": "Water Lilies (French: Nymphéas [nɛ̃.fe.a]) is a series of approximately 250 oil paintings by French Impressionist Claude Monet (1840–1926).",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Claude_Monet_Seerosen_um_1915_Neue_Pinakothek-4.jpg/500px-Claude_Monet_Seerosen_um_1915_Neue_Pinakothek-4.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail"
+ },
+ {
+  "id": "f21e900c-6bae-4c43-a470-0ed3f9f5302c",
+  "title": "The Birth of Venus",
+  "artist": "",
+  "story": "The Birth of Venus (Italian: Nascita di Venere [ˈnaʃʃita di ˈvɛːnere]) is a painting by the Italian artist Sandro Botticelli, probably executed in the mid-1480s.",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg/500px-Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail"
+ },
+ {
+  "id": "d9b0f3e7-af26-434f-8b5e-70fc0c376c16",
+  "title": "Dinos of the Gorgon Painter",
+  "artist": "Gorgon Painter",
+  "story": "The Dinos of the Gorgon Painter (French: Dinos du Peintre de la Gorgone) is an important example of ancient Greek pottery, produced at Athens around 580 BC.",
+  "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Dinos_du_peintre_de_la_Gorgone_-_Mus%C3%A9e_du_Louvre_Antiquit%C3%A9s_grecques_E_874.jpg/250px-Dinos_du_peintre_de_la_Gorgone_-_Mus%C3%A9e_du_Louvre_Antiquit%C3%A9s_grecques_E_874.jpg"
+ },
+ {
+  "id": "4818fe71-7ecf-4082-9691-4bba763014cf",
+  "title": "Portrait of Madeleine",
+  "artist": "Marie-Guillemine Benoist",
+  "story": "Portrait of Madeleine, also known as Portrait of a Black Woman (French: Portrait d'une femme noire or Portrait d'une negresse), is an oil-on-canvas painting by the French artist Marie-Guillemine Benoist, created in 1800.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/4818fe71-7ecf-4082-9691-4bba763014cf_l.jpg"
+ },
+ {
+  "id": "9d64daa6-ab44-4b8a-971b-f226d506e921",
+  "title": "Beach in Pourville",
+  "artist": "Claude Monet",
+  "story": "The beach opens in a pale sweep between green-blue water and the cliffs.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/9d64daa6-ab44-4b8a-971b-f226d506e921_l.jpg"
+ },
+ {
+  "id": "50a6b2e7-8cec-463c-9c67-928f2c248cbe",
+  "title": "The Garden of Earthly Delights",
+  "artist": "",
+  "story": "The Garden of Earthly Delights (Dutch: De tuin der lusten, lit.",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/The_Garden_of_Earthly_Delights_by_Bosch_High_Resolution_2.jpg/500px-The_Garden_of_Earthly_Delights_by_Bosch_High_Resolution_2.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail"
+ },
+ {
+  "id": "ef44484a-a05a-4424-be1b-6961cb34b15b",
+  "title": "American Gothic",
+  "artist": "Grant Wood",
+  "story": "A stern man in overalls holds a pitchfork, and a woman in a dark apron stands at his shoulder looking aside.\nBehind them is a white wooden house with a pointed Gothic window.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/ef44484a-a05a-4424-be1b-6961cb34b15b_l.jpg"
+ },
+ {
+  "id": "d12c7b63-8d60-4e69-b1f9-46dd70f00ad5",
+  "title": "The Creation of Adam",
+  "artist": "Michelangelo",
+  "story": "Two hands reach across an empty gap of plaster sky, and they do not touch; the whole history of painting hangs in that inch.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/d12c7b63-8d60-4e69-b1f9-46dd70f00ad5_l.jpg"
+ },
+ {
+  "id": "eec0e0e1-defc-48d4-ba90-a1244e113b2f",
+  "title": "Impression, Sunrise",
+  "artist": "Claude Monet",
+  "story": "The sun is the only warm thing here.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/eec0e0e1-defc-48d4-ba90-a1244e113b2f_l.jpg"
+ },
+ {
+  "id": "07e08b1a-5a34-46ef-8c5a-c812976ecc3f",
+  "title": "Artists in Isabey's Studio",
+  "artist": "Louis-Léopold Boilly",
+  "story": "A crowd of men in coats and hats press into a dark studio, with a few faces lit and the rest in shadow.\nSome sit and some stand around a central group, and a pale figure sits low at the middle.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/07e08b1a-5a34-46ef-8c5a-c812976ecc3f_l.jpg"
+ },
+ {
+  "id": "018d551e-7d79-42ab-9298-1783f7b68abc",
+  "title": "Self-Portrait (Chassériau)",
+  "artist": "Théodore Chassériau",
+  "story": "A young man in a black coat stands with one hand resting on a red-covered table, and his dark hair falls over his forehead.\nThe wall behind him is a smoky gray-brown.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/018d551e-7d79-42ab-9298-1783f7b68abc_l.jpg"
+ },
+ {
+  "id": "cbfe5a9e-41bb-45e0-be2b-967b06bd042e",
+  "title": "Portrait of Madame Marie-Louise Trudaine",
+  "artist": "Jacques-Louis David",
+  "story": "Madame Trudaine sits against a broad red background, wearing a dark dress, a white neckerchief and a bright blue sash.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/cbfe5a9e-41bb-45e0-be2b-967b06bd042e_l.jpg"
+ },
+ {
+  "id": "ab5a30ac-9a7f-4595-b424-e22312da8fde",
+  "title": "Portrait of a Young Girl (Guérin)",
+  "artist": "Pierre-Narcisse Guérin",
+  "story": "Her hair is cut short in the new fashion, the style they called à la victime, worn in memory of the guillotine's cropped heads.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/ab5a30ac-9a7f-4595-b424-e22312da8fde_l.jpg"
+ },
+ {
+  "id": "7128fe04-2e05-409b-98fd-640372a02462",
+  "title": "Portrait of Monsieur Bertin",
+  "artist": "",
+  "story": "Bertin sits squarely facing us, both hands spread over his knees.",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ec/Louis-Francois_Bertin.jpg/500px-Louis-Francois_Bertin.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail"
+ },
+ {
+  "id": "52383de3-fa7e-4a35-bb3c-59b9767ee919",
+  "title": "Pierrot (Watteau)",
+  "artist": "Jean-Antoine Watteau",
+  "story": "A figure in a loose white suit stands stiff, arms at his sides, in front of a tree-filled landscape.\nHe wears a flat pale hat and white slippers.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/52383de3-fa7e-4a35-bb3c-59b9767ee919_l.jpg"
+ },
+ {
+  "id": "7ce6d825-b33f-4570-ad2b-0f6ad5887bb1",
+  "title": "Christ Blessing (Raphael)",
+  "artist": "Raphael",
+  "story": "Christ raises one hand in blessing while the other rests near the wound in his side.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/7ce6d825-b33f-4570-ad2b-0f6ad5887bb1_l.jpg"
+ },
+ {
+  "id": "6a80a50f-7f35-4896-95eb-644d6ee7d0c6",
+  "title": "Conestabile Madonna",
+  "artist": "Raphael",
+  "story": "Mary bends over a small open book while the Christ Child follows its pages from her arms.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/6a80a50f-7f35-4896-95eb-644d6ee7d0c6_l.jpg"
+ },
+ {
+  "id": "7595876d-4420-4eae-a6ad-e1d3051ad658",
+  "title": "Portrait of an African Man",
+  "artist": "Jan Mostaert",
+  "story": "A man in a red cap and a black coat with red sleeves looks off to the left, and a gloved hand rests at his waist.\nA white collar shows at his neck, and a dark pendant hangs on a cord.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/7595876d-4420-4eae-a6ad-e1d3051ad658_l.jpg"
+ },
+ {
+  "id": "b52ed74e-fedf-476e-9e7d-4418bdb77006",
+  "title": "Portrait of Andrea Navagero and Agostino Beazzano",
+  "artist": "Raphael",
+  "story": "Two men in dark clothing turn towards the viewer against a green background.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/b52ed74e-fedf-476e-9e7d-4418bdb77006_l.jpg"
+ },
+ {
+  "id": "9c3b34bc-8501-4bc9-be77-be62f2799088",
+  "title": "Armada Portrait",
+  "artist": "Unknown English artist (formerly attributed to George Gower)",
+  "story": "The Armada Portrait of Elizabeth I of England is the name of any of three surviving versions of an allegorical panel painting depicting the Tudor queen surrounded by symbols of royal majesty against a backdrop representi",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/9c3b34bc-8501-4bc9-be77-be62f2799088_l.jpg"
+ },
+ {
+  "id": "52047390-0489-472b-b7ea-71d935793f60",
+  "title": "Portrait of Bindo Altoviti",
+  "artist": "Raphael",
+  "story": "Bindo Altoviti looks back over his shoulder, his long fair hair falling against a blue garment that leaves part of his upper back bare.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/52047390-0489-472b-b7ea-71d935793f60_l.jpg"
+ },
+ {
+  "id": "84cf3bc8-ecfd-466f-ac08-25f6c5ed5adc",
+  "title": "Annunciation",
+  "artist": "Leonardo da Vinci",
+  "story": "The angel has just landed, wing tips still lifted.",
+  "image": "https://artistry-images.utkarshxf.workers.dev/artworks/84cf3bc8-ecfd-466f-ac08-25f6c5ed5adc_l.jpg"
+ },
+ {
+  "id": "4db4d292-58e2-4b3c-8749-4f20c448cb56",
+  "title": "The Holy Infants Embracing",
+  "artist": "",
+  "story": "The Holy Infants Embracing is a painting by Leonardo da Vinci.",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Leonardo_da_Vinci_%28attrib%29_-_The_Holy_Infants.jpg/500px-Leonardo_da_Vinci_%28attrib%29_-_The_Holy_Infants.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail"
+ }
+]
