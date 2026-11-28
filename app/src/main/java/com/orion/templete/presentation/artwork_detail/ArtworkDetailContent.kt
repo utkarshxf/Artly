@@ -435,7 +435,8 @@ fun BasicInfo(
         BottomSheet(onDismiss = { showSavedFolders = false }) {
             SaveSection(
                 dismiss = { showSavedFolders = false },
-                artworkDetailsDTO.id,
+                artworkId = artworkDetailsDTO.id,
+                artwork = artworkDetailsDTO,
                 vm = collectionVm
             )
         }
@@ -565,6 +566,7 @@ fun CommentSection(
 fun SaveSection(
     dismiss: () -> Unit = {},
     artworkId: String? = null,
+    artwork: ArtworkDTO? = null,
     vm: CollectionViewModel = hiltViewModel()
 ) {
     var addCollectionDialog by remember { mutableStateOf(false) }
@@ -661,7 +663,7 @@ fun SaveSection(
                             CollectionCard(it , onClick = {
                                 it.id?.let { it1 ->
                                     if (artworkId != null) {
-                                        vm.saveOnFavorites(favoritesId = it1 , artworkId =artworkId)
+                                        vm.saveOnFavorites(favoritesId = it1 , artworkId = artworkId, artwork = artwork)
                                         Toast.makeText(context , "Saved" , Toast.LENGTH_SHORT).show()
                                         dismiss()
                                     }

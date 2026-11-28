@@ -42,13 +42,15 @@ data class FavouriteEntity(
 
 /**
  * Pending sync operations, flushed to the backend when the network returns.
- * op: ADD or REMOVE.
+ * op: ADD or REMOVE. collectionId routes ADD to the collection folder the
+ * user picked; REMOVE has no backend endpoint yet and stays local-only.
  */
 @Entity(tableName = "favourite_outbox")
 data class FavouriteOutboxEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val artworkId: String,
     val op: String,
+    val collectionId: String? = null,
     val createdAt: Long,
     val attempts: Int = 0
 ) {

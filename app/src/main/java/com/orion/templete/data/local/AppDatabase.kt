@@ -16,7 +16,7 @@ import com.orion.templete.util.ListTypeConverter
         FavouriteEntity::class,
         FavouriteOutboxEntity::class
         ],
-    version = 3
+    version = 4
 )
 @TypeConverters(ListTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {

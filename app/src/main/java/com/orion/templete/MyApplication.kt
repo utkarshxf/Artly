@@ -47,7 +47,9 @@ class MyApplication: Application() {
 
         TrackEvents(this).trackAppOpened()
 
-        // Offline favourites: drop orphaned files and stale READY rows from the store
+        // Offline favourites: drop orphaned files and stale READY rows from the store,
+        // and keep the periodic outbox sync scheduled
+        com.orion.templete.work.FavouritesSyncWorker.schedule(this)
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
             try {
                 val deps = dagger.hilt.android.EntryPointAccessors.fromApplication(

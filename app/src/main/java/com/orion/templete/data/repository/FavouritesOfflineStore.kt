@@ -25,7 +25,12 @@ class FavouritesOfflineStore @Inject constructor(
     suspend fun isFavourite(artworkId: String): Boolean =
         dao.getById(artworkId)?.let { it.syncState != FavouriteEntity.PENDING_REMOVE } == true
 
-    suspend fun markFavourite(artwork: ArtworkDTO) {
+    /**
+     * Records a favourite locally. When [synced] is true the backend already
+     * has it (the online save just succeeded); otherwise an ADD op is queued
+     * in the outbox with the collection the user picked.
+     */
+    suspend fun markFavourite(artwork: ArtworkDTO, collectionId: String? = null, synced: Boolean = false) {
         val id = artwork.id ?: return
         val now = System.currentTimeMillis()
         val existing = dao.getById(id)
@@ -40,14 +45,14 @@ class FavouritesOfflineStore @Inject constructor(
                 canSetWallpaper = artwork.canSetWallpaper == true,
                 addedAt = existing?.addedAt ?: now,
                 lastViewedAt = now,
-                syncState = if (existing?.syncState == FavouriteEntity.SYNCED) FavouriteEntity.SYNCED else FavouriteEntity.PENDING_ADD,
+                syncState = if (synced || existing?.syncState == FavouriteEntity.SYNCED) FavouriteEntity.SYNCED else FavouriteEntity.PENDING_ADD,
                 localPath = existing?.localPath,
                 localBytes = existing?.localBytes ?: 0,
-                offlineState = existing?.offlineState ?: FavouriteEntity.OFFLINE_NONE
+                offlineState = existing?.offlineState ?: FavouriteEntity.OFFLINE_QUEUED
             )
         )
-        if (existing?.syncState != FavouriteEntity.SYNCED) {
-            dao.insertOutbox(FavouriteOutboxEntity(artworkId = id, op = FavouriteOutboxEntity.OP_ADD, createdAt = now))
+        if (!synced && existing?.syncState != FavouriteEntity.SYNCED) {
+            dao.insertOutbox(FavouriteOutboxEntity(artworkId = id, op = FavouriteOutboxEntity.OP_ADD, collectionId = collectionId, createdAt = now))
         }
     }
 

@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
+import com.orion.templete.util.rememberOfflineFirstImageRequest
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -57,7 +58,7 @@ fun ArtworkItem(
             // Image takes up most of the space
             Image(
                 painter = rememberAsyncImagePainter(
-                    model = artwork.image_url_compressed,
+                    model = rememberOfflineFirstImageRequest(artwork.id, artwork.image_url_compressed),
                     placeholder = painterResource(id = R.drawable.placeholder),
                     error = painterResource(id = R.drawable.placeholder),
                     fallback = painterResource(id = R.drawable.placeholder)

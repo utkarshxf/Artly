@@ -1,19 +1,25 @@
 package com.orion.templete.presentation.favorites
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orion.templete.data.local.entity.FavouriteEntity
 import com.orion.templete.data.model.artwork_model.ArtworkDTO
 import com.orion.templete.data.model.favorits.favoritesDTO
+import com.orion.templete.data.repository.FavouritesOfflineStore
 import com.orion.templete.domain.repository.ArtworkRepository
 import com.orion.templete.util.ResponseStates
 import com.orion.templete.util.SecureStorage
 import com.orion.templete.util.TrackEvents
+import com.orion.templete.work.FavouriteArtworkDownloadWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,7 +27,9 @@ import javax.inject.Inject
 class CollectionViewModel @Inject constructor(
     private val artworkRepository: ArtworkRepository,
     private val secureStorage: SecureStorage,
-    private val trackEvents: TrackEvents
+    private val trackEvents: TrackEvents,
+    private val favouritesOfflineStore: FavouritesOfflineStore,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     var collectionScreenUiState by mutableStateOf<CollectionScreenUiState>(CollectionScreenUiState.Loading)
         private set
@@ -97,20 +105,36 @@ class CollectionViewModel @Inject constructor(
     }
 
     //save to fav
-    fun saveOnFavorites(favoritesId: String, artworkId: String) {
+    fun saveOnFavorites(favoritesId: String, artworkId: String, artwork: ArtworkDTO? = null) {
         viewModelScope.launch {
             artworkRepository.saveOnFavorites(favoritesId, artworkId).collect { response ->
                 addToFavoritesUiState = when (response) {
                     is ResponseStates.Loading -> AddToFavoritesUiState.Loading
                     is ResponseStates.Success -> {
                         Log.d("ErrorUser", "saveOnFavorites: ${response.data}")
+                        mirrorFavouriteOffline(artwork, artworkId, favoritesId, synced = true)
                         AddToFavoritesUiState.Success(response.data)
                     }
                     is ResponseStates.Error -> {
                         Log.d("ErrorUser", "saveOnFavorites: ${response.error}")
+                        // Offline or server down: keep the favourite locally and sync later
+                        mirrorFavouriteOffline(artwork, artworkId, favoritesId, synced = false)
                         AddToFavoritesUiState.Error(response.error)
                     }
                 }
+            }
+        }
+    }
+
+    // Mirror the save into the local favourites store and queue the offline image copy
+    private fun mirrorFavouriteOffline(artwork: ArtworkDTO?, artworkId: String, collectionId: String, synced: Boolean) {
+        viewModelScope.launch {
+            val dto = artwork ?: ArtworkDTO(id = artworkId)
+            try {
+                favouritesOfflineStore.markFavourite(dto, collectionId = collectionId, synced = synced)
+                FavouriteArtworkDownloadWorker.enqueue(appContext, artworkId)
+            } catch (t: Throwable) {
+                Log.w("OfflineFavourites", "mirror failed", t)
             }
         }
     }
@@ -126,7 +150,7 @@ class CollectionViewModel @Inject constructor(
             artworkRepository.getAllFavorites(currentUserId).collect { response ->
                 when (response) {
                     is ResponseStates.Loading -> {}
-                    is ResponseStates.Error -> savedArtworksUiState = SavedArtworksUiState.Error(response.error)
+                    is ResponseStates.Error -> savedArtworksUiState = offlineSavedArtworksFallback(response.error)
                     is ResponseStates.Success -> {
                         val collections = response.data
                         if (collections.isEmpty()) {
@@ -146,13 +170,33 @@ class CollectionViewModel @Inject constructor(
                             }
                         }
                         savedArtworksUiState = if (all.isEmpty() && failed != null) {
-                            SavedArtworksUiState.Error(failed!!)
+                            offlineSavedArtworksFallback(failed!!)
                         } else {
                             SavedArtworksUiState.Success(all.distinctBy { it.id }.asReversed())
                         }
                     }
                 }
             }
+        }
+    }
+
+    // Offline favourites: when the network fails, serve the local Room store
+    private suspend fun offlineSavedArtworksFallback(error: String): SavedArtworksUiState {
+        return try {
+            val local = favouritesOfflineStore.observeFavourites().first().map {
+                ArtworkDTO(
+                    id = it.artworkId,
+                    title = it.title,
+                    artist = it.artist,
+                    imageUrl = it.imageUrl,
+                    image_url_compressed = it.imageUrlCompressed,
+                    canSave = it.canSave,
+                    canSetWallpaper = it.canSetWallpaper
+                )
+            }
+            if (local.isEmpty()) SavedArtworksUiState.Error(error) else SavedArtworksUiState.Success(local)
+        } catch (t: Throwable) {
+            SavedArtworksUiState.Error(error)
         }
     }
 }
